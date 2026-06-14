@@ -6,6 +6,7 @@ class Board:
         self.matrix = [[None for _ in range(9)] for _ in range(10)]
         self.turn = 'red' # Red goes first
         self.history = [] # Stack of (from_pos, to_pos, captured_piece, old_turn)
+        self.matrix_history = []
         
         if setup:
             self.setup_pieces()
@@ -97,7 +98,7 @@ class Board:
                 
         return False
 
-    def get_all_legal_moves(self, color):
+    def get_all_legal_moves(self, color, avoid_repetition=True):
         """
         Calculates all legal moves for a given color.
         Returns list of ((from_row, from_col), (to_row, to_col))
@@ -117,7 +118,46 @@ class Board:
                         if not self.is_in_check(color):
                             legal_moves.append((from_pos, to_pos))
                         self.undo_move(test_only=True)
+                        
+        if avoid_repetition and len(self.matrix_history) >= 4:
+            # Strictly filter out moves that lead to repetition
+            non_repeating = [m for m in legal_moves if not self.is_repetition_move(m[0], m[1])]
+            return non_repeating
+            
         return legal_moves
+
+    def is_repetition_move(self, from_pos, to_pos):
+        if not self.matrix_history:
+            return False
+            
+        # Simulate the move
+        self.make_move(from_pos, to_pos, test_only=True)
+        
+        # Check if resulting matrix matches any of the recent past matrices
+        recent_matrices = self.matrix_history[-8:]
+        is_repeat = False
+        
+        for prev_matrix in recent_matrices:
+            match = True
+            for r in range(10):
+                for c in range(9):
+                    p1 = self.matrix[r][c]
+                    p2 = prev_matrix[r][c]
+                    if (p1 is None) != (p2 is None):
+                        match = False
+                        break
+                    if p1 and p2:
+                        if p1.name != p2.name or p1.color != p2.color:
+                            match = False
+                            break
+                if not match:
+                    break
+            if match:
+                is_repeat = True
+                break
+                
+        self.undo_move(test_only=True)
+        return is_repeat
 
     def make_move(self, from_pos, to_pos, test_only=False):
         """
@@ -130,13 +170,24 @@ class Board:
         piece = self.matrix[fr][fc]
         captured = self.matrix[tr][tc]
         
+        if not test_only:
+            # Save a copy of the matrix before making the move
+            matrix_copy = [[None for _ in range(9)] for _ in range(10)]
+            for r in range(10):
+                for c in range(9):
+                    p = self.matrix[r][c]
+                    if p:
+                        matrix_copy[r][c] = p.copy()
+            self.matrix_history.append(matrix_copy)
+            
         # Record history
         self.history.append((from_pos, to_pos, captured, self.turn))
         
         # Move piece in matrix
         self.matrix[tr][tc] = piece
         self.matrix[fr][fc] = None
-        piece.pos = to_pos
+        if piece:
+            piece.pos = to_pos
         
         # Switch turn
         self.turn = 'black' if self.turn == 'red' else 'red'
@@ -154,9 +205,13 @@ class Board:
         self.matrix[fr][fc] = piece
         self.matrix[tr][tc] = captured
         
-        piece.pos = from_pos
+        if piece:
+            piece.pos = from_pos
         if captured:
             captured.pos = to_pos
+            
+        if not test_only and self.matrix_history:
+            self.matrix_history.pop()
             
         self.turn = old_turn
 
@@ -172,4 +227,5 @@ class Board:
                     b.matrix[r][c] = p.copy()
         # History is copied as ref or new list
         b.history = list(self.history)
+        b.matrix_history = list(self.matrix_history)
         return b

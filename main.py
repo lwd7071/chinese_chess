@@ -13,7 +13,7 @@ from game.rules import has_lost, is_in_check, is_checkmate, is_stalemate
 from ai import AI_REGISTRY
 from gui.renderer import Renderer
 from gui.sidebar import Sidebar
-from gui.menu import StartMenu, LEVEL_DETAILS
+from gui.menu import StartMenu
 from gui.sound import play_synth_sound
 
 # Screen Dimensions
@@ -178,19 +178,19 @@ class GameController:
     def handle_bot_turns(self):
         # Check if it is the Bot's turn
         is_bot = False
-        bot_name = ""
+        bot_algo = ""
         
         if self.menu.game_mode == "human_vs_bot" and self.board.turn == 'black':
             is_bot = True
-            bot_name = LEVEL_DETAILS[self.menu.black_bot_level][0]
+            bot_algo = self.menu.black_bot_algo
         elif self.menu.game_mode == "bot_vs_bot":
             is_bot = True
             if self.board.turn == 'red':
-                bot_name = LEVEL_DETAILS[self.menu.red_bot_level][0]
+                bot_algo = self.menu.red_bot_algo
             else:
-                bot_name = LEVEL_DETAILS[self.menu.black_bot_level][0]
+                bot_algo = self.menu.black_bot_algo
                 
-        if is_bot:
+        if is_bot and bot_algo:
             # Check game end
             if has_lost(self.board, self.board.turn):
                 return
@@ -202,7 +202,7 @@ class GameController:
                 
             # If no AI thread running, launch one
             if self.ai_thread is None:
-                bot_func = AI_REGISTRY[bot_name]
+                bot_func = AI_REGISTRY[bot_algo]
                 
                 # Make a thread-safe copy of the board to calculate moves in background
                 board_copy = self.board.copy()
@@ -323,8 +323,8 @@ class GameController:
             self.screen.blit(txt, (curr_x - txt.get_width() // 2, curr_y - txt.get_height() // 2))
 
         # 4. Draw sidebar details
-        red_bot = LEVEL_DETAILS[self.menu.red_bot_level][0]
-        black_bot = LEVEL_DETAILS[self.menu.black_bot_level][0]
+        red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo else "Human"
+        black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
         self.sidebar.draw(
             self.screen, self.board, self.menu.game_mode,
             red_bot, black_bot, hint_move=self.hint_move
