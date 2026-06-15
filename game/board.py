@@ -7,6 +7,7 @@ class Board:
         self.turn = 'red' # Red goes first
         self.history = [] # Stack of (from_pos, to_pos, captured_piece, old_turn)
         self.matrix_history = []
+        self.moved_pieces_stack = []
         
         if setup:
             self.setup_pieces()
@@ -182,12 +183,16 @@ class Board:
             
         # Record history
         self.history.append((from_pos, to_pos, captured, self.turn))
+        self.moved_pieces_stack.append(piece)
         
+        # Copy-on-Write: clone the piece to avoid mutating shared piece pos in other board copies
+        if piece:
+            piece = piece.copy()
+            piece.pos = to_pos
+            
         # Move piece in matrix
         self.matrix[tr][tc] = piece
         self.matrix[fr][fc] = None
-        if piece:
-            piece.pos = to_pos
         
         # Switch turn
         self.turn = 'black' if self.turn == 'red' else 'red'
@@ -198,34 +203,26 @@ class Board:
             return
             
         from_pos, to_pos, captured, old_turn = self.history.pop()
+        original_piece = self.moved_pieces_stack.pop()
         fr, fc = from_pos
         tr, tc = to_pos
         
-        piece = self.matrix[tr][tc]
-        self.matrix[fr][fc] = piece
+        self.matrix[fr][fc] = original_piece
         self.matrix[tr][tc] = captured
         
-        if piece:
-            piece.pos = from_pos
-        if captured:
-            captured.pos = to_pos
-            
         if not test_only and self.matrix_history:
             self.matrix_history.pop()
             
         self.turn = old_turn
 
     def copy(self):
-        """Returns a deep copy of the board state"""
+        """Returns a copy of the board state using optimized shallow copy for matrix"""
         b = Board(setup=False)
         b.turn = self.turn
-        # Copy pieces
-        for r in range(10):
-            for c in range(9):
-                p = self.matrix[r][c]
-                if p:
-                    b.matrix[r][c] = p.copy()
-        # History is copied as ref or new list
+        # Shallow copy of the 2D matrix (Piece objects are shared, protected by CoW in make_move)
+        b.matrix = [row[:] for row in self.matrix]
+        # History stacks are shallow copied as lists of references
         b.history = list(self.history)
         b.matrix_history = list(self.matrix_history)
+        b.moved_pieces_stack = list(self.moved_pieces_stack)
         return b
