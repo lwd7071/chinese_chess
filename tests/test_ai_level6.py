@@ -42,26 +42,28 @@ class TestExpectimaxBlack(unittest.TestCase):
         board.matrix[0][4] = Piece('G', 'black', (0, 4), '將')
         # Place Red General at (9, 4)
         board.matrix[9][4] = Piece('G', 'red', (9, 4), '帥')
+        # Place a blocking piece on column 4 to prevent general face-off
+        board.matrix[5][4] = Piece('P', 'red', (5, 4), '兵')
         
         # Place a Black Rook at (0, 0)
         board.matrix[0][0] = Piece('R', 'black', (0, 0), '車')
         
         # Place two Red targets for the Black Rook:
         # Target 1 (cheaper): Red Pawn at (3, 0) - value 100
-        # Target 2 (expensive): Red Rook at (5, 0) - value 900
+        # Target 2 (expensive): Red Rook at (0, 3) - value 900
         board.matrix[3][0] = Piece('P', 'red', (3, 0), '兵')
-        board.matrix[5][0] = Piece('R', 'red', (5, 0), '俥')
+        board.matrix[0][3] = Piece('R', 'red', (0, 3), '俥')
         
         # Note: Black Rook at (0, 0) can move to (1, 0), (2, 0), (3, 0) [capturing Pawn],
-        # (4, 0), (5, 0) [capturing Rook].
+        # or (0, 1), (0, 2), (0, 3) [capturing Rook].
         # Capturing the Red Rook is the best move for Black because it decreases Red's material score by 900.
         # Capturing the Red Pawn decreases Red's material score by only 100.
         # Let's run expectimax with depth=1
         best_move = expectimax_move(board, depth=1)
         
-        # Best move should be capturing the Red Rook at (5, 0)
+        # Best move should be capturing the Red Rook at (0, 3)
         self.assertEqual(best_move[0], (0, 0), "Should move from (0, 0)")
-        self.assertEqual(best_move[1], (5, 0), "Should capture the Red Rook at (5, 0) to minimize Red's score")
+        self.assertEqual(best_move[1], (0, 3), "Should capture the Red Rook at (0, 3) to minimize Red's score")
 
 if __name__ == '__main__':
     unittest.main()
