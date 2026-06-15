@@ -82,7 +82,7 @@ def and_or_search_move(board):
         else:
             worst_case_score = float('inf')
             # Opponent plays to minimize our score (OR nodes)
-            for ofrom, oto in opp_moves[:10]:
+            for ofrom, oto in opp_moves:
                 board.make_move(ofrom, oto)
                 us_score = get_perspective_score(board, color)
                 board.undo_move()
