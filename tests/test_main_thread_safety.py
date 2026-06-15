@@ -102,7 +102,8 @@ class TestThreadSafety(unittest.TestCase):
         mock_lock = MagicMock()
         controller.ai_lock = mock_lock
         
-        controller.handle_bot_turns()
+        with patch('main.has_lost', return_value=False):
+            controller.handle_bot_turns()
         
         # Verify lock was acquired when reading/clearing ai_result
         self.assertTrue(mock_lock.__enter__.called, "Lock should be acquired when accessing and clearing ai_result")
