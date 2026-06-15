@@ -57,10 +57,13 @@ def online_search_move(board):
 
 def and_or_search_move(board):
     """
-    AND-OR Search:
-    We treat our moves as AND nodes (we choose the best move to achieve victory)
-    and the opponent's responses as OR nodes (all opponent responses must be survivable).
-    We find the move that maximizes the minimum guaranteed score after opponent's response.
+    AND-OR search for deterministic, fully observable games (Xiangqi).
+    
+    Standard interpretation:
+    - OR nodes: AI's turn (choose the best move that leads to a win).
+    - AND nodes: Opponent's turn (AI must handle all possible opponent moves).
+    
+    This function uses a depth-limited AND-OR search to select a move.
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -81,7 +84,7 @@ def and_or_search_move(board):
             worst_case_score = float('inf')
         else:
             worst_case_score = float('inf')
-            # Opponent plays to minimize our score (OR nodes)
+            # Opponent plays to minimize our score (AND nodes)
             for ofrom, oto in opp_moves:
                 board.make_move(ofrom, oto)
                 us_score = get_perspective_score(board, color)
