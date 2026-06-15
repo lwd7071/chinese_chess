@@ -46,6 +46,10 @@ python -m venv venv
   ```cmd
   .\venv\Scripts\activate.bat
   ```
+- **Trên Windows (Git Bash / Bash)**:
+  ```bash
+  source venv/Scripts/activate
+  ```
 - **Trên macOS/Linux**:
   ```bash
   source venv/bin/activate
