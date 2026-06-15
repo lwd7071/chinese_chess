@@ -100,7 +100,7 @@ def beam_search_move(board, k=3):
             opp_min_score = float('inf') # very good for us
         else:
             opp_min_score = float('inf')
-            for ofrom, oto in opp_moves[:10]: # Limit branching factor for speed
+            for ofrom, oto in opp_moves: # Limit branching factor for speed
                 board.make_move(ofrom, oto)
                 # Score from our perspective
                 us_score = get_perspective_score(board, color)

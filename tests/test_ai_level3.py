@@ -21,7 +21,7 @@ class TestBeamSearchTruncation(unittest.TestCase):
         # Place Generals (with blocking Elephant at (7, 4) to prevent face-off check)
         board.matrix[0][4] = Piece('G', 'black', (0, 4), '將')
         board.matrix[9][4] = Piece('G', 'red', (9, 4), '帥')
-        board.matrix[7][4] = Piece('E', 'red', (7, 4), '相')
+        board.matrix[6][4] = Piece('P', 'red', (6, 4), '兵')
         
         # Place Red Rook at (9, 0)
         board.matrix[9][0] = Piece('R', 'red', (9, 0), '俥')
