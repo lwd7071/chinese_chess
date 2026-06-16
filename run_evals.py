@@ -43,7 +43,7 @@ def main():
 
     # 2. Capability: ai-level-behavior
     log_result("Running Capability Eval: ai-level-behavior...")
-    args_ai = [PYTHON_EXEC, "-m", "unittest", "tests/test_ai_level3.py", "tests/test_ai_level4.py", "tests/test_ai_level6.py"]
+    args_ai = [PYTHON_EXEC, "-m", "unittest", "tests/test_ai_level1.py", "tests/test_ai_level3.py", "tests/test_ai_level4.py", "tests/test_ai_level6.py"]
     start = time.time()
     ai_ok, ai_out = run_command(args_ai)
     ai_duration = time.time() - start
