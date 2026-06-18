@@ -33,7 +33,7 @@ def bfs_move(board, depth=2):
     for move in legal_moves:
         node_id_counter += 1
         next_board = board.copy()
-        next_board.make_move(move[0], move[1])
+        next_board.make_move(move[0], move[1], test_only=True)
         node = BFSNode(
             node_id=node_id_counter,
             parent_id=0,
@@ -56,7 +56,7 @@ def bfs_move(board, depth=2):
         for move in moves:
             node_id_counter += 1
             next_board = curr.board.copy()
-            next_board.make_move(move[0], move[1])
+            next_board.make_move(move[0], move[1], test_only=True)
             child = BFSNode(
                 node_id=node_id_counter,
                 parent_id=curr.id,
@@ -117,17 +117,17 @@ def dfs_search(board, remaining_depth):
     if board.turn == 'red':
         max_val = float('-inf')
         for m in moves:
-            board.make_move(m[0], m[1])
+            board.make_move(m[0], m[1], test_only=True)
             val = dfs_search(board, remaining_depth - 1)
-            board.undo_move()
+            board.undo_move(test_only=True)
             max_val = max(max_val, val)
         return max_val
     else:
         min_val = float('inf')
         for m in moves:
-            board.make_move(m[0], m[1])
+            board.make_move(m[0], m[1], test_only=True)
             val = dfs_search(board, remaining_depth - 1)
-            board.undo_move()
+            board.undo_move(test_only=True)
             min_val = min(min_val, val)
         return min_val
 
@@ -144,9 +144,9 @@ def dfs_move(board, depth=2):
     best_score = float('-inf') if ai_color == 'red' else float('inf')
     
     for move in legal_moves:
-        board.make_move(move[0], move[1])
+        board.make_move(move[0], move[1], test_only=True)
         score = dfs_search(board, depth - 1)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if ai_color == 'red':
             if score > best_score:

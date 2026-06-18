@@ -44,25 +44,25 @@ def minimax_move(board, depth=3):
         if is_max:
             max_val = float('-inf')
             for m in ordered:
-                b.make_move(m[0], m[1])
+                b.make_move(m[0], m[1], test_only=True)
                 val = search(b, d - 1, False)
-                b.undo_move()
+                b.undo_move(test_only=True)
                 max_val = max(max_val, val)
             return max_val
         else:
             min_val = float('inf')
             for m in ordered:
-                b.make_move(m[0], m[1])
+                b.make_move(m[0], m[1], test_only=True)
                 val = search(b, d - 1, True)
-                b.undo_move()
+                b.undo_move(test_only=True)
                 min_val = min(min_val, val)
             return min_val
 
     # Root call
     for m in sorted_moves[:15]:
-        board.make_move(m[0], m[1])
+        board.make_move(m[0], m[1], test_only=True)
         score = search(board, depth - 1, color == 'black') # Black is min (if color is red, next player is black/min)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if color == 'red':
             if score > best_score:
@@ -104,9 +104,9 @@ def alpha_beta_move(board, depth=4):
         if is_max:
             max_val = float('-inf')
             for m in ordered:
-                b.make_move(m[0], m[1])
+                b.make_move(m[0], m[1], test_only=True)
                 val = search(b, d - 1, alpha, beta, False)
-                b.undo_move()
+                b.undo_move(test_only=True)
                 max_val = max(max_val, val)
                 alpha = max(alpha, max_val)
                 if beta <= alpha:
@@ -115,9 +115,9 @@ def alpha_beta_move(board, depth=4):
         else:
             min_val = float('inf')
             for m in ordered:
-                b.make_move(m[0], m[1])
+                b.make_move(m[0], m[1], test_only=True)
                 val = search(b, d - 1, alpha, beta, True)
-                b.undo_move()
+                b.undo_move(test_only=True)
                 min_val = min(min_val, val)
                 beta = min(beta, min_val)
                 if beta <= alpha:
@@ -129,9 +129,9 @@ def alpha_beta_move(board, depth=4):
     beta = float('inf')
     
     for m in sorted_moves[:20]:
-        board.make_move(m[0], m[1])
+        board.make_move(m[0], m[1], test_only=True)
         score = search(board, depth - 1, alpha, beta, color == 'black')
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if color == 'red':
             if score > best_score:
@@ -185,27 +185,27 @@ def expectimax_move(board, depth=3):
                 # Red AI maximizes
                 max_val = float('-inf')
                 for m in ordered:
-                    b.make_move(m[0], m[1])
+                    b.make_move(m[0], m[1], test_only=True)
                     val = search(b, d - 1, False)
-                    b.undo_move()
+                    b.undo_move(test_only=True)
                     max_val = max(max_val, val)
                 return max_val
             else:
                 # Black AI minimizes
                 min_val = float('inf')
                 for m in ordered:
-                    b.make_move(m[0], m[1])
+                    b.make_move(m[0], m[1], test_only=True)
                     val = search(b, d - 1, False)
-                    b.undo_move()
+                    b.undo_move(test_only=True)
                     min_val = min(min_val, val)
                 return min_val
         else:
             # Opponent's turn: Chance node
             results = []
             for m in ordered:
-                b.make_move(m[0], m[1])
+                b.make_move(m[0], m[1], test_only=True)
                 val = search(b, d - 1, True)
-                b.undo_move()
+                b.undo_move(test_only=True)
                 results.append(val)
                 
             num_moves = len(results)
@@ -227,9 +227,9 @@ def expectimax_move(board, depth=3):
 
     # Root call (AI's first moves)
     for m in sorted_moves[:12]:
-        board.make_move(m[0], m[1])
+        board.make_move(m[0], m[1], test_only=True)
         score = search(board, depth - 1, False) # Next turn is opponent's (Chance)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if ai_color == 'red':
             if score > best_score:
