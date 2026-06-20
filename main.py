@@ -45,6 +45,7 @@ class GameController:
         # AI threading state
         self.ai_thread = None
         self.ai_result = None
+        self.ai_lock = threading.Lock()
         self.last_bot_move_time = 0
         
         # Animation state: {"piece": Piece, "from_xy": (x,y), "to_xy": (x,y), "progress": 0.0, "to_pos": (r,c), "captured": Piece}
@@ -208,7 +209,9 @@ class GameController:
                 board_copy = self.board.copy()
                 
                 def calculate():
-                    self.ai_result = bot_func(board_copy)
+                    result = bot_func(board_copy)
+                    with self.ai_lock:
+                        self.ai_result = result
                     
                 self.ai_thread = threading.Thread(target=calculate)
                 self.ai_thread.daemon = True
@@ -217,8 +220,9 @@ class GameController:
             # Check thread completion
             if self.ai_thread and not self.ai_thread.is_alive():
                 self.ai_thread = None
-                move = self.ai_result
-                self.ai_result = None
+                with self.ai_lock:
+                    move = self.ai_result
+                    self.ai_result = None
                 
                 if move:
                     self.trigger_move_animation(move[0], move[1])

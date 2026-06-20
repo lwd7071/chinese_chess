@@ -1,0 +1,57 @@
+name: Project Correctness
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SDL_VIDEODRIVER: dummy
+  SDL_AUDIODRIVER: dummy
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  correctness:
+    name: Compile and run project evals
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install host dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile Python sources
+        run: python -m compileall ai game gui tests main.py run_evals.py
+
+      - name: Create eval virtual environment
+        run: python -m venv venv
+
+      - name: Install eval dependencies
+        run: |
+          venv/bin/python -m pip install --upgrade pip
+          venv/bin/python -m pip install -r requirements.txt
+
+      - name: Run project correctness evals
+        run: venv/bin/python run_evals.py
+
+      - name: Upload eval log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-correctness-log
+          path: .claude/evals/project-correctness.log
+          if-no-files-found: ignore

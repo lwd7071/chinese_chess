@@ -43,9 +43,9 @@ def online_search_move(board):
     random.shuffle(legal_moves)
     
     for from_pos, to_pos in legal_moves:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if score > best_score:
             best_score = score
@@ -57,10 +57,13 @@ def online_search_move(board):
 
 def and_or_search_move(board):
     """
-    AND-OR Search:
-    We treat our moves as AND nodes (we choose the best move to achieve victory)
-    and the opponent's responses as OR nodes (all opponent responses must be survivable).
-    We find the move that maximizes the minimum guaranteed score after opponent's response.
+    AND-OR search for deterministic, fully observable games (Xiangqi).
+    
+    Standard interpretation:
+    - OR nodes: AI's turn (choose the best move that leads to a win).
+    - AND nodes: Opponent's turn (AI must handle all possible opponent moves).
+    
+    This function uses a depth-limited AND-OR search to select a move.
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -73,7 +76,7 @@ def and_or_search_move(board):
     
     # We examine up to 10 moves for speed
     for from_pos, to_pos in legal_moves[:10]:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         
         opp_moves = board.get_all_legal_moves(board.turn)
         if not opp_moves:
@@ -81,15 +84,15 @@ def and_or_search_move(board):
             worst_case_score = float('inf')
         else:
             worst_case_score = float('inf')
-            # Opponent plays to minimize our score (OR nodes)
-            for ofrom, oto in opp_moves[:10]:
-                board.make_move(ofrom, oto)
+            # Opponent plays to minimize our score (AND nodes)
+            for ofrom, oto in opp_moves:
+                board.make_move(ofrom, oto, test_only=True)
                 us_score = get_perspective_score(board, color)
-                board.undo_move()
+                board.undo_move(test_only=True)
                 if us_score < worst_case_score:
                     worst_case_score = us_score
                     
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if worst_case_score > best_guaranteed_score:
             best_guaranteed_score = worst_case_score
@@ -166,7 +169,7 @@ def belief_state_search_move(board):
     best_expected_utility = float('-inf')
     
     for from_pos, to_pos in legal_moves[:12]:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         
         # Expected utility over the belief distribution
         u_agg = get_strategy_score(board, "aggressive")
@@ -174,7 +177,7 @@ def belief_state_search_move(board):
         u_pos = get_strategy_score(board, "positional")
         
         expected_utility = p_agg * u_agg + p_def * u_def + p_pos * u_pos
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if expected_utility > best_expected_utility:
             best_expected_utility = expected_utility

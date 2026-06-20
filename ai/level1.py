@@ -1,22 +1,164 @@
 # Level 1 AI: BFS, DFS, UCS
 import random
-from ai.eval import PIECE_VALUES
+from collections import deque
+from ai.eval import evaluate_board, PIECE_VALUES
 
-def bfs_move(board):
-    """BFS: Selects the first legal move in BFS expansion (first valid move at depth 1)"""
-    legal_moves = board.get_all_legal_moves(board.turn)
+class BFSNode:
+    def __init__(self, node_id, parent_id, root_move, move, board, depth):
+        self.id = node_id
+        self.parent_id = parent_id
+        self.root_move = root_move
+        self.move = move
+        self.board = board
+        self.depth = depth
+        self.children = []
+        self.score = None
+
+def bfs_move(board, depth=2):
+    """
+    BFS: Depth-limited breadth-first search propagating evaluations using minimax logic.
+    """
+    ai_color = board.turn
+    legal_moves = board.get_all_legal_moves(ai_color)
     if not legal_moves:
         return None
-    # BFS: FIFO queue. We explore level 1, so the first move popped is just the first legal move
-    return legal_moves[0]
 
-def dfs_move(board):
-    """DFS: Selects the first legal move found in DFS expansion (depth first)"""
-    legal_moves = board.get_all_legal_moves(board.turn)
+    # 1. Create synthetic root node
+    root_node = BFSNode(node_id=0, parent_id=None, root_move=None, move=None, board=board, depth=0)
+    nodes = {0: root_node}
+    node_id_counter = 0
+
+    # 2. Enqueue depth-1 nodes
+    queue = deque()
+    for move in legal_moves:
+        node_id_counter += 1
+        next_board = board.copy()
+        next_board.make_move(move[0], move[1], test_only=True)
+        node = BFSNode(
+            node_id=node_id_counter,
+            parent_id=0,
+            root_move=move,
+            move=move,
+            board=next_board,
+            depth=1
+        )
+        root_node.children.append(node.id)
+        nodes[node.id] = node
+        queue.append(node)
+
+    # 3. Perform level-order expansion
+    while queue:
+        curr = queue.popleft()
+        if curr.depth >= depth:
+            continue
+        
+        moves = curr.board.get_all_legal_moves(curr.board.turn)
+        for move in moves:
+            node_id_counter += 1
+            next_board = curr.board.copy()
+            next_board.make_move(move[0], move[1], test_only=True)
+            child = BFSNode(
+                node_id=node_id_counter,
+                parent_id=curr.id,
+                root_move=curr.root_move,
+                move=move,
+                board=next_board,
+                depth=curr.depth + 1
+            )
+            curr.children.append(child.id)
+            nodes[child.id] = child
+            queue.append(child)
+
+    # 4. Treat nodes without children as leaves and evaluate them
+    for node in nodes.values():
+        if node.id == 0:
+            continue
+        if len(node.children) == 0:
+            node.score = evaluate_board(node.board)
+
+    # 5. Propagate scores bottom-up
+    sorted_node_ids = sorted(nodes.keys(), key=lambda nid: nodes[nid].depth, reverse=True)
+    for nid in sorted_node_ids:
+        node = nodes[nid]
+        if len(node.children) > 0:
+            child_scores = [nodes[cid].score for cid in node.children]
+            if node.board.turn == 'red':
+                node.score = max(child_scores)
+            else:
+                node.score = min(child_scores)
+
+    # 6. Select among root moves
+    best_move = None
+    if ai_color == 'red':
+        best_score = float('-inf')
+        for cid in root_node.children:
+            cnode = nodes[cid]
+            if cnode.score > best_score:
+                best_score = cnode.score
+                best_move = cnode.root_move
+    else:
+        best_score = float('inf')
+        for cid in root_node.children:
+            cnode = nodes[cid]
+            if cnode.score < best_score:
+                best_score = cnode.score
+                best_move = cnode.root_move
+
+    return best_move
+
+def dfs_search(board, remaining_depth):
+    if remaining_depth == 0:
+        return evaluate_board(board)
+        
+    moves = board.get_all_legal_moves(board.turn)
+    if not moves:
+        return evaluate_board(board)
+        
+    if board.turn == 'red':
+        max_val = float('-inf')
+        for m in moves:
+            board.make_move(m[0], m[1], test_only=True)
+            val = dfs_search(board, remaining_depth - 1)
+            board.undo_move(test_only=True)
+            max_val = max(max_val, val)
+        return max_val
+    else:
+        min_val = float('inf')
+        for m in moves:
+            board.make_move(m[0], m[1], test_only=True)
+            val = dfs_search(board, remaining_depth - 1)
+            board.undo_move(test_only=True)
+            min_val = min(min_val, val)
+        return min_val
+
+def dfs_move(board, depth=2):
+    """
+    DFS: Depth-limited depth-first search propagating evaluations using minimax logic.
+    """
+    ai_color = board.turn
+    legal_moves = board.get_all_legal_moves(ai_color)
     if not legal_moves:
         return None
-    # DFS: LIFO stack. The first move popped is the last legal move
-    return legal_moves[-1]
+        
+    best_move = None
+    best_score = float('-inf') if ai_color == 'red' else float('inf')
+    
+    for move in legal_moves:
+        board.make_move(move[0], move[1], test_only=True)
+        score = dfs_search(board, depth - 1)
+        board.undo_move(test_only=True)
+        
+        if ai_color == 'red':
+            if score > best_score:
+                best_score = score
+                best_move = move
+        else:
+            if score < best_score:
+                best_score = score
+                best_move = move
+                
+    return best_move
+
 
 def ucs_move(board):
     """

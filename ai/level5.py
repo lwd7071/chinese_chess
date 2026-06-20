@@ -49,9 +49,9 @@ def backtracking_mrv_move(board):
     best_score = float('-inf')
     
     for to_pos in var_domains[chosen_var]:
-        board.make_move(chosen_var, to_pos)
+        board.make_move(chosen_var, to_pos, test_only=True)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         if score > best_score:
             best_score = score
             best_to = to_pos
@@ -78,10 +78,10 @@ def min_conflicts_move(board):
     best_score = float('-inf')
     
     for from_pos, to_pos in legal_moves:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         conflicts = get_threats_count(board, color)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if conflicts < min_conflicts:
             min_conflicts = conflicts
@@ -117,7 +117,7 @@ def ac3_move(board):
         p_val = PIECE_VALUES.get(piece.name, 0)
         
         # Test move
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         
         # Check if the target position is under attack by a cheaper opponent piece
         is_unsafe = False
@@ -135,7 +135,7 @@ def ac3_move(board):
             if is_unsafe:
                 break
                 
-        board.undo_move()
+        board.undo_move(test_only=True)
         if not is_unsafe:
             safe_moves.append((from_pos, to_pos))
             
@@ -147,9 +147,9 @@ def ac3_move(board):
     best_score = float('-inf')
     
     for from_pos, to_pos in candidates:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         if score > best_score:
             best_score = score
             best_move = (from_pos, to_pos)

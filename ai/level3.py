@@ -20,9 +20,9 @@ def hill_climbing_move(board):
     
     color = board.turn
     for from_pos, to_pos in legal_moves:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if score > best_score:
             best_score = score
@@ -47,9 +47,9 @@ def simulated_annealing_move(board, T=100.0, alpha=0.9):
     temp = T
     while temp > 1.0:
         candidate = random.choice(legal_moves)
-        board.make_move(candidate[0], candidate[1])
+        board.make_move(candidate[0], candidate[1], test_only=True)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         delta = score - current_score
         if delta > 0:
@@ -77,9 +77,9 @@ def beam_search_move(board, k=3):
     # Generate initial k best moves
     candidates = []
     for from_pos, to_pos in legal_moves:
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
-        board.undo_move()
+        board.undo_move(test_only=True)
         candidates.append((score, (from_pos, to_pos)))
         
     candidates.sort(key=lambda x: x[0], reverse=True)
@@ -91,7 +91,7 @@ def beam_search_move(board, k=3):
     best_beam_score = float('-inf')
     
     for score, move in beam:
-        board.make_move(move[0], move[1])
+        board.make_move(move[0], move[1], test_only=True)
         
         # Opponent moves (minimize our score)
         opp_moves = board.get_all_legal_moves(board.turn)
@@ -100,15 +100,15 @@ def beam_search_move(board, k=3):
             opp_min_score = float('inf') # very good for us
         else:
             opp_min_score = float('inf')
-            for ofrom, oto in opp_moves[:10]: # Limit branching factor for speed
-                board.make_move(ofrom, oto)
+            for ofrom, oto in opp_moves: # Limit branching factor for speed
+                board.make_move(ofrom, oto, test_only=True)
                 # Score from our perspective
                 us_score = get_perspective_score(board, color)
-                board.undo_move()
+                board.undo_move(test_only=True)
                 if us_score < opp_min_score:
                     opp_min_score = us_score
                     
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         if opp_min_score > best_beam_score:
             best_beam_score = opp_min_score

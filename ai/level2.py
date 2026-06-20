@@ -54,9 +54,9 @@ def a_star_move(board):
         g = 1000 - cap_val
         
         # Make move to calculate remaining opponent material h(n)
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         h = get_opponent_material(board, board.turn) # opposite side material
-        board.undo_move()
+        board.undo_move(test_only=True)
         
         f = g + h
         if f < min_f:
@@ -79,18 +79,18 @@ def ida_star_move(board):
     
     def search(from_pos, to_pos, g, depth, threshold):
         # Simulate move
-        board.make_move(from_pos, to_pos)
+        board.make_move(from_pos, to_pos, test_only=True)
         
         # Heuristic h(n)
         h = get_opponent_material(board, board.turn)
         f = g + h
         
         if f > threshold:
-            board.undo_move()
+            board.undo_move(test_only=True)
             return f, None
             
         if depth == 0 or not board.get_all_legal_moves(board.turn):
-            board.undo_move()
+            board.undo_move(test_only=True)
             return f, (from_pos, to_pos)
             
         # Recursive step: next ply (opponent's turn)
@@ -109,12 +109,12 @@ def ida_star_move(board):
             
             t, sol = search(ofrom, oto, next_g, depth - 1, threshold)
             if sol is not None:
-                board.undo_move()
+                board.undo_move(test_only=True)
                 return t, (from_pos, to_pos)
             if t < min_t:
                 min_t = t
                 
-        board.undo_move()
+        board.undo_move(test_only=True)
         return min_t, None
 
     # Iterative deepening loop
