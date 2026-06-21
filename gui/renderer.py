@@ -13,6 +13,69 @@ COLOR_BORDER = (160, 110, 60)         # Circle outline
 COLOR_HIGHLIGHT = (240, 200, 40)      # Yellow outline for selected
 COLOR_MOVE_DOT = (30, 180, 80)        # Green dot for valid moves
 
+# Piece descriptions for tooltips
+PIECE_DESCRIPTIONS = {
+    'G': {
+        'name': "Tướng (General)",
+        'rules': [
+            "• Đi từng ô một (ngang hoặc dọc).",
+            "• Chỉ di chuyển trong phạm vi cung cấm.",
+            "• Hai Tướng không được đối mặt trực tiếp",
+            "  trên cùng một cột dọc mà không có cản."
+        ]
+    },
+    'A': {
+        'name': "Sĩ (Advisor)",
+        'rules': [
+            "• Đi chéo đúng 1 ô mỗi nước đi.",
+            "• Chỉ di chuyển trong phạm vi cung cấm.",
+            "• Chức năng chính là bảo vệ Tướng."
+        ]
+    },
+    'E': {
+        'name': "Tượng (Elephant)",
+        'rules': [
+            "• Đi chéo đúng 2 ô (hình chữ Điền).",
+            "• Không được đi qua sông sang lãnh thổ địch.",
+            "• Bị cản (chẹn mắt Tượng) nếu có bất kỳ",
+            "  quân nào nằm ở ô tâm của nước đi."
+        ]
+    },
+    'H': {
+        'name': "Mã (Horse)",
+        'rules': [
+            "• Đi theo hình chữ L (tiến 2 ô thẳng",
+            "  sau đó rẽ ngang 1 ô).",
+            "• Bị cản (cản chân Mã) nếu có quân cờ",
+            "  nằm ngay cạnh ô xuất phát hướng thẳng."
+        ]
+    },
+    'R': {
+        'name': "Xe (Rook)",
+        'rules': [
+            "• Đi ngang hoặc dọc tùy ý không giới hạn ô.",
+            "• Không thể nhảy qua quân cờ khác."
+        ]
+    },
+    'C': {
+        'name': "Pháo (Cannon)",
+        'rules': [
+            "• Đi ngang hoặc dọc giống Xe.",
+            "• Khi ăn quân: Bắt buộc phải nhảy qua",
+            "  đúng 1 quân cờ khác làm ngòi cản."
+        ]
+    },
+    'P': {
+        'name': "Tốt (Pawn)",
+        'rules': [
+            "• Đi thẳng tiến lên 1 ô mỗi nước.",
+            "• Khi chưa qua sông: Chỉ được đi thẳng.",
+            "• Khi đã qua sông: Được đi thẳng hoặc",
+            "  đi ngang sang hai bên."
+        ]
+    }
+}
+
 class Renderer:
     def __init__(self, cell_size=64, offset_x=50, offset_y=50):
         self.cell_size = cell_size
@@ -28,8 +91,16 @@ class Renderer:
             self.piece_font = pygame.font.SysFont(self.font_name, int(cell_size * 0.55), bold=True)
             self.label_font = pygame.font.SysFont(self.font_name, int(cell_size * 0.35))
         else:
-            self.piece_font = pygame.font.SysFont("segoe ui, tahoma, arial", int(cell_size * 0.5), bold=True)
-            self.label_font = pygame.font.SysFont("segoe ui, tahoma, arial", int(cell_size * 0.3))
+            self.piece_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.5), bold=True)
+            self.label_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.3))
+            
+        # Tooltip fonts must always support Vietnamese (independent of Chinese piece font support)
+        self.tooltip_header_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.28), bold=True)
+        self.tooltip_body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.24))
+
+        # Cache tooltips to avoid per-frame rendering overhead
+        self.tooltip_cache = {}
+        self.cache_tooltips()
 
     def detect_chinese_font(self):
         chinese_fonts = ['microsoftyahei', 'simhei', 'simsun', 'msgothic', 'dengxian', 'arialunicode']
@@ -198,7 +269,7 @@ class Renderer:
                     text_y = self.offset_y - 42
                     
                     check_text = "⚠️ CHIẾU TƯỚNG! ⚠️"
-                    check_font = pygame.font.SysFont("segoe ui, tahoma, arial", 20, bold=True)
+                    check_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 20, bold=True)
                     text_color = (231, 76, 60)
                     
                     txt = check_font.render(check_text, True, text_color)
@@ -224,3 +295,71 @@ class Renderer:
                 if dist < self.cell_size * 0.45:
                     return r, c
         return None
+
+    def cache_tooltips(self):
+        """Pre-renders and caches tooltip surfaces for all chess pieces to optimize performance"""
+        for name, desc in PIECE_DESCRIPTIONS.items():
+            header_surface = self.tooltip_header_font.render(desc['name'], True, (240, 200, 40))
+            max_w = header_surface.get_width()
+            
+            rule_surfaces = []
+            for rule in desc['rules']:
+                surf = self.tooltip_body_font.render(rule, True, (230, 230, 230))
+                rule_surfaces.append(surf)
+                max_w = max(max_w, surf.get_width())
+                
+            padding = 12
+            box_w = max_w + padding * 2
+            box_h = header_surface.get_height() + len(rule_surfaces) * 16 + padding * 2 + 8
+            
+            # Create translucent tooltip surface
+            tooltip_surf = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+            tooltip_surf.fill((20, 20, 20, 220))
+            
+            # Draw border
+            pygame.draw.rect(tooltip_surf, (0, 173, 181), (0, 0, box_w, box_h), 2, 4)
+            
+            # Title
+            tooltip_surf.blit(header_surface, (padding, padding))
+            
+            # Divider line
+            sep_y = padding + header_surface.get_height() + 4
+            pygame.draw.line(tooltip_surf, (100, 100, 100, 150), (padding, sep_y), (box_w - padding, sep_y), 1)
+            
+            # Rules list
+            curr_y = sep_y + 6
+            for surf in rule_surfaces:
+                tooltip_surf.blit(surf, (padding, curr_y))
+                curr_y += 16
+                
+            self.tooltip_cache[name] = {
+                "surface": tooltip_surf,
+                "width": box_w,
+                "height": box_h
+            }
+
+    def draw_tooltip(self, surface, piece, mouse_pos):
+        """Draws the pre-rendered hover tooltip box for the piece next to the cursor"""
+        cached = self.tooltip_cache.get(piece.name)
+        if not cached:
+            return
+            
+        box_w = cached["width"]
+        box_h = cached["height"]
+        tooltip_surf = cached["surface"]
+        
+        tx = mouse_pos[0] + 15
+        ty = mouse_pos[1] + 15
+        
+        # Screen bounds (WIDTH=940, HEIGHT=700)
+        if tx + box_w > 940:
+            tx = mouse_pos[0] - box_w - 15
+        if ty + box_h > 700:
+            ty = mouse_pos[1] - box_h - 15
+            
+        if tx < 0:
+            tx = 10
+        if ty < 0:
+            ty = 10
+            
+        surface.blit(tooltip_surf, (tx, ty))

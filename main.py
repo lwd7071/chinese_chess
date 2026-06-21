@@ -55,6 +55,12 @@ class GameController:
         self.game_over_result = ""
         self.btn_game_over_retry = pygame.Rect(WIDTH // 2 - 160, HEIGHT // 2 + 30, 140, 40)
         self.btn_game_over_menu = pygame.Rect(WIDTH // 2 + 20, HEIGHT // 2 + 30, 140, 40)
+        
+        # Hover tooltip state
+        self.hover_pos = None
+        self.hover_piece = None
+        self.hover_start_time = 0.0
+        self.hover_triggered = False
 
     def start_new_game(self):
         self.board = Board()
@@ -142,6 +148,38 @@ class GameController:
             # 2. Game Logic / Bot calculations
             if self.state == "game" and not self.animation:
                 self.handle_bot_turns()
+                
+            # Update hover state for tooltip delay (1s)
+            if self.state == "game" and not self.animation:
+                curr_mouse_pos = pygame.mouse.get_pos()
+                board_pos = self.renderer.get_board_pos_from_screen(curr_mouse_pos)
+                if board_pos:
+                    piece = self.board.get_piece(board_pos)
+                    if piece:
+                        if self.hover_pos == board_pos:
+                            if not self.hover_triggered and (time.time() - self.hover_start_time >= 1.0):
+                                self.hover_triggered = True
+                                self.hover_piece = piece
+                        else:
+                            self.hover_pos = board_pos
+                            self.hover_piece = None
+                            self.hover_start_time = time.time()
+                            self.hover_triggered = False
+                    else:
+                        self.hover_pos = None
+                        self.hover_piece = None
+                        self.hover_start_time = 0.0
+                        self.hover_triggered = False
+                else:
+                    self.hover_pos = None
+                    self.hover_piece = None
+                    self.hover_start_time = 0.0
+                    self.hover_triggered = False
+            else:
+                self.hover_pos = None
+                self.hover_piece = None
+                self.hover_start_time = 0.0
+                self.hover_triggered = False
                 
             # 3. Update Animations
             self.update_animation()
@@ -333,6 +371,10 @@ class GameController:
             self.screen, self.board, self.menu.game_mode,
             red_bot, black_bot, hint_move=self.hint_move
         )
+        
+        # 5. Draw hover tooltip if triggered
+        if self.hover_triggered and self.hover_piece:
+            self.renderer.draw_tooltip(self.screen, self.hover_piece, pygame.mouse.get_pos())
 
     def draw_game_over_overlay(self):
         # 1. Draw a dark translucent overlay over the board/screen
@@ -352,18 +394,18 @@ class GameController:
         pygame.draw.rect(self.screen, (0, 173, 181), (panel_x, panel_y, panel_width, panel_height), 2, 12)
         
         # 3. Draw Header text
-        hdr_font = pygame.font.SysFont("segoe ui, tahoma, arial", 26, bold=True)
+        hdr_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 26, bold=True)
         hdr_txt = hdr_font.render("TRẬN ĐẤU KẾT THÚC", True, (0, 173, 181))
         self.screen.blit(hdr_txt, (WIDTH // 2 - hdr_txt.get_width() // 2, panel_y + 30))
         
         # 4. Draw result text (e.g. CHIẾU BÍ - Quân Đỏ thắng!)
-        res_font = pygame.font.SysFont("segoe ui, tahoma, arial", 18, bold=True)
+        res_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 18, bold=True)
         res_color = (231, 76, 60) if "Quân Đỏ" in self.game_over_result else ((241, 196, 15) if "Quân Đen" in self.game_over_result else (240, 240, 240))
         res_txt = res_font.render(self.game_over_result, True, res_color)
         self.screen.blit(res_txt, (WIDTH // 2 - res_txt.get_width() // 2, panel_y + 85))
         
         # 5. Draw buttons
-        btn_font = pygame.font.SysFont("segoe ui, tahoma, arial", 16, bold=True)
+        btn_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 16, bold=True)
         
         # Draw Retry button
         pygame.draw.rect(self.screen, (39, 174, 96), self.btn_game_over_retry, 0, 6)
