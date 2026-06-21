@@ -156,3 +156,12 @@ python main.py
 * **Giảng viên hướng dẫn**: TS. Phan Thị Huyền Trang
 * **Sinh viên thực hiện**: Nhóm 1 - Cờ tướng 6 level (HCMUTE)
 * **Kho lưu trữ chính**: https://github.com/lwd7071/chinese_chess
+
+
+| Current Node (Node hiện tại) | Frontier (Hàng đợi ưu tiên - Sorted by Cost) | Explored (Tập đã duyệt) |
+|----------|----------|----------|
+| **Khởi tạo**<br>- Chưa chọn node nào. | **[n0]** (Trạng thái bắt đầu - Root)<br>- Tổng Cost: g(n₀) = 0 | {} |
+| **Bước 1: Duyệt node n0**<br>- Đang xét: n0 (Lượt Đỏ)<br>- Phát triển các nước đi tiếp theo của Xe Đỏ:<br>&nbsp;&nbsp;• n1: Ăn Xe Đen tại (7,0), Cost = 100<br>&nbsp;&nbsp;• n2: Ăn Tốt Đen tại (9,1), Cost = 900<br>&nbsp;&nbsp;• n3: Đi ngang không ăn quân, Cost = 1000 | [n1 (Cost: 100), n2 (Cost: 900), n3 (Cost: 1000)]<br>(Hàng đợi tự động sắp xếp theo tổng chi phí tăng dần) | {n0} |
+| **Bước 2: Lấy n1 ra khỏi Frontier**<br>- Đang xét: n1 (Lượt Đen phản công)<br>- Phát triển các nước đi tiếp theo của Đen từ n1:<br>&nbsp;&nbsp;• n4: Xe Đen tại (7,8) ăn Xe Đỏ vừa đi tới (7,0)<br>&nbsp;&nbsp;• Cost bước này = 100<br>&nbsp;&nbsp;• Tổng chi phí lũy kế: g(n₄) = 100 + 100 = 200 | [n4 (Cost: 200), n2 (Cost: 900), n3 (Cost: 1000)]<br>(Node n4 được đẩy vào và chen lên đầu vì chi phí lũy kế thấp hơn) | {n0, n1} |
+| **Bước 3: Lấy n4 ra khỏi Frontier**<br>- Đang xét: n4 (Lượt Đỏ)<br>- Xe Đỏ đã bị tiêu diệt sau nước phản công của Đen.<br>- Nhánh này trở nên bất lợi nếu đánh giá sâu hơn. | [n2 (Cost: 900), n3 (Cost: 1000)] | {n0, n1, n4} |
+| **Bước 4: Lấy n2 ra khỏi Frontier**<br>- Đang xét: n2 (Xe Đỏ ăn Tốt Đen an toàn)<br>- Chi phí ban đầu cao hơn nhánh n1.<br>- Tuy nhiên khi xét sâu hơn, nhánh này tránh được phản công mất Xe nên có thể trở thành phương án tối ưu hơn. | [n3 (Cost: 1000), ...] | {n0, n1, n4, n2} |

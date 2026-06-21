@@ -57,11 +57,11 @@ class StartMenu:
         self.width = width
         self.height = height
         
-        self.title_font = pygame.font.SysFont("segoe ui, tahoma, arial", 36, bold=True)
-        self.header_font = pygame.font.SysFont("segoe ui, tahoma, arial", 20, bold=True)
-        self.body_font = pygame.font.SysFont("segoe ui, tahoma, arial", 15, bold=True)
-        self.detail_font = pygame.font.SysFont("segoe ui, tahoma, arial", 13)
-        self.label_font = pygame.font.SysFont("segoe ui, tahoma, arial", 16, bold=True)
+        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 36, bold=True)
+        self.header_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 20, bold=True)
+        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 15, bold=True)
+        self.detail_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
+        self.label_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 16, bold=True)
         
         # Menu Flow State
         # States: "mode_select", "level_red", "algo_red", "level_black", "algo_black"

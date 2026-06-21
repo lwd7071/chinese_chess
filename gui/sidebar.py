@@ -18,9 +18,9 @@ class Sidebar:
         self.height = height
         
         # Load fonts
-        self.title_font = pygame.font.SysFont("segoe ui, tahoma, arial", 22, bold=True)
-        self.body_font = pygame.font.SysFont("segoe ui, tahoma, arial", 16)
-        self.mono_font = pygame.font.SysFont("consolas, courier new", 14)
+        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 22, bold=True)
+        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 16)
+        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 14)
         
         # Define button Rects for click detection
         self.btn_new_game = pygame.Rect(x + 20, 480, width - 40, 35)
@@ -117,7 +117,7 @@ class Sidebar:
             import math
             pulse = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2
             warn_color = (231, 76, 60) if pulse > 0.5 else (241, 196, 15)
-            warn_font = pygame.font.SysFont("segoe ui, tahoma, arial", 14, bold=True)
+            warn_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 14, bold=True)
             warn_val = warn_font.render("⚠️ ĐANG BỊ CHIẾU!", True, warn_color)
             surface.blit(warn_val, (self.x + 200, 96))
         
