@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from game.board import Board
-from game.rules import has_lost, is_in_check, is_checkmate, is_stalemate
+from game.rules import has_lost, is_in_check, is_checkmate, is_stalemate, is_no_cross_river_pieces
 from ai import AI_REGISTRY
 from gui.renderer import Renderer
 from gui.sidebar import Sidebar
@@ -17,13 +17,16 @@ from gui.menu import StartMenu
 from gui.sound import play_synth_sound
 
 # Screen Dimensions
-WIDTH = 940
-HEIGHT = 700
+WIDTH = 1100
+HEIGHT = 820
 
 class GameController:
     def __init__(self):
         pygame.init()
-        pygame.mixer.init()
+        try:
+            pygame.mixer.init()
+        except Exception:
+            print("Warning: pygame.mixer.init() failed. Running without sound.")
         
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Cờ Tướng AI - Xiangqi AI Game Dashboard")
@@ -31,7 +34,7 @@ class GameController:
         
         # Init GUI modules
         self.renderer = Renderer(cell_size=60, offset_x=40, offset_y=50)
-        self.sidebar = Sidebar(x=580, y=0, width=360, height=700)
+        self.sidebar = Sidebar(x=620, y=0, width=480, height=820)
         self.menu = StartMenu(width=WIDTH, height=HEIGHT)
         
         self.state = "menu" # menu, game
@@ -41,6 +44,9 @@ class GameController:
         self.selected_pos = None
         self.valid_moves = []
         self.hint_move = None
+        self.pending_move = None
+        self.latest_move_index = None
+        self.latest_move_flash_until = 0.0
         
         # AI threading state
         self.ai_thread = None
@@ -67,6 +73,9 @@ class GameController:
         self.selected_pos = None
         self.valid_moves = []
         self.hint_move = None
+        self.pending_move = None
+        self.latest_move_index = None
+        self.latest_move_flash_until = 0.0
         self.ai_thread = None
         self.ai_result = None
         self.animation = None
@@ -76,6 +85,25 @@ class GameController:
     def trigger_move_animation(self, from_pos, to_pos):
         piece = self.board.get_piece(from_pos)
         captured = self.board.get_piece(to_pos)
+
+        self.pending_move = {
+            "side": self.board.turn,
+            "from_pos": from_pos,
+            "to_pos": to_pos,
+            "piece_name": piece.name if piece else None,
+            "piece_char": piece.char if piece else None,
+            "captured_name": captured.name if captured else None,
+            "captured_char": captured.char if captured else None,
+            "pending": True,
+        }
+
+        self.board.move_log.append(self.pending_move)
+        visible_rows = getattr(self.sidebar, "history_visible_rows", 5)
+        if not isinstance(visible_rows, int):
+            visible_rows = 5
+        self.sidebar.history_scroll = max(0, len(self.board.move_log) - visible_rows)
+        self.latest_move_index = len(self.board.move_log) - 1
+        self.latest_move_flash_until = time.time() + 2.0
         
         x1, y1 = self.renderer.get_xy(from_pos[0], from_pos[1])
         x2, y2 = self.renderer.get_xy(to_pos[0], to_pos[1])
@@ -128,7 +156,7 @@ class GameController:
                     elif action == "hint":
                         # Suggest the best move for current turn using Alpha-Beta search (Level 6)
                         self.stats_lbl = "Đang tìm kiếm gợi ý..."
-                        self.hint_move = AI_REGISTRY["Level 6: Alpha-Beta Bot"](self.board)
+                        self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
                         
                     # Human Move inputs
                     elif self.menu.game_mode == "human_vs_bot" and self.board.turn == 'red':
@@ -231,7 +259,7 @@ class GameController:
                 
         if is_bot and bot_algo:
             # Check game end
-            if has_lost(self.board, self.board.turn):
+            if has_lost(self.board, self.board.turn) or is_no_cross_river_pieces(self.board):
                 return
                 
             # In Bot vs Bot, respect speed slider delay
@@ -275,7 +303,7 @@ class GameController:
         
         if anim["progress"] >= 1.0:
             # Execute actual move on model board
-            self.board.make_move(anim["from_pos"], anim["to_pos"])
+            self.board.make_move(anim["from_pos"], anim["to_pos"], log_move=False)
             
             # Trigger corresponding sound
             is_captured = anim["captured"] is not None
@@ -291,9 +319,15 @@ class GameController:
             # Clear animation
             self.animation = None
             self.hint_move = None
+            if self.pending_move:
+                self.pending_move["pending"] = False
+            self.pending_move = None
             
-            # Check for win conditions
-            if has_lost(self.board, self.board.turn):
+            # Check for draw / win conditions
+            if is_no_cross_river_pieces(self.board):
+                self.game_over_result = "HÒA CỜ - Không còn quân qua sông!"
+                self.state = "game_over"
+            elif has_lost(self.board, self.board.turn):
                 winner = "Đỏ (RED)" if self.board.turn == 'black' else "Đen (BLACK)"
                 loser_color = self.board.turn
                 if is_checkmate(self.board, loser_color):
@@ -369,7 +403,8 @@ class GameController:
         black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
         self.sidebar.draw(
             self.screen, self.board, self.menu.game_mode,
-            red_bot, black_bot, hint_move=self.hint_move
+            red_bot, black_bot, hint_move=self.hint_move, move_history=self.board.move_log, pending_move=self.pending_move,
+            latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until
         )
         
         # 5. Draw hover tooltip if triggered

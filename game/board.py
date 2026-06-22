@@ -6,6 +6,7 @@ class Board:
         self.matrix = [[None for _ in range(9)] for _ in range(10)]
         self.turn = 'red' # Red goes first
         self.history = [] # Stack of (from_pos, to_pos, captured_piece, old_turn)
+        self.move_log = [] # UI log with richer move metadata for both sides
         self.matrix_history = []
         self.moved_pieces_stack = []
         
@@ -134,11 +135,9 @@ class Board:
         # Simulate the move
         self.make_move(from_pos, to_pos, test_only=True)
         
-        # Check if resulting matrix matches any of the recent past matrices
-        recent_matrices = self.matrix_history[-8:]
-        is_repeat = False
-        
-        for prev_matrix in recent_matrices:
+        # Count how many times the proposed state has appeared in the entire history
+        match_count = 0
+        for prev_matrix in self.matrix_history:
             match = True
             for r in range(10):
                 for c in range(9):
@@ -154,13 +153,14 @@ class Board:
                 if not match:
                     break
             if match:
-                is_repeat = True
-                break
+                match_count += 1
+                if match_count >= 20:
+                    break
                 
         self.undo_move(test_only=True)
-        return is_repeat
+        return match_count >= 20
 
-    def make_move(self, from_pos, to_pos, test_only=False):
+    def make_move(self, from_pos, to_pos, test_only=False, log_move=True):
         """
         Executes a move. Switches turn.
         test_only: if True, skips visual checks or history logs that are GUI-specific
@@ -170,6 +170,16 @@ class Board:
         
         piece = self.matrix[fr][fc]
         captured = self.matrix[tr][tc]
+
+        move_record = {
+            "side": self.turn,
+            "from_pos": from_pos,
+            "to_pos": to_pos,
+            "piece_name": piece.name if piece else None,
+            "piece_char": piece.char if piece else None,
+            "captured_name": captured.name if captured else None,
+            "captured_char": captured.char if captured else None,
+        }
         
         if not test_only:
             # Save a copy of the matrix before making the move
@@ -183,6 +193,8 @@ class Board:
             
         # Record history
         self.history.append((from_pos, to_pos, captured, self.turn))
+        if not test_only and log_move:
+            self.move_log.append(move_record)
         self.moved_pieces_stack.append(piece)
         
         # Copy-on-Write: clone the piece to avoid mutating shared piece pos in other board copies
@@ -223,6 +235,7 @@ class Board:
         b.matrix = [row[:] for row in self.matrix]
         # History stacks are shallow copied as lists of references
         b.history = list(self.history)
+        b.move_log = [dict(move) for move in self.move_log]
         b.matrix_history = list(self.matrix_history)
         b.moved_pieces_stack = list(self.moved_pieces_stack)
         return b
