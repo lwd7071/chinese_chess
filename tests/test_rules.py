@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from game.board import Board
 from game.pieces import Piece
-from game.rules import is_in_check, is_checkmate, is_stalemate, has_lost
+from game.rules import is_in_check, is_checkmate, is_stalemate, has_lost, is_no_cross_river_pieces
 
 class TestXiangqiRules(unittest.TestCase):
     def test_initial_no_check(self):
@@ -171,6 +171,27 @@ class TestXiangqiRules(unittest.TestCase):
         self.assertIn((3, 2), p.get_raw_moves(board.matrix))
         self.assertIn((4, 1), p.get_raw_moves(board.matrix))
         self.assertIn((4, 3), p.get_raw_moves(board.matrix))
+
+    def test_no_cross_river_pieces_draw(self):
+        """Verify that when no cross-river pieces are left, a draw is detected."""
+        # Initial board setup has cross-river pieces, so it shouldn't be a draw
+        board = Board()
+        self.assertFalse(is_no_cross_river_pieces(board))
+
+        # Clear board and place only Generals, Advisors, and Elephants (cannot cross river)
+        board_draw = Board(setup=False)
+        board_draw.matrix[0][4] = Piece('G', 'black', (0, 4), '將')
+        board_draw.matrix[9][4] = Piece('G', 'red', (9, 4), '帥')
+        board_draw.matrix[0][3] = Piece('A', 'black', (0, 3), '士')
+        board_draw.matrix[9][3] = Piece('A', 'red', (9, 3), '仕')
+        board_draw.matrix[0][2] = Piece('E', 'black', (0, 2), '象')
+        board_draw.matrix[9][2] = Piece('E', 'red', (9, 2), '相')
+
+        self.assertTrue(is_no_cross_river_pieces(board_draw))
+
+        # Add one Pawn (cross-river capable), it should no longer be a draw
+        board_draw.matrix[6][4] = Piece('P', 'red', (6, 4), '兵')
+        self.assertFalse(is_no_cross_river_pieces(board_draw))
 
 if __name__ == '__main__':
     unittest.main()

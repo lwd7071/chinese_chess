@@ -19,3 +19,20 @@ def is_checkmate(board, color):
 def is_stalemate(board, color):
     """Specific check for Stalemate (not in check but no moves)"""
     return not board.is_in_check(color) and len(board.get_all_legal_moves(color)) == 0
+
+def is_no_cross_river_pieces(board):
+    """
+    Checks if both sides have no pieces left that can cross the river.
+    Cross-river capable pieces are: 'R' (Rook), 'C' (Cannon), 'H' (Horse), 'P' (Pawn).
+    If neither side has any of these, then the game is a draw.
+    """
+    if not hasattr(board, "matrix") or not isinstance(board.matrix, list):
+        return False
+    cross_river_types = {'R', 'C', 'H', 'P'}
+    for r in range(10):
+        for c in range(9):
+            piece = board.matrix[r][c]
+            if piece and hasattr(piece, "name") and piece.name in cross_river_types:
+                return False
+    return True
+
