@@ -58,3 +58,5 @@ cover/
 .codegraph/
 .agents/
 docs/
+run_evals.py
+.claude/
