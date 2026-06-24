@@ -1,4 +1,4 @@
-# Main launcher of Xiangqi AI Game in Python + Pygame
+# Main launcher of Xiangqi AI Game in Python + Pygame (Royal Theme Redesign)
 import pygame
 import time
 import threading
@@ -14,11 +14,21 @@ from ai import AI_REGISTRY
 from gui.renderer import Renderer
 from gui.sidebar import Sidebar
 from gui.menu import StartMenu
+from gui.shop import ShopScreen
 from gui.sound import play_synth_sound
+from gui.easing import ease_out_back
 
 # Screen Dimensions
 WIDTH = 1100
 HEIGHT = 820
+
+# Color Palette constants (Matching sidebar theme)
+COLOR_ACCENT = (242, 202, 80)         # Antique Gold
+COLOR_OUTLINE = (77, 70, 53)          # Outline border
+COLOR_TEXT = (250, 220, 213)          # On-surface text
+COLOR_TEXT_MUTED = (180, 165, 150)    # Muted beige
+COLOR_RED = (231, 76, 60)             # Red turn/side
+COLOR_BLACK = (241, 196, 15)          # Black turn/side
 
 class GameController:
     def __init__(self):
@@ -28,16 +38,27 @@ class GameController:
         except Exception:
             print("Warning: pygame.mixer.init() failed. Running without sound.")
         
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption("Cờ Tướng AI - Xiangqi AI Game Dashboard")
+        self.width = WIDTH
+        self.height = HEIGHT
+        self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+        pygame.display.set_caption("Hoàng Gia Tượng Kỳ - Board Game Dashboard")
         self.clock = pygame.time.Clock()
         
         # Init GUI modules
-        self.renderer = Renderer(cell_size=60, offset_x=40, offset_y=50)
-        self.sidebar = Sidebar(x=620, y=0, width=480, height=820)
-        self.menu = StartMenu(width=WIDTH, height=HEIGHT)
+        self.renderer = Renderer(cell_size=60, offset_x=40, offset_y=80)
+        self.sidebar = Sidebar(x=620, y=0, width=480, height=self.height)
+        self.menu = StartMenu(width=self.width, height=self.height)
+        self.shop = ShopScreen(width=self.width, height=self.height)
         
-        self.state = "menu" # menu, game
+        self.state = "menu" # menu, game, shop, game_over
+        
+        # In-game wealth/skin storage (kept in-memory)
+        self.gold = 1250
+        self.owned_boards = ["classic_wood"]
+        self.owned_pieces = ["classic_wood_piece"]
+        self.equipped_board = "classic_wood"
+        self.equipped_piece = "classic_wood_piece"
+        self.shop_return_state = "menu"
         
         # Game State Variables
         self.board = None
@@ -48,25 +69,78 @@ class GameController:
         self.latest_move_index = None
         self.latest_move_flash_until = 0.0
         
+        # Top Nav Menu Tabs (Rect coordinates) - calculated dynamically
+        self.btn_top_match = pygame.Rect(0, 0, 0, 0)
+        self.btn_top_shop = pygame.Rect(0, 0, 0, 0)
+        self.btn_top_settings = pygame.Rect(0, 0, 0, 0)
+        
+        # Temporary popup state
+        self.popup_message = ""
+        self.popup_timer = 0.0
+        
         # AI threading state
         self.ai_thread = None
         self.ai_result = None
         self.ai_lock = threading.Lock()
         self.last_bot_move_time = 0
         
-        # Animation state: {"piece": Piece, "from_xy": (x,y), "to_xy": (x,y), "progress": 0.0, "to_pos": (r,c), "captured": Piece}
+        # Animation state
         self.animation = None
         
-        # Game Over state variables
+        # Game Over state variables - calculated dynamically
         self.game_over_result = ""
-        self.btn_game_over_retry = pygame.Rect(WIDTH // 2 - 160, HEIGHT // 2 + 30, 140, 40)
-        self.btn_game_over_menu = pygame.Rect(WIDTH // 2 + 20, HEIGHT // 2 + 30, 140, 40)
+        self.btn_game_over_retry = pygame.Rect(0, 0, 0, 0)
+        self.btn_game_over_menu = pygame.Rect(0, 0, 0, 0)
         
         # Hover tooltip state
         self.hover_pos = None
         self.hover_piece = None
         self.hover_start_time = 0.0
         self.hover_triggered = False
+        
+        # Perform initial layout calculation
+        self.recalculate_layout()
+
+    def recalculate_layout(self):
+        # 1. Update widths and heights
+        self.sidebar_width = max(400, min(480, int(self.width * 0.4)))
+        self.board_width = self.width - self.sidebar_width
+        self.board_height = self.height
+        
+        # 2. Update top navigation tabs
+        nav_start_x = self.board_width // 2 - 130
+        self.btn_top_match = pygame.Rect(nav_start_x, 20, 80, 32)
+        self.btn_top_shop = pygame.Rect(nav_start_x + 90, 20, 80, 32)
+        self.btn_top_settings = pygame.Rect(nav_start_x + 180, 20, 80, 32)
+        
+        # 3. Update game over buttons
+        self.btn_game_over_retry = pygame.Rect(self.width // 2 - 160, self.height // 2 + 30, 140, 40)
+        self.btn_game_over_menu = pygame.Rect(self.width // 2 + 20, self.height // 2 + 30, 140, 40)
+        
+        # 4. Update board grid coordinates (cell_size, offset_x, offset_y)
+        max_grid_w = self.board_width - 80
+        max_grid_h = self.height - 72 - 80
+        cell_size_w = max_grid_w / 8
+        cell_size_h = max_grid_h / 9
+        cell_size = int(min(cell_size_w, cell_size_h))
+        cell_size = max(40, min(80, cell_size)) # Limit between 40 and 80
+        
+        grid_w = 8 * cell_size
+        grid_h = 9 * cell_size
+        offset_x = int((self.board_width - grid_w) / 2)
+        offset_y = int(72 + ((self.height - 72) - grid_h) / 2)
+        
+        # Update renderer layout
+        self.renderer.update_layout(cell_size, offset_x, offset_y, self.board_width, self.board_height)
+        
+        # Update sidebar layout
+        self.sidebar.update_layout(self.board_width, 0, self.sidebar_width, self.height)
+        
+        # Update menu layout
+        self.menu.update_layout(self.width, self.height)
+        
+        # Update shop layout
+        self.shop.update_layout(self.width, self.height)
 
     def start_new_game(self):
         self.board = Board()
@@ -81,6 +155,10 @@ class GameController:
         self.animation = None
         self.last_bot_move_time = time.time()
         self.game_over_result = ""
+
+    def show_popup(self, message):
+        self.popup_message = message
+        self.popup_timer = time.time() + 2.0
         
     def trigger_move_animation(self, from_pos, to_pos):
         piece = self.board.get_piece(from_pos)
@@ -98,10 +176,13 @@ class GameController:
         }
 
         self.board.move_log.append(self.pending_move)
-        visible_rows = getattr(self.sidebar, "history_visible_rows", 5)
+        visible_rows = getattr(self.sidebar, "history_visible_rows", 6)
         if not isinstance(visible_rows, int):
-            visible_rows = 5
-        self.sidebar.history_scroll = max(0, len(self.board.move_log) - visible_rows)
+            visible_rows = 6
+            
+        # Group historical pair rows length calculation
+        pair_rows_count = len(self.board.move_log) // 2 + (len(self.board.move_log) % 2)
+        self.sidebar.history_scroll = max(0, pair_rows_count - visible_rows)
         self.latest_move_index = len(self.board.move_log) - 1
         self.latest_move_flash_until = time.time() + 2.0
         
@@ -114,7 +195,8 @@ class GameController:
             "to_pos": to_pos,
             "from_xy": (x1, y1),
             "to_xy": (x2, y2),
-            "progress": 0.0,
+            "start_time": time.time(),
+            "duration": 0.3,
             "captured": captured
         }
         
@@ -128,43 +210,80 @@ class GameController:
             for event in events:
                 if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.VIDEORESIZE:
+                    w = max(1000, event.w)
+                    h = max(750, event.h)
+                    self.width, self.height = w, h
+                    self.screen = pygame.display.set_mode((w, h), pygame.RESIZABLE)
+                    self.recalculate_layout()
                     
                 if self.state == "menu":
-                    if self.menu.handle_event(event):
+                    res = self.menu.handle_event(event)
+                    if res == "game":
                         self.start_new_game()
                         self.state = "game"
+                    elif res == "shop":
+                        self.state = "shop"
+                        self.shop_return_state = "menu"
+                        
+                elif self.state == "shop":
+                    res = self.shop.handle_event(event, self)
+                    if res == "menu":
+                        self.state = self.shop_return_state
                         
                 elif self.state == "game" and not self.animation:
+                    # Check Top Bar click first
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        mx, my = event.pos
+                        if self.btn_top_shop.collidepoint(event.pos):
+                            self.state = "shop"
+                            self.shop_return_state = "game"
+                            play_synth_sound('move')
+                            continue
+                        elif self.btn_top_settings.collidepoint(event.pos):
+                            self.show_popup("Cài đặt hệ thống sẽ sớm ra mắt!")
+                            play_synth_sound('move')
+                            continue
+                            
                     # Sidebar click actions
                     action = self.sidebar.handle_event(event)
-                    if action == "new_game":
-                        self.start_new_game()
-                    elif action == "menu":
-                        self.state = "menu"
-                    elif action == "undo":
-                        # Undo twice in Human vs Bot, or once in Bot vs Bot
-                        if self.menu.game_mode == "human_vs_bot":
-                            if len(self.board.history) >= 2:
-                                self.board.undo_move()
-                                self.board.undo_move()
-                        else:
-                            if len(self.board.history) >= 1:
-                                self.board.undo_move()
-                        self.selected_pos = None
-                        self.valid_moves = []
-                        self.hint_move = None
-                    elif action == "hint":
-                        # Suggest the best move for current turn using Alpha-Beta search (Level 6)
-                        self.stats_lbl = "Đang tìm kiếm gợi ý..."
-                        self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
-                        
-                    # Human Move inputs
-                    elif self.menu.game_mode == "human_vs_bot" and self.board.turn == 'red':
-                        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            board_pos = self.renderer.get_board_pos_from_screen(event.pos)
-                            if board_pos:
-                                self.handle_human_click(board_pos)
-                                
+                    if action:
+                        if action.startswith("select_algo:"):
+                            new_algo = action.split(":")[-1]
+                            if self.menu.game_mode == "human_vs_bot":
+                                self.menu.black_bot_algo = new_algo
+                            else:
+                                if self.board.turn == 'red':
+                                    self.menu.red_bot_algo = new_algo
+                                else:
+                                    self.menu.black_bot_algo = new_algo
+                        elif action == "new_game":
+                            self.start_new_game()
+                        elif action == "menu":
+                            self.state = "menu"
+                            self.menu.state = "mode_select"
+                            self.menu.trigger_transition()
+                        elif action == "undo":
+                            if self.menu.game_mode == "human_vs_bot":
+                                if len(self.board.history) >= 2:
+                                    self.board.undo_move()
+                                    self.board.undo_move()
+                            else:
+                                if len(self.board.history) >= 1:
+                                    self.board.undo_move()
+                            self.selected_pos = None
+                            self.valid_moves = []
+                            self.hint_move = None
+                        elif action == "hint":
+                            self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
+                            play_synth_sound('move')
+                    
+                    # Board piece click — select or move pieces
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        board_pos = self.renderer.get_board_pos_from_screen(event.pos)
+                        if board_pos:
+                            self.handle_human_click(board_pos)
+                            
                 elif self.state == "game_over":
                     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                         if self.btn_game_over_retry.collidepoint(event.pos):
@@ -172,8 +291,10 @@ class GameController:
                             self.state = "game"
                         elif self.btn_game_over_menu.collidepoint(event.pos):
                             self.state = "menu"
+                            self.menu.state = "mode_select"
+                            self.menu.trigger_transition()
                                 
-            # 2. Game Logic / Bot calculations
+            # 2. Game Logic / Bot turns
             if self.state == "game" and not self.animation:
                 self.handle_bot_turns()
                 
@@ -209,12 +330,16 @@ class GameController:
                 self.hover_start_time = 0.0
                 self.hover_triggered = False
                 
-            # 3. Update Animations
+            # 3. Update Animations & Particles
             self.update_animation()
+            if self.state in ["game", "game_over"]:
+                self.renderer.update_particles()
             
             # 4. Drawing Phase
             if self.state == "menu":
                 self.menu.draw(self.screen)
+            elif self.state == "shop":
+                self.shop.draw(self.screen, self)
             elif self.state in ["game", "game_over"]:
                 self.draw_game_screen()
                 if self.state == "game_over":
@@ -225,16 +350,14 @@ class GameController:
         pygame.quit()
 
     def handle_human_click(self, pos):
-        r, c = pos
         piece = self.board.get_piece(pos)
         
         # If we click on our own piece, select it
         if piece and piece.color == 'red':
             self.selected_pos = pos
-            # Filter all legal moves starting from this piece position
             all_legal = self.board.get_all_legal_moves('red')
             self.valid_moves = [to_pos for from_pos, to_pos in all_legal if from_pos == pos]
-            self.hint_move = None # Clear hint on selection
+            self.hint_move = None
             
         # If we clicked on a valid move cell, execute it
         elif self.selected_pos and pos in self.valid_moves:
@@ -243,7 +366,6 @@ class GameController:
             self.valid_moves = []
 
     def handle_bot_turns(self):
-        # Check if it is the Bot's turn
         is_bot = False
         bot_algo = ""
         
@@ -257,21 +379,16 @@ class GameController:
             else:
                 bot_algo = self.menu.black_bot_algo
                 
-        if is_bot and bot_algo:
-            # Check game end
+        if is_bot and bot_algo and bot_algo != "Human":
             if has_lost(self.board, self.board.turn) or is_no_cross_river_pieces(self.board):
                 return
                 
-            # In Bot vs Bot, respect speed slider delay
             delay = self.sidebar.get_bot_speed_delay()
             if time.time() - self.last_bot_move_time < delay:
                 return
                 
-            # If no AI thread running, launch one
             if self.ai_thread is None:
                 bot_func = AI_REGISTRY[bot_algo]
-                
-                # Make a thread-safe copy of the board to calculate moves in background
                 board_copy = self.board.copy()
                 
                 def calculate():
@@ -283,7 +400,6 @@ class GameController:
                 self.ai_thread.daemon = True
                 self.ai_thread.start()
                 
-            # Check thread completion
             if self.ai_thread and not self.ai_thread.is_alive():
                 self.ai_thread = None
                 with self.ai_lock:
@@ -299,15 +415,20 @@ class GameController:
             return
             
         anim = self.animation
-        anim["progress"] += 0.08 # Animation speed (takes ~12 frames to complete)
+        elapsed = time.time() - anim["start_time"]
+        progress = elapsed / anim["duration"]
         
-        if anim["progress"] >= 1.0:
+        if progress >= 1.0:
             # Execute actual move on model board
             self.board.make_move(anim["from_pos"], anim["to_pos"], log_move=False)
             
-            # Trigger corresponding sound
             is_captured = anim["captured"] is not None
-            is_check = is_in_check(self.board, self.board.turn) # opposite turn side checked
+            is_check = is_in_check(self.board, self.board.turn)
+            
+            # Spawn capture particles on piece capture
+            if is_captured:
+                cx, cy = self.renderer.get_xy(anim["to_pos"][0], anim["to_pos"][1])
+                self.renderer.spawn_capture_particles(cx, cy, self.equipped_board)
             
             if is_check:
                 play_synth_sound('check')
@@ -316,14 +437,21 @@ class GameController:
             else:
                 play_synth_sound('move')
                 
-            # Clear animation
+            # Reward gold on game won
+            if has_lost(self.board, self.board.turn):
+                winner = 'red' if self.board.turn == 'black' else 'black'
+                if self.menu.game_mode == "human_vs_bot" and winner == 'red':
+                    self.gold += 100
+                else:
+                    self.gold += 50
+                    
             self.animation = None
             self.hint_move = None
             if self.pending_move:
                 self.pending_move["pending"] = False
             self.pending_move = None
             
-            # Check for draw / win conditions
+            # Check win/draw conditions
             if is_no_cross_river_pieces(self.board):
                 self.game_over_result = "HÒA CỜ - Không còn quân qua sông!"
                 self.state = "game_over"
@@ -339,67 +467,56 @@ class GameController:
                 self.state = "game_over"
 
     def draw_game_screen(self):
-        # 1. Draw static elements
-        self.renderer.draw_board(self.screen)
+        # 1. Draw Board theme background & grid lines
+        self.renderer.draw_board(self.screen, theme=self.equipped_board)
         
-        # Draw check notification effect (glow around King and top banner text)
+        # Draw check effects
         self.renderer.draw_check_effect(self.screen, self.board)
         
-        # Highlight selected and hints
+        # Highlight selected piece & hint destinations
         if self.selected_pos:
             cx, cy = self.renderer.get_xy(self.selected_pos[0], self.selected_pos[1])
-            pygame.draw.circle(self.screen, (240, 200, 40), (cx, cy), self.renderer.cell_size * 0.44 + 2, 2)
+            pygame.draw.circle(self.screen, (242, 202, 80), (cx, cy), self.renderer.cell_size * 0.44 + 2, 2)
             self.renderer.draw_move_hints(self.screen, self.board, self.valid_moves)
             
-        # Draw hint move if requested
+        # Draw AI suggestion hints
         if self.hint_move:
             from_pos, to_pos = self.hint_move
             fx, fy = self.renderer.get_xy(from_pos[0], from_pos[1])
             tx, ty = self.renderer.get_xy(to_pos[0], to_pos[1])
-            # Highlight starting cell in blue, destination in blue
             pygame.draw.circle(self.screen, (52, 152, 219), (fx, fy), self.renderer.cell_size * 0.44 + 2, 3)
             pygame.draw.circle(self.screen, (52, 152, 219), (tx, ty), self.renderer.cell_size * 0.44 + 2, 3)
 
-        # 2. Draw static pieces (not currently in animation)
+        # 2. Draw static pieces (not currently animating)
         animating_piece = self.animation["piece"] if self.animation else None
-        
         for r in range(10):
             for c in range(9):
                 p = self.board.matrix[r][c]
                 if p and p != animating_piece:
-                    self.renderer.draw_piece(self.screen, p, is_selected=(p.pos == self.selected_pos))
+                    self.renderer.draw_piece(self.screen, p, is_selected=(p.pos == self.selected_pos), skin=self.equipped_piece)
                     
-        # 3. Draw sliding piece if animating
+        # 3. Draw sliding piece with overshoot easing
         if self.animation:
             anim = self.animation
             p = anim["piece"]
             
-            # Linear interpolation of positions
+            elapsed = time.time() - anim["start_time"]
+            t = min(1.0, elapsed / anim["duration"])
+            prog = ease_out_back(t)
+            
             x1, y1 = anim["from_xy"]
             x2, y2 = anim["to_xy"]
-            prog = anim["progress"]
             
             curr_x = int(x1 + prog * (x2 - x1))
             curr_y = int(y1 + prog * (y2 - y1))
             
-            # Temporary relocate piece representation for drawing
-            old_pos = p.pos
-            # Draw piece circle manually at interpolated position
-            radius = int(self.renderer.cell_size * 0.44)
-            pygame.draw.circle(self.screen, (160, 110, 60), (curr_x, curr_y), radius)
-            pygame.draw.circle(self.screen, (250, 240, 215), (curr_x, curr_y), radius - 2)
-            
-            text_color = (200, 30, 30) if p.color == 'red' else (20, 20, 20)
-            if self.renderer.chinese_supported:
-                char = p.char
-            else:
-                char = p.name
-                
-            txt = self.renderer.piece_font.render(char, True, text_color)
-            self.screen.blit(txt, (curr_x - txt.get_width() // 2, curr_y - txt.get_height() // 2))
+            self.renderer.draw_piece(self.screen, p, is_selected=False, skin=self.equipped_piece, cx=curr_x, cy=curr_y)
 
-        # 4. Draw sidebar details
-        red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo else "Human"
+        # 4. Draw Top Navigation Bar (Gold balance, Shop, Profile)
+        self.draw_top_bar()
+
+        # 5. Draw Sidebar Panel
+        red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
         black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
         self.sidebar.draw(
             self.screen, self.board, self.menu.game_mode,
@@ -407,49 +524,121 @@ class GameController:
             latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until
         )
         
-        # 5. Draw hover tooltip if triggered
+        # 6. Draw capture burst particles
+        self.renderer.draw_particles(self.screen)
+        
+        # 7. Draw hover tooltip if triggered
         if self.hover_triggered and self.hover_piece:
             self.renderer.draw_tooltip(self.screen, self.hover_piece, pygame.mouse.get_pos())
+            
+        # 8. Draw temporary popup notification banner if active
+        if time.time() < self.popup_timer:
+            p_width = 320
+            p_height = 68
+            px = self.board_width // 2 - p_width // 2 # Center on board canvas
+            py = self.height // 2 - p_height // 2
+            
+            p_surf = pygame.Surface((p_width, p_height), pygame.SRCALPHA)
+            p_surf.fill((44, 28, 24, 240))
+            pygame.draw.rect(p_surf, COLOR_ACCENT, (0, 0, p_width, p_height), 2, 8)
+            
+            p_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 14, bold=True)
+            p_txt = p_font.render(self.popup_message, True, COLOR_ACCENT)
+            p_surf.blit(p_txt, (p_width // 2 - p_txt.get_width() // 2, p_height // 2 - p_txt.get_height() // 2))
+            self.screen.blit(p_surf, (px, py))
+
+    def draw_top_bar(self):
+        # Semi-transparent dark overlay for top bar
+        top_bar_surf = pygame.Surface((self.board_width, 72), pygame.SRCALPHA)
+        top_bar_surf.fill((15, 8, 6, 200))
+        self.screen.blit(top_bar_surf, (0, 0))
+        pygame.draw.line(self.screen, COLOR_OUTLINE, (0, 72), (self.board_width, 72), 1)
+        
+        # Title "Hoàng Gia Tượng Kỳ"
+        brand_font = pygame.font.SysFont(["Playfair Display", "Segoe UI"], 18, bold=True)
+        brand_txt = brand_font.render("Hoàng Gia Tượng Kỳ", True, COLOR_ACCENT)
+        self.screen.blit(brand_txt, (15, 36 - brand_txt.get_height() // 2))
+        
+        # Navigation Tabs: Trận Đấu (Active) / Cửa Tiệm / Cài Đặt
+        mouse_pos = pygame.mouse.get_pos()
+        tab_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 13, bold=True)
+        
+        # Tab "Trận Đấu" - Active
+        active_color = COLOR_ACCENT
+        match_txt = tab_font.render("TRẬN ĐẤU", True, active_color)
+        self.screen.blit(match_txt, (self.btn_top_match.centerx - match_txt.get_width() // 2, self.btn_top_match.centery - match_txt.get_height() // 2))
+        # Draw Gold underline for active tab
+        pygame.draw.line(self.screen, COLOR_ACCENT, (self.btn_top_match.x + 8, 52), (self.btn_top_match.right - 8, 52), 2)
+        
+        # Tab "Cửa Tiệm" - Navigates to shop
+        is_hover_shop = self.btn_top_shop.collidepoint(mouse_pos)
+        shop_color = COLOR_ACCENT if is_hover_shop else COLOR_TEXT_MUTED
+        shop_txt = tab_font.render("CỬA TIỆM", True, shop_color)
+        self.screen.blit(shop_txt, (self.btn_top_shop.centerx - shop_txt.get_width() // 2, self.btn_top_shop.centery - shop_txt.get_height() // 2))
+        
+        # Tab "Cài Đặt" - Show coming soon popup
+        is_hover_settings = self.btn_top_settings.collidepoint(mouse_pos)
+        settings_color = COLOR_ACCENT if is_hover_settings else COLOR_TEXT_MUTED
+        settings_txt = tab_font.render("CÀI ĐẶT", True, settings_color)
+        self.screen.blit(settings_txt, (self.btn_top_settings.centerx - settings_txt.get_width() // 2, self.btn_top_settings.centery - settings_txt.get_height() // 2))
+        
+        # Gold counter box
+        gold_box = pygame.Rect(self.board_width - 148, 20, 92, 32)
+        pygame.draw.rect(self.screen, (30, 20, 15), gold_box, 0, 16)
+        pygame.draw.rect(self.screen, COLOR_ACCENT, gold_box, 1, 16)
+        
+        # Coin icon
+        pygame.draw.circle(self.screen, COLOR_ACCENT, (gold_box.x + 14, gold_box.centery), 6)
+        c_font = pygame.font.SysFont(["Segoe UI"], 8, bold=True)
+        c_txt = c_font.render("V", True, (40, 25, 10))
+        self.screen.blit(c_txt, (gold_box.x + 14 - c_txt.get_width() // 2, gold_box.centery - c_txt.get_height() // 2 + 1))
+        
+        gold_font = pygame.font.SysFont(["Consolas", "Segoe UI"], 12, bold=True)
+        gold_val_txt = gold_font.render(f"{self.gold:,}", True, COLOR_ACCENT)
+        self.screen.blit(gold_val_txt, (gold_box.x + 25, gold_box.centery - gold_val_txt.get_height() // 2))
+        
+        # Profile Avatar Circle
+        avatar_center = (self.board_width - 25, 36)
+        pygame.draw.circle(self.screen, COLOR_ACCENT, avatar_center, 15)
+        pygame.draw.circle(self.screen, (55, 35, 30), avatar_center, 13)
+        av_font = pygame.font.SysFont(["Segoe UI"], 10, bold=True)
+        av_txt = av_font.render("KV", True, COLOR_ACCENT)
+        self.screen.blit(av_txt, (avatar_center[0] - av_txt.get_width() // 2, avatar_center[1] - av_txt.get_height() // 2))
 
     def draw_game_over_overlay(self):
-        # 1. Draw a dark translucent overlay over the board/screen
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((20, 20, 20, 180)) # Black overlay with 180 alpha
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((15, 8, 6, 180))
         self.screen.blit(overlay, (0, 0))
         
-        # 2. Draw panel card in the center
         panel_width = 440
         panel_height = 240
-        panel_x = WIDTH // 2 - panel_width // 2
-        panel_y = HEIGHT // 2 - panel_height // 2
+        panel_x = self.width // 2 - panel_width // 2
+        panel_y = self.height // 2 - panel_height // 2
         
-        # Panel background
-        pygame.draw.rect(self.screen, (45, 45, 45), (panel_x, panel_y, panel_width, panel_height), 0, 12)
-        # Panel border
-        pygame.draw.rect(self.screen, (0, 173, 181), (panel_x, panel_y, panel_width, panel_height), 2, 12)
+        pygame.draw.rect(self.screen, (44, 28, 24), (panel_x, panel_y, panel_width, panel_height), 0, 12)
+        pygame.draw.rect(self.screen, COLOR_ACCENT, (panel_x, panel_y, panel_width, panel_height), 2, 12)
         
-        # 3. Draw Header text
         hdr_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 26, bold=True)
-        hdr_txt = hdr_font.render("TRẬN ĐẤU KẾT THÚC", True, (0, 173, 181))
-        self.screen.blit(hdr_txt, (WIDTH // 2 - hdr_txt.get_width() // 2, panel_y + 30))
+        hdr_txt = hdr_font.render("TRẬN ĐẤU KẾT THÚC", True, COLOR_ACCENT)
+        self.screen.blit(hdr_txt, (self.width // 2 - hdr_txt.get_width() // 2, panel_y + 30))
         
-        # 4. Draw result text (e.g. CHIẾU BÍ - Quân Đỏ thắng!)
         res_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 18, bold=True)
-        res_color = (231, 76, 60) if "Quân Đỏ" in self.game_over_result else ((241, 196, 15) if "Quân Đen" in self.game_over_result else (240, 240, 240))
+        res_color = COLOR_RED if "Đỏ" in self.game_over_result else (COLOR_BLACK if "Đen" in self.game_over_result else COLOR_TEXT)
         res_txt = res_font.render(self.game_over_result, True, res_color)
-        self.screen.blit(res_txt, (WIDTH // 2 - res_txt.get_width() // 2, panel_y + 85))
+        self.screen.blit(res_txt, (self.width // 2 - res_txt.get_width() // 2, panel_y + 85))
         
-        # 5. Draw buttons
         btn_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 16, bold=True)
         
         # Draw Retry button
         pygame.draw.rect(self.screen, (39, 174, 96), self.btn_game_over_retry, 0, 6)
-        retry_lbl = btn_font.render("CHƠI LẠI", True, (240, 240, 240))
+        pygame.draw.rect(self.screen, COLOR_ACCENT, self.btn_game_over_retry, 1, 6)
+        retry_lbl = btn_font.render("CHƠI LẠI", True, COLOR_TEXT)
         self.screen.blit(retry_lbl, (self.btn_game_over_retry.centerx - retry_lbl.get_width() // 2, self.btn_game_over_retry.centery - retry_lbl.get_height() // 2))
         
         # Draw Menu button
         pygame.draw.rect(self.screen, (192, 57, 43), self.btn_game_over_menu, 0, 6)
-        menu_lbl = btn_font.render("MENU CHÍNH", True, (240, 240, 240))
+        pygame.draw.rect(self.screen, COLOR_ACCENT, self.btn_game_over_menu, 1, 6)
+        menu_lbl = btn_font.render("MENU CHÍNH", True, COLOR_TEXT)
         self.screen.blit(menu_lbl, (self.btn_game_over_menu.centerx - menu_lbl.get_width() // 2, self.btn_game_over_menu.centery - menu_lbl.get_height() // 2))
 
 if __name__ == "__main__":

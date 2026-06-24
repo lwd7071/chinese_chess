@@ -1,20 +1,19 @@
-# Pygame Sidebar control panel for game info and actions
+# Pygame Sidebar control panel for game info and actions (Royal Theme Redesign)
 import pygame
 import time
+import math
+import random
+from gui.assets import get_asset
 
-COLOR_SIDEBAR_BG = (45, 45, 45)      # Dark gray background
-COLOR_CARD_BG = (60, 60, 60)         # Lighter gray for info cards
-COLOR_ACCENT = (0, 173, 181)         # Cyan accent
-COLOR_TEXT = (240, 240, 240)         # Light text
-COLOR_TEXT_MUTED = (160, 160, 160)   # Muted gray text
-COLOR_BTN_RED = (192, 57, 43)        # Red button
-COLOR_BTN_GREEN = (39, 174, 96)      # Green button
-COLOR_BTN_BLUE = (41, 128, 185)      # Blue button
-COLOR_HISTORY_RED = (231, 76, 60)
-COLOR_HISTORY_BLACK = (241, 196, 15)
-COLOR_HISTORY_CAPTURE = (46, 204, 113)
-COLOR_HISTORY_ROW = (50, 50, 50)
-COLOR_HISTORY_FRAME = (90, 90, 90)
+COLOR_SIDEBAR_BG = (28, 16, 12)       # Warm deep dark rosewood (#1c100c)
+COLOR_CARD_BG = (44, 28, 24)          # Slightly lighter container (#2c1c18)
+COLOR_ACCENT = (242, 202, 80)         # Antique Gold (#f2ca50)
+COLOR_TEXT = (250, 220, 213)          # On-surface (#fadcd5)
+COLOR_TEXT_MUTED = (180, 165, 150)    # Muted beige
+COLOR_OUTLINE = (77, 70, 53)          # Outline border (#4d4635)
+COLOR_JADE = (89, 222, 155)           # Jade green (#59de9b)
+COLOR_RED = (231, 76, 60)             # Red turn/side
+COLOR_BLACK = (241, 196, 15)          # Black turn/side
 
 PIECE_NAME_VI = {
     'G': 'Tướng',
@@ -26,6 +25,34 @@ PIECE_NAME_VI = {
     'P': 'Tốt',
 }
 
+# 18 Algorithms mapped to their display name and search registry keys
+ALGO_OPTIONS = [
+    # Level 1
+    ("BFS", "BFS (Breadth-First)", 0),
+    ("DFS", "DFS (Depth-First)", 0),
+    ("UCS", "UCS (Uniform Cost)", 0),
+    # Level 2
+    ("Greedy", "Greedy Search", 1),
+    ("A*", "A* Algorithm", 1),
+    ("IDA*", "IDA* Search", 1),
+    # Level 3
+    ("Hill Climbing", "Hill Climbing", 2),
+    ("Simulated Annealing", "Simulated Annealing", 2),
+    ("Beam Search", "Beam Search", 2),
+    # Level 4
+    ("Online Search", "Online Search", 3),
+    ("AND-OR Search", "AND-OR Search", 3),
+    ("Belief State", "Belief State", 3),
+    # Level 5
+    ("Backtracking", "Backtracking (CSP)", 4),
+    ("Min-Conflicts", "Min-Conflicts", 4),
+    ("AC-3", "AC-3 Constraint", 4),
+    # Level 6
+    ("Minimax", "Minimax", 5),
+    ("Alpha-Beta", "Alpha-Beta Pruning", 5),
+    ("Expectimax", "Expectimax", 5)
+]
+
 class Sidebar:
     def __init__(self, x, y, width, height):
         self.x = x
@@ -34,84 +61,130 @@ class Sidebar:
         self.height = height
         
         # Load fonts
-        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 22, bold=True)
-        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 16)
-        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 14)
+        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 20, bold=True)
+        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 15, bold=True)
+        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13, bold=True)
         self.small_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
-        self.history_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 14)
+        self.tiny_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 11)
+        self.history_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
         self.count_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 12, bold=True)
         
-        # Define button Rects for click detection
-        self.btn_new_game = pygame.Rect(x + 20, 650, width - 40, 30)
-        self.btn_undo = pygame.Rect(x + 20, 688, width - 40, 30)
-        self.btn_hint = pygame.Rect(x + 20, 726, width - 40, 30)
-        self.btn_menu = pygame.Rect(x + 20, 764, width - 40, 28)
+        # Controls Footer: 3 Buttons horizontal at the bottom
+        btn_w = (width - 60) // 3
+        self.btn_undo = pygame.Rect(x + 20, 760, btn_w, 36)
+        self.btn_hint = pygame.Rect(x + 20 + btn_w + 10, 760, btn_w, 36)
+        self.btn_surrender = pygame.Rect(x + 20 + (btn_w + 10) * 2, 760, btn_w, 36)
         
-        # Speed slider rect (for Bot vs Bot)
-        # Slider is from X = x + 30 to x + width - 60
-        self.slider_track = pygame.Rect(x + 30, 630, width - 60, 6)
-        self.slider_knob_x = x + 30 + (width - 60) // 2 # Initial center
-        self.slider_knob_radius = 8
-        self.slider_dragging = False
-
+        # Algorithm Dropdown state
+        self.dropdown_open = False
+        self.dropdown_rect = pygame.Rect(x + 20, 355, width - 40, 28)
+        self.dropdown_scroll = 0
+        self.dropdown_visible_items = 6
+        self.dropdown_item_height = 24
+        
+        # Simulated AI search stats
+        self.sim_nodes = 1284
+        self.sim_frontier = 42
+        self.sim_explored = 856
+        self.last_sim_update = 0.0
+        
         # Move history view state
-        self.history_visible_rows = 5
+        self.history_card_height = 255
+        self.history_visible_rows = 6
         self.history_scroll = 0
-        self.history_view_rect = pygame.Rect(x + 15, 385, width - 30, 215)
+        self.history_view_rect = pygame.Rect(x + 15, 545, width - 30, 160)
+        self._history_total = 0
+
+    def update_layout(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        
+        # Recalculate Footer Buttons relative to height
+        btn_w = (width - 60) // 3
+        self.btn_undo = pygame.Rect(x + 20, height - 60, btn_w, 36)
+        self.btn_hint = pygame.Rect(x + 20 + btn_w + 10, height - 60, btn_w, 36)
+        self.btn_surrender = pygame.Rect(x + 20 + (btn_w + 10) * 2, height - 60, btn_w, 36)
+        
+        # Recalculate Dropdown Rect
+        self.dropdown_rect = pygame.Rect(x + 20, y + 355, width - 40, 28)
+        
+        # Recalculate History Card metrics
+        self.history_card_height = max(100, (self.height - 80) - 485)
+        self.history_view_rect = pygame.Rect(x + 15, 545, width - 30, self.history_card_height - 95)
+        self.history_visible_rows = max(2, (self.history_card_height - 95) // 24)
 
     def get_bot_speed_delay(self):
-        """Converts slider position to delay in seconds (0.2s to 2.2s)"""
-        # Slider length
-        length = self.width - 60
-        ratio = (self.slider_knob_x - (self.x + 30)) / length
-        # Map 0..1 to 0.2..2.2
-        return 0.2 + ratio * 2.0
+        # Default fixed delay, or adjustable if needed
+        return 0.8
 
     def handle_event(self, event, current_speed_delay=None):
-        """Returns action string if a button is clicked, or handles slider dragging"""
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                # Check button clicks
-                if self.btn_new_game.collidepoint(event.pos):
-                    return "new_game"
-                elif self.btn_undo.collidepoint(event.pos):
-                    return "undo"
-                elif self.btn_hint.collidepoint(event.pos):
-                    return "hint"
-                elif self.btn_menu.collidepoint(event.pos):
-                    return "menu"
-                    
-                # Check slider click/drag start
-                knob_rect = pygame.Rect(
-                    self.slider_knob_x - self.slider_knob_radius - 5,
-                    630 - self.slider_knob_radius - 5,
-                    self.slider_knob_radius * 2 + 10,
-                    self.slider_knob_radius * 2 + 10
+        pos = pygame.mouse.get_pos()
+        
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # 1. Check Dropdown clicks first
+            if self.dropdown_open:
+                dropdown_list_rect = pygame.Rect(
+                    self.dropdown_rect.x,
+                    self.dropdown_rect.bottom,
+                    self.dropdown_rect.width,
+                    self.dropdown_visible_items * self.dropdown_item_height
                 )
-                if knob_rect.collidepoint(event.pos) or self.slider_track.inflate(0, 10).collidepoint(event.pos):
-                    self.slider_dragging = True
-                    self.update_slider_pos(event.pos[0])
-
+                
+                # Check if click is inside the list
+                if dropdown_list_rect.collidepoint(event.pos):
+                    relative_y = event.pos[1] - dropdown_list_rect.y
+                    clicked_idx = self.dropdown_scroll + (relative_y // self.dropdown_item_height)
+                    if 0 <= clicked_idx < len(ALGO_OPTIONS):
+                        selected_algo = ALGO_OPTIONS[clicked_idx][0]
+                        self.dropdown_open = False
+                        # Play click sound
+                        from gui.sound import play_synth_sound
+                        play_synth_sound('move')
+                        return f"select_algo:{selected_algo}"
+                else:
+                    self.dropdown_open = False
+                    # Let click fall through if it's on the dropdown button itself to toggle it
+                    if not self.dropdown_rect.collidepoint(event.pos):
+                        return None
+            
+            # Click on Dropdown trigger box
+            if self.dropdown_rect.collidepoint(event.pos):
+                self.dropdown_open = not self.dropdown_open
+                from gui.sound import play_synth_sound
+                play_synth_sound('move')
+                return None
+                
+            # 2. Check Footer Button clicks
+            if self.btn_undo.collidepoint(event.pos):
+                return "undo"
+            elif self.btn_hint.collidepoint(event.pos):
+                return "hint"
+            elif self.btn_surrender.collidepoint(event.pos):
+                return "menu" # Surrender goes back to menu in Controller
+                
         elif event.type == pygame.MOUSEWHEEL:
-            if self.history_view_rect.collidepoint(pygame.mouse.get_pos()):
+            # Handle scroll on history
+            if self.history_view_rect.collidepoint(pos):
                 max_scroll = max(0, self._history_total - self.history_visible_rows)
                 self.history_scroll = max(0, min(max_scroll, self.history_scroll - event.y))
+                return None
+                
+            # Handle scroll on open dropdown
+            if self.dropdown_open:
+                dropdown_list_rect = pygame.Rect(
+                    self.dropdown_rect.x,
+                    self.dropdown_rect.bottom,
+                    self.dropdown_rect.width,
+                    self.dropdown_visible_items * self.dropdown_item_height
+                )
+                if dropdown_list_rect.collidepoint(pos):
+                    max_dropdown_scroll = max(0, len(ALGO_OPTIONS) - self.dropdown_visible_items)
+                    self.dropdown_scroll = max(0, min(max_dropdown_scroll, self.dropdown_scroll - event.y))
+                    return None
                     
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                self.slider_dragging = False
-                
-        elif event.type == pygame.MOUSEMOTION:
-            if self.slider_dragging:
-                self.update_slider_pos(event.pos[0])
-                
         return None
-
-    def update_slider_pos(self, mx):
-        # Clamp knob X between slider track boundaries
-        start_x = self.x + 30
-        end_x = self.x + self.width - 30
-        self.slider_knob_x = max(start_x, min(mx, end_x))
 
     def format_square(self, pos):
         return f"{chr(65 + pos[1])}{pos[0]}"
@@ -119,261 +192,384 @@ class Sidebar:
     def get_piece_name(self, piece_name):
         return PIECE_NAME_VI.get(piece_name, piece_name or "Quân")
 
-    def format_move_record(self, record):
-        side_label = "Đỏ" if record.get("side") == "red" else "Đen"
-        piece_name = self.get_piece_name(record.get("piece_name"))
+    def format_move_compact(self, record):
+        piece_name = self.get_piece_name(record.get("piece_char")) # Abbreviated
+        # Translate characters to Chinese pieces abbreviations
+        char_map = {
+            '帥': '帥', '將': '將',
+            '仕': '仕', '士': '士',
+            '相': '相', '象': '象',
+            '馬': '馬', '傌': '馬',
+            '車': '車', '俥': '車',
+            '砲': '砲', '炮': '砲',
+            '兵': '兵', '卒': '卒'
+        }
+        char = record.get("piece_char") or "?"
+        char = char_map.get(char, char)
+        
         from_pos = record.get("from_pos")
         to_pos = record.get("to_pos")
-        move_text = f"{side_label} {piece_name} {self.format_square(from_pos)}->{self.format_square(to_pos)}"
-        captured_name = record.get("captured_name")
-        if captured_name:
-            move_text += f" (ăn {self.get_piece_name(captured_name)})"
-        return move_text
+        f_sq = self.format_square(from_pos)
+        t_sq = self.format_square(to_pos)
+        
+        move_str = f"{char}{f_sq}->{t_sq}"
+        captured = record.get("captured_char")
+        if captured:
+            move_str += f"x{captured}"
+        return move_str
 
-    def get_history_window(self, moves):
-        self._history_total = len(moves)
-        if not moves:
-            return 0, []
-        max_scroll = max(0, len(moves) - self.history_visible_rows)
+    def get_history_rows(self, moves):
+        """Groups move history list into Red/Black pairs (rows)"""
+        rows = []
+        for i in range(0, len(moves), 2):
+            red_move = moves[i]
+            black_move = moves[i+1] if i+1 < len(moves) else None
+            rows.append((red_move, black_move))
+        
+        self._history_total = len(rows)
+        max_scroll = max(0, len(rows) - self.history_visible_rows)
         start = max(0, min(self.history_scroll, max_scroll))
         end = start + self.history_visible_rows
-        return start, moves[start:end]
-
-    def get_hint_summary(self, board, hint_move):
-        if not hint_move:
-            return None
-
-        from_pos, to_pos = hint_move
-        mover = board.get_piece(from_pos)
-        target = board.get_piece(to_pos)
-        summary = {
-            "piece_name": self.get_piece_name(mover.name if mover else None),
-            "side_label": "Đỏ" if mover and mover.color == "red" else "Đen",
-            "from_square": self.format_square(from_pos),
-            "to_square": self.format_square(to_pos),
-            "capture_text": "Không ăn quân",
-            "effect_text": "Nước đi thường",
-        }
-
-        if target:
-            summary["capture_text"] = f"Ăn: {self.get_piece_name(target.name)}"
-
-        simulated_board = board.copy()
-        simulated_board.make_move(from_pos, to_pos, log_move=False)
-        if simulated_board.is_in_check(simulated_board.turn):
-            summary["effect_text"] = "Sau nước này sẽ chiếu tướng"
-        elif target:
-            summary["effect_text"] = "Nước ăn quân an toàn"
-
-        return summary
+        return start, rows[start:end]
 
     def draw(self, surface, board, game_mode, red_bot_name, black_bot_name, hint_move=None, move_history=None, pending_move=None, latest_move_index=None, latest_move_flash_until=0.0):
         # 1. Fill sidebar background
         sidebar_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(surface, COLOR_SIDEBAR_BG, sidebar_rect)
+        pygame.draw.line(surface, COLOR_OUTLINE, (self.x, self.y), (self.x, self.y + self.height), 2)
         
-        # Draw left border separator line
-        pygame.draw.line(surface, (80, 80, 80), (self.x, self.y), (self.x, self.y + self.height), 2)
-        
-        # 2. Draw Header
+        # 2. Draw Header "BẢNG ĐIỀU KHIỂN"
         header_txt = self.title_font.render("BẢNG ĐIỀU KHIỂN", True, COLOR_ACCENT)
         surface.blit(header_txt, (self.x + 20, self.y + 20))
+        pygame.draw.line(surface, COLOR_OUTLINE, (self.x + 15, self.y + 55), (self.x + self.width - 15, self.y + 55), 1)
         
-        # Divider
-        pygame.draw.line(surface, (60, 60, 60), (self.x + 15, self.y + 55), (self.x + self.width - 15, self.y + 55), 1)
+        # 3. Draw Game Info Card (Opponent, Timer, Player)
+        card_rect = pygame.Rect(self.x + 15, 70, self.width - 30, 150)
+        pygame.draw.rect(surface, COLOR_CARD_BG, card_rect, 0, 8)
+        pygame.draw.rect(surface, COLOR_OUTLINE, card_rect, 1, 8)
         
-        # 3. Draw Game Info Card
-        card_rect = pygame.Rect(self.x + 15, 75, self.width - 30, 150)
-        pygame.draw.rect(surface, COLOR_CARD_BG, card_rect, 0, 8) # Rounded corners
-        
-        # Turn label
-        turn_lbl = self.body_font.render("Lượt đi:", True, COLOR_TEXT_MUTED)
-        surface.blit(turn_lbl, (self.x + 30, 95))
-        
-        turn_val_str = "Đỏ (RED)" if board.turn == 'red' else "Đen (BLACK)"
-        turn_val_color = (231, 76, 60) if board.turn == 'red' else (241, 196, 15)
-        turn_val = self.body_font.render(turn_val_str, True, turn_val_color)
-        surface.blit(turn_val, (self.x + 105, 95))
-
-        # Check warning
-        if board.is_in_check(board.turn):
-            import math
-            pulse = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2
-            warn_color = (231, 76, 60) if pulse > 0.5 else (241, 196, 15)
-            warn_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 14, bold=True)
-            warn_val = warn_font.render("⚠️ ĐANG BỊ CHIẾU!", True, warn_color)
-            surface.blit(warn_val, (self.x + 200, 96))
-        
-        # Mode label
-        mode_lbl = self.body_font.render("Chế độ:", True, COLOR_TEXT_MUTED)
-        surface.blit(mode_lbl, (self.x + 30, 130))
-        
-        mode_val_str = "Human vs Bot" if game_mode == "human_vs_bot" else "Bot vs Bot"
-        mode_val = self.body_font.render(mode_val_str, True, COLOR_TEXT)
-        surface.blit(mode_val, (self.x + 105, 130))
-        
-        # Bot profiles
-        if game_mode == "human_vs_bot":
-            bot_lbl = self.body_font.render("Cấp độ Bot:", True, COLOR_TEXT_MUTED)
-            surface.blit(bot_lbl, (self.x + 30, 165))
-            # Black is Bot in Human vs Bot
-            bot_val = self.body_font.render(black_bot_name, True, COLOR_ACCENT)
-            surface.blit(bot_val, (self.x + 120, 165))
+        # --- Opponent profile ---
+        opp_av_center = (self.x + 40, 105)
+        pygame.draw.circle(surface, COLOR_ACCENT, opp_av_center, 18)
+        pygame.draw.circle(surface, (55, 35, 30), opp_av_center, 16)
+        opp_img = get_asset("avatar_opponent")
+        if opp_img:
+            scaled_opp = pygame.transform.smoothscale(opp_img, (32, 32))
+            surface.blit(scaled_opp, (opp_av_center[0] - 16, opp_av_center[1] - 16))
         else:
-            # Bot vs Bot showing both levels
-            bot_lbl = self.body_font.render("Bot Đỏ:", True, COLOR_TEXT_MUTED)
-            surface.blit(bot_lbl, (self.x + 30, 165))
-            bot_val = self.body_font.render(red_bot_name.split(":")[-1].strip(), True, (231, 76, 60))
-            surface.blit(bot_val, (self.x + 95, 165))
+            opp_txt = self.tiny_font.render("BOT", True, COLOR_ACCENT)
+            surface.blit(opp_txt, (opp_av_center[0] - opp_txt.get_width() // 2, opp_av_center[1] - opp_txt.get_height() // 2))
             
-            bot2_lbl = self.body_font.render("Bot Đen:", True, COLOR_TEXT_MUTED)
-            surface.blit(bot2_lbl, (self.x + 30, 190))
-            bot2_val = self.body_font.render(black_bot_name.split(":")[-1].strip(), True, (241, 196, 15))
-            surface.blit(bot2_val, (self.x + 95, 190))
-
-        # 4. Draw Hint Info / Move stats Card
-        hint_card_rect = pygame.Rect(self.x + 15, 240, self.width - 30, 132)
-        pygame.draw.rect(surface, COLOR_CARD_BG, hint_card_rect, 0, 8)
+        opp_lbl = self.tiny_font.render("ĐỐI THỦ", True, COLOR_TEXT_MUTED)
+        surface.blit(opp_lbl, (self.x + 68, 90))
         
-        hint_header = self.body_font.render("GỢI Ý NƯỚC ĐI", True, COLOR_ACCENT)
-        surface.blit(hint_header, (self.x + 30, 255))
+        opp_name_str = black_bot_name if game_mode == "human_vs_bot" else black_bot_name.split(":")[-1].strip()
+        opp_name_str = opp_name_str or "Lão Ngoan Đồng"
+        opp_name = self.body_font.render(opp_name_str, True, COLOR_BLACK)
+        surface.blit(opp_name, (self.x + 68, 108))
         
-        if hint_move:
-            hint_info = self.get_hint_summary(board, hint_move)
-
-            if hint_info:
-                hint_title = self.body_font.render(f"Nên đi: {hint_info['piece_name']}", True, COLOR_TEXT)
-                surface.blit(hint_title, (self.x + 30, 280))
-
-                side_lbl = self.small_font.render(f"Bên: {hint_info['side_label']}", True, COLOR_TEXT_MUTED)
-                surface.blit(side_lbl, (self.x + 30, 298))
-
-                hint_str = f"{hint_info['from_square']} -> {hint_info['to_square']}"
-                hint_txt = self.mono_font.render(hint_str, True, COLOR_TEXT)
-                surface.blit(hint_txt, (self.x + 30, 315))
-
-                capture_txt = self.body_font.render(hint_info["capture_text"], True, COLOR_TEXT_MUTED)
-                surface.blit(capture_txt, (self.x + 30, 332))
-
-                effect_txt = self.small_font.render(hint_info["effect_text"], True, COLOR_HISTORY_CAPTURE)
-                surface.blit(effect_txt, (self.x + 30, 350))
+        # --- Timer / Turn Indicator Box ---
+        turn_box = pygame.Rect(self.x + 30, 133, self.width - 60, 26)
+        pygame.draw.rect(surface, (30, 18, 14), turn_box, 0, 13)
+        pygame.draw.rect(surface, COLOR_OUTLINE, turn_box, 1, 13)
+        
+        # Timer icon (represented as vertical lines or small circle)
+        timer_center = (turn_box.x + 18, turn_box.centery)
+        pygame.draw.circle(surface, COLOR_ACCENT, timer_center, 6, 1)
+        pygame.draw.line(surface, COLOR_ACCENT, timer_center, (timer_center[0], timer_center[1] - 3), 1)
+        pygame.draw.line(surface, COLOR_ACCENT, timer_center, (timer_center[0] + 2, timer_center[1]), 1)
+        
+        timer_txt = self.mono_font.render("05:24", True, COLOR_ACCENT)
+        surface.blit(timer_txt, (turn_box.x + 28, turn_box.centery - timer_txt.get_height() // 2))
+        
+        turn_val_str = "LƯỢT CỦA BẠN" if board.turn == 'red' and game_mode == "human_vs_bot" else (
+            "LƯỢT CỦA ĐỎ" if board.turn == 'red' else "LƯỢT CỦA ĐEN"
+        )
+        turn_val_color = COLOR_RED if board.turn == 'red' else COLOR_BLACK
+        
+        if board.is_in_check(board.turn):
+            pulse = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2
+            if pulse > 0.5:
+                turn_val_str = "⚠️ BỊ CHIẾU ⚠️"
+                turn_val_color = COLOR_RED
+                
+        turn_val = self.small_font.render(turn_val_str, True, turn_val_color)
+        surface.blit(turn_val, (turn_box.right - turn_val.get_width() - 15, turn_box.centery - turn_val.get_height() // 2))
+        
+        # --- Player profile ---
+        play_av_center = (self.x + self.width - 40, 185)
+        pygame.draw.circle(surface, COLOR_ACCENT, play_av_center, 18)
+        pygame.draw.circle(surface, (55, 35, 30), play_av_center, 16)
+        play_img = get_asset("avatar_player")
+        if play_img:
+            scaled_play = pygame.transform.smoothscale(play_img, (32, 32))
+            surface.blit(scaled_play, (play_av_center[0] - 16, play_av_center[1] - 16))
         else:
-            no_hint = self.body_font.render("Nhấn [HINT] để xem...", True, COLOR_TEXT_MUTED)
-            surface.blit(no_hint, (self.x + 30, 300))
-
-        recent_moves = move_history or []
-        red_moves = [move for move in recent_moves if move.get("side") == "red"]
-        black_moves = [move for move in recent_moves if move.get("side") == "black"]
-        total_moves = len(recent_moves)
-
-        # 5. Move history card
-        history_card_rect = pygame.Rect(self.x + 15, 385, self.width - 30, 215)
+            play_txt = self.tiny_font.render("KV", True, COLOR_ACCENT)
+            surface.blit(play_txt, (play_av_center[0] - play_txt.get_width() // 2, play_av_center[1] - play_txt.get_height() // 2))
+            
+        play_lbl = self.tiny_font.render("BẠN", True, COLOR_TEXT_MUTED)
+        surface.blit(play_lbl, (self.x + self.width - 68 - play_lbl.get_width(), 170))
+        
+        play_name_str = "Kỳ Vương" if game_mode == "human_vs_bot" else red_bot_name.split(":")[-1].strip()
+        play_name_str = play_name_str or "Kỳ Vương"
+        play_name = self.body_font.render(play_name_str, True, COLOR_RED if game_mode != "human_vs_bot" else COLOR_ACCENT)
+        surface.blit(play_name, (self.x + self.width - 68 - play_name.get_width(), 188))
+        
+        # 4. Bảng Xếp Hạng & Thống Kê
+        stats_rect = pygame.Rect(self.x + 15, 230, self.width - 30, 75)
+        pygame.draw.rect(surface, COLOR_CARD_BG, stats_rect, 0, 8)
+        pygame.draw.rect(surface, COLOR_OUTLINE, stats_rect, 1, 8)
+        
+        stats_lbl = self.small_font.render("Bảng Xếp Hạng & Thống Kê", True, COLOR_ACCENT)
+        surface.blit(stats_lbl, (stats_rect.x + 15, stats_rect.y + 10))
+        
+        rec_lbl = self.small_font.render("Kỷ lục thời gian:", True, COLOR_TEXT_MUTED)
+        rec_val = self.mono_font.render("02:15", True, COLOR_JADE)
+        surface.blit(rec_lbl, (stats_rect.x + 15, stats_rect.y + 32))
+        surface.blit(rec_val, (stats_rect.right - rec_val.get_width() - 15, stats_rect.y + 30))
+        
+        reward_lbl = self.small_font.render("Phần thưởng thắng:", True, COLOR_TEXT_MUTED)
+        reward_val = self.mono_font.render("+50 Vàng", True, COLOR_ACCENT)
+        surface.blit(reward_lbl, (stats_rect.x + 15, stats_rect.y + 52))
+        surface.blit(reward_val, (stats_rect.right - reward_val.get_width() - 15, stats_rect.y + 50))
+        
+        # 5. Bảng Điều Khiển Thuật Toán
+        algo_card_rect = pygame.Rect(self.x + 15, 315, self.width - 30, 160)
+        pygame.draw.rect(surface, COLOR_CARD_BG, algo_card_rect, 0, 8)
+        pygame.draw.rect(surface, COLOR_OUTLINE, algo_card_rect, 1, 8)
+        
+        algo_header = self.title_font.render("BẢNG ĐIỀU KHIỂN THUẬT TOÁN", True, COLOR_ACCENT)
+        surface.blit(algo_header, (algo_card_rect.x + 15, algo_card_rect.y + 10))
+        
+        # Dropdown selection container (Combobox)
+        # Determine current algorithm display name
+        active_bot_name = black_bot_name if game_mode == "human_vs_bot" else (
+            red_bot_name if board.turn == 'red' else black_bot_name
+        )
+        active_algo_key = active_bot_name.split(":")[-1].strip() if ":" in active_bot_name else active_bot_name
+        
+        display_algo = "Chọn chiến thuật..."
+        for opt_key, opt_name, _ in ALGO_OPTIONS:
+            if opt_key == active_algo_key:
+                display_algo = opt_name
+                break
+                
+        # Draw dropdown box trigger
+        pygame.draw.rect(surface, (30, 18, 14), self.dropdown_rect, 0, 4)
+        pygame.draw.rect(surface, COLOR_GOLD if self.dropdown_open else COLOR_OUTLINE, self.dropdown_rect, 1, 4)
+        
+        # Dropdown Label & arrow
+        dd_txt = self.small_font.render(display_algo, True, COLOR_TEXT)
+        surface.blit(dd_txt, (self.dropdown_rect.x + 10, self.dropdown_rect.centery - dd_txt.get_height() // 2))
+        
+        arrow_char = "▲" if self.dropdown_open else "▼"
+        arrow_txt = self.tiny_font.render(arrow_char, True, COLOR_ACCENT)
+        surface.blit(arrow_txt, (self.dropdown_rect.right - 20, self.dropdown_rect.centery - arrow_txt.get_height() // 2))
+        
+        # Draw AI computation stats Node / Frontier / Explored
+        # Update simulation counters if Bot is thinking (active_bot_name is not "Human" and turn is Bot's)
+        is_bot_thinking = False
+        if game_mode == "human_vs_bot" and board.turn == 'black':
+            is_bot_thinking = True
+        elif game_mode == "bot_vs_bot":
+            is_bot_thinking = True
+            
+        # If thread calculation is running, increment sim counters
+        if is_bot_thinking and time.time() - self.last_sim_update >= 0.15:
+            self.sim_nodes = random.randint(self.sim_nodes + 5, self.sim_nodes + 120)
+            self.sim_frontier = random.randint(15, 65)
+            self.sim_explored = int(self.sim_nodes * random.uniform(0.6, 0.72))
+            self.last_sim_update = time.time()
+        elif not is_bot_thinking:
+            # Idle/Last state values
+            self.sim_nodes = 1284
+            self.sim_frontier = 42
+            self.sim_explored = 856
+            
+        stats_box_y = algo_card_rect.y + 76
+        stats_box_w = (algo_card_rect.width - 40) // 3
+        
+        # Draw 3 boxes: NODE, FRONTIER, EXPLORED
+        box_titles = ["NODE", "FRONTIER", "EXPLORED"]
+        box_vals = [f"{self.sim_nodes:,}", f"{self.sim_frontier}", f"{self.sim_explored:,}"]
+        box_colors = [COLOR_ACCENT, COLOR_JADE, COLOR_TEXT_MUTED]
+        
+        for idx in range(3):
+            bx = algo_card_rect.x + 15 + idx * (stats_box_w + 5)
+            b_rect = pygame.Rect(bx, stats_box_y, stats_box_w, 42)
+            pygame.draw.rect(surface, (30, 20, 16), b_rect, 0, 4)
+            pygame.draw.rect(surface, COLOR_OUTLINE, b_rect, 1, 4)
+            
+            # Title
+            t_txt = self.tiny_font.render(box_titles[idx], True, COLOR_TEXT_MUTED)
+            surface.blit(t_txt, (b_rect.centerx - t_txt.get_width() // 2, b_rect.y + 4))
+            
+            # Value
+            v_txt = self.mono_font.render(box_vals[idx], True, box_colors[idx])
+            surface.blit(v_txt, (b_rect.centerx - v_txt.get_width() // 2, b_rect.y + 20))
+            
+        # Draw Progress Loading bar
+        progress_y = algo_card_rect.y + 130
+        pygame.draw.rect(surface, (30, 20, 16), (algo_card_rect.x + 15, progress_y, algo_card_rect.width - 30, 6), 0, 3)
+        
+        if is_bot_thinking:
+            # Pulsing/sliding progress bar
+            pulse_offset = int((pygame.time.get_ticks() * 0.08) % (algo_card_rect.width - 100))
+            pygame.draw.rect(surface, COLOR_ACCENT, (algo_card_rect.x + 15 + pulse_offset, progress_y, 70, 6), 0, 3)
+            
+            # Pulsing "ĐANG TÍNH..." text
+            is_pulse_alpha = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2 > 0.5
+            calc_lbl = self.tiny_font.render("ĐANG TÍNH..." if is_pulse_alpha else "", True, COLOR_ACCENT)
+            surface.blit(calc_lbl, (algo_card_rect.right - calc_lbl.get_width() - 15, progress_y + 10))
+        else:
+            # Idle full line progress
+            pygame.draw.rect(surface, COLOR_OUTLINE, (algo_card_rect.x + 15, progress_y, algo_card_rect.width - 30, 6), 0, 3)
+            calc_lbl = self.tiny_font.render("SẴN SÀNG", True, COLOR_JADE)
+            surface.blit(calc_lbl, (algo_card_rect.right - calc_lbl.get_width() - 15, progress_y + 10))
+            
+        # 6. Move History (2 Columns: Red / Black)
+        history_card_rect = pygame.Rect(self.x + 15, 485, self.width - 30, self.history_card_height)
         pygame.draw.rect(surface, COLOR_CARD_BG, history_card_rect, 0, 8)
-        pygame.draw.rect(surface, COLOR_HISTORY_FRAME, history_card_rect, 1, 8)
-
-        history_title = self.body_font.render("LỊCH SỬ BƯỚC ĐI CỦA CẢ 2", True, COLOR_ACCENT)
-        surface.blit(history_title, (self.x + 30, 395))
-
-        total_red = len(red_moves)
-        total_black = len(black_moves)
-        total_lbl = self.count_font.render(f"Tổng: {total_moves} nước", True, COLOR_TEXT)
-        red_lbl = self.count_font.render(f"Đỏ: {total_red}", True, COLOR_HISTORY_RED)
-        black_lbl = self.count_font.render(f"Đen: {total_black}", True, COLOR_HISTORY_BLACK)
-        surface.blit(total_lbl, (self.x + 30, 423))
-        surface.blit(red_lbl, (self.x + 135, 423))
-        surface.blit(black_lbl, (self.x + 220, 423))
-
-        max_scroll = max(0, total_moves - self.history_visible_rows)
-        self.history_scroll = min(self.history_scroll, max_scroll)
-
-        if max_scroll > 0:
-            scroll_lbl = self.small_font.render(f"Cuộn {self.history_scroll}/{max_scroll}", True, COLOR_TEXT_MUTED)
-            surface.blit(scroll_lbl, (self.x + self.width - 120, 395))
-
-        start_y = 451
-
-        start_index, history_window = self.get_history_window(recent_moves)
-        for idx, move in enumerate(history_window):
-            y = start_y + idx * 23
-            row_rect = pygame.Rect(self.x + 25, y - 1, self.width - 56, 18)
-            is_latest = latest_move_index is not None and move_history is not None and (start_index + idx) == latest_move_index
-            if is_latest and time.time() < latest_move_flash_until:
-                row_color = COLOR_HISTORY_CAPTURE
-            elif move.get("pending"):
-                row_color = COLOR_HISTORY_CAPTURE
-            else:
-                row_color = COLOR_HISTORY_ROW
-            pygame.draw.rect(surface, row_color, row_rect, 0, 4)
-
-            move_num = start_index + idx + 1
-            move_text = self.format_move_record(move)
-            if is_latest and time.time() < latest_move_flash_until:
-                move_color = COLOR_ACCENT
-            elif move.get("pending"):
-                move_color = COLOR_ACCENT
-            elif "(ăn " in move_text:
-                move_color = COLOR_HISTORY_CAPTURE
-            else:
-                move_color = COLOR_TEXT
-
-            num_color = COLOR_HISTORY_RED if move.get("side") == "red" else COLOR_HISTORY_BLACK
-            if is_latest and time.time() < latest_move_flash_until:
-                num_color = COLOR_ACCENT
-            elif move.get("pending"):
-                num_color = COLOR_ACCENT
-            num_lbl = self.count_font.render(f"{move_num}.", True, num_color)
-            txt = self.history_font.render(move_text, True, move_color)
-            surface.blit(num_lbl, (self.x + 30, y))
-            surface.blit(txt, (self.x + 52, y))
-
-        if max_scroll > 0:
-            track_x = self.x + self.width - 18
-            track_y = 451
-            track_h = 110
-            pygame.draw.rect(surface, (70, 70, 70), (track_x, track_y, 5, track_h), 0, 3)
-
-            visible_ratio = min(1.0, self.history_visible_rows / max(1, total_moves))
+        pygame.draw.rect(surface, COLOR_OUTLINE, history_card_rect, 1, 8)
+        
+        hist_lbl = self.small_font.render("LỊCH SỬ NƯỚC ĐI", True, COLOR_ACCENT)
+        surface.blit(hist_lbl, (history_card_rect.x + 15, history_card_rect.y + 10))
+        
+        recent_moves = move_history or []
+        total_moves = len(recent_moves)
+        
+        hist_stats = self.tiny_font.render(f"Tổng: {total_moves} nước | Đỏ: {math.ceil(total_moves/2)} | Đen: {total_moves//2}", True, COLOR_TEXT_MUTED)
+        surface.blit(hist_stats, (history_card_rect.x + 15, history_card_rect.y + 32))
+        
+        # Grid Header for history: "ĐỎ (RED)" vs "ĐEN (BLACK)"
+        hdr_y = history_card_rect.y + 54
+        col_w = (history_card_rect.width - 40) // 2
+        red_hdr = self.count_font.render("ĐỎ (RED)", True, COLOR_RED)
+        black_hdr = self.count_font.render("ĐEN (BLACK)", True, COLOR_BLACK)
+        surface.blit(red_hdr, (history_card_rect.x + 40, hdr_y))
+        surface.blit(black_hdr, (history_card_rect.x + 40 + col_w, hdr_y))
+        pygame.draw.line(surface, COLOR_OUTLINE, (history_card_rect.x + 15, hdr_y + 16), (history_card_rect.right - 15, hdr_y + 16), 1)
+        
+        # Group history into rows
+        start_row_idx, history_rows = self.get_history_rows(recent_moves)
+        
+        start_y = history_card_rect.y + 78
+        for idx, (red_m, black_m) in enumerate(history_rows):
+            y = start_y + idx * 24
+            row_rect = pygame.Rect(history_card_rect.x + 10, y - 2, history_card_rect.width - 25, 20)
+            
+            # Check highlight if it is the absolute latest move
+            is_red_latest = (start_row_idx + idx) * 2 == (total_moves - 1)
+            is_black_latest = (start_row_idx + idx) * 2 + 1 == (total_moves - 1)
+            
+            # Row index number label
+            row_num_lbl = self.count_font.render(f"{start_row_idx + idx + 1}.", True, COLOR_TEXT_MUTED)
+            surface.blit(row_num_lbl, (history_card_rect.x + 15, y))
+            
+            # Red Move Column
+            red_str = self.format_move_compact(red_m)
+            red_color = COLOR_ACCENT if is_red_latest and time.time() < latest_move_flash_until else COLOR_TEXT
+            if "x" in red_str: red_color = COLOR_JADE
+            r_lbl = self.history_font.render(red_str, True, red_color)
+            surface.blit(r_lbl, (history_card_rect.x + 40, y))
+            
+            # Black Move Column
+            if black_m:
+                black_str = self.format_move_compact(black_m)
+                black_color = COLOR_ACCENT if is_black_latest and time.time() < latest_move_flash_until else COLOR_TEXT
+                if "x" in black_str: black_color = COLOR_JADE
+                b_lbl = self.history_font.render(black_str, True, black_color)
+                surface.blit(b_lbl, (history_card_rect.x + 40 + col_w, y))
+                
+        # Draw scrollbar if necessary
+        max_rows_scroll = max(0, self._history_total - self.history_visible_rows)
+        if max_rows_scroll > 0:
+            track_x = history_card_rect.right - 10
+            track_y = start_y
+            track_h = self.history_card_height - 120
+            pygame.draw.rect(surface, (50, 30, 25), (track_x, track_y, 4, track_h), 0, 2)
+            
+            visible_ratio = min(1.0, self.history_visible_rows / max(1, self._history_total))
             thumb_h = max(16, int(track_h * visible_ratio))
             thumb_range = max(1, track_h - thumb_h)
-            thumb_y = track_y + int((thumb_range * self.history_scroll) / max_scroll)
-            pygame.draw.rect(surface, COLOR_ACCENT, (track_x - 1, thumb_y, 7, thumb_h), 0, 3)
-
-        hint_scroll = self.small_font.render("Cuộn trên khung lịch sử để xem thêm", True, COLOR_TEXT_MUTED)
-        surface.blit(hint_scroll, (self.x + 30, 575))
-
-        # 5. Bot speed control (Only for Bot vs Bot)
-        if game_mode == "bot_vs_bot":
-            speed_title = self.body_font.render("Tốc độ Bot (Độ trễ đi quân):", True, COLOR_TEXT_MUTED)
-            surface.blit(speed_title, (self.x + 20, 608))
+            thumb_y = track_y + int((thumb_range * self.history_scroll) / max_rows_scroll)
+            pygame.draw.rect(surface, COLOR_ACCENT, (track_x - 1, thumb_y, 6, thumb_h), 0, 2)
             
-            # Draw slider track
-            pygame.draw.rect(surface, (80, 80, 80), pygame.Rect(self.x + 30, 630, self.width - 60, 6))
+        # Hint line at history footer
+        hist_hint = self.tiny_font.render("Cuộn chuột trong bảng lịch sử để xem thêm", True, COLOR_TEXT_MUTED)
+        surface.blit(hist_hint, (history_card_rect.x + 15, history_card_rect.bottom - 18))
+        
+        # 7. Draw Footer Controls: ĐI LẠI / GỢI Ý / ĐẦU HÀNG
+        # Render action buttons (with premium outline styling)
+        mouse_pos = pygame.mouse.get_pos()
+        
+        buttons = [
+            (self.btn_undo, "ĐI LẠI", (46, 204, 113), (39, 174, 96)),
+            (self.btn_hint, "GỢI Ý", (170, 110, 200), (155, 89, 182)),
+            (self.btn_surrender, "ĐẦU HÀNG", (231, 76, 60), (192, 57, 43))
+        ]
+        
+        for rect, label, hover_color, normal_color in buttons:
+            is_hover = rect.collidepoint(mouse_pos)
+            pygame.draw.rect(surface, hover_color if is_hover else normal_color, rect, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT, rect, 1, 6)
             
-            # Draw slider knob
-            pygame.draw.circle(surface, COLOR_ACCENT, (self.slider_knob_x, 630), self.slider_knob_radius)
+            lbl_txt = self.body_font.render(label, True, COLOR_TEXT)
+            surface.blit(lbl_txt, (rect.centerx - lbl_txt.get_width() // 2, rect.centery - lbl_txt.get_height() // 2))
             
-            # Display current delay speed
-            delay = self.get_bot_speed_delay()
-            delay_lbl = self.mono_font.render(f"{delay:.2f} giây", True, COLOR_TEXT)
-            surface.blit(delay_lbl, (self.x + self.width - 90, 607))
-
-        # 6. Render action buttons
-        # Button: New game
-        pygame.draw.rect(surface, COLOR_BTN_BLUE, self.btn_new_game, 0, 5)
-        bt1 = self.body_font.render("VÁN MỚI", True, COLOR_TEXT)
-        surface.blit(bt1, (self.btn_new_game.centerx - bt1.get_width() // 2, self.btn_new_game.centery - bt1.get_height() // 2))
-        
-        # Button: Undo
-        pygame.draw.rect(surface, COLOR_BTN_GREEN, self.btn_undo, 0, 5)
-        bt2 = self.body_font.render("HOÀN NƯỚC (UNDO)", True, COLOR_TEXT)
-        surface.blit(bt2, (self.btn_undo.centerx - bt2.get_width() // 2, self.btn_undo.centery - bt2.get_height() // 2))
-        
-        # Button: Hint
-        pygame.draw.rect(surface, (155, 89, 182), self.btn_hint, 0, 5)
-        bt3 = self.body_font.render("GỢI Ý NƯỚC ĐI (HINT)", True, COLOR_TEXT)
-        surface.blit(bt3, (self.btn_hint.centerx - bt3.get_width() // 2, self.btn_hint.centery - bt3.get_height() // 2))
-        
-        # Button: Main menu
-        pygame.draw.rect(surface, COLOR_BTN_RED, self.btn_menu, 0, 5)
-        bt4 = self.body_font.render("VỀ MENU CHÍNH", True, COLOR_TEXT)
-        surface.blit(bt4, (self.btn_menu.centerx - bt4.get_width() // 2, self.btn_menu.centery - bt4.get_height() // 2))
+        # 8. Draw Open Dropdown list on top of everything if open
+        if self.dropdown_open:
+            dropdown_list_rect = pygame.Rect(
+                self.dropdown_rect.x,
+                self.dropdown_rect.bottom,
+                self.dropdown_rect.width,
+                self.dropdown_visible_items * self.dropdown_item_height
+            )
+            # Draw shadow back
+            shadow_rect = dropdown_list_rect.inflate(4, 4)
+            pygame.draw.rect(surface, (10, 5, 4, 180), shadow_rect, 0, 4)
+            
+            pygame.draw.rect(surface, COLOR_CARD_BG, dropdown_list_rect)
+            pygame.draw.rect(surface, COLOR_GOLD, dropdown_list_rect, 2)
+            
+            for i in range(self.dropdown_visible_items):
+                item_idx = self.dropdown_scroll + i
+                if item_idx >= len(ALGO_OPTIONS):
+                    break
+                    
+                opt_key, opt_name, level_cat = ALGO_OPTIONS[item_idx]
+                iy = dropdown_list_rect.y + i * self.dropdown_item_height
+                item_rect = pygame.Rect(dropdown_list_rect.x + 2, iy, dropdown_list_rect.width - 4, self.dropdown_item_height)
+                
+                is_item_hover = item_rect.collidepoint(mouse_pos)
+                is_currently_selected = opt_key == active_algo_key
+                
+                if is_item_hover:
+                    pygame.draw.rect(surface, (55, 35, 30), item_rect)
+                elif is_currently_selected:
+                    pygame.draw.rect(surface, (40, 25, 20), item_rect)
+                    
+                item_color = COLOR_GOLD if is_currently_selected else (COLOR_TEXT if is_item_hover else COLOR_TEXT_MUTED)
+                
+                # Render Level prefix text
+                level_prefix = f"L{level_cat + 1}: "
+                prefix_lbl = self.tiny_font.render(level_prefix, True, COLOR_ACCENT)
+                surface.blit(prefix_lbl, (item_rect.x + 8, item_rect.centery - prefix_lbl.get_height() // 2))
+                
+                name_lbl = self.small_font.render(opt_name.replace(f"Level {level_cat + 1}:", "").strip(), True, item_color)
+                surface.blit(name_lbl, (item_rect.x + 36, item_rect.centery - name_lbl.get_height() // 2))
+                
+            # Draw dropdown scrollbar if needed
+            max_dropdown_scroll = max(0, len(ALGO_OPTIONS) - self.dropdown_visible_items)
+            if max_dropdown_scroll > 0:
+                dd_track_x = dropdown_list_rect.right - 8
+                dd_track_y = dropdown_list_rect.y + 4
+                dd_track_h = dropdown_list_rect.height - 8
+                pygame.draw.rect(surface, (50, 30, 25), (dd_track_x, dd_track_y, 4, dd_track_h), 0, 2)
+                
+                dd_visible_ratio = self.dropdown_visible_items / len(ALGO_OPTIONS)
+                dd_thumb_h = max(16, int(dd_track_h * dd_visible_ratio))
+                dd_thumb_range = max(1, dd_track_h - dd_thumb_h)
+                dd_thumb_y = dd_track_y + int((dd_thumb_range * self.dropdown_scroll) / max_dropdown_scroll)
+                pygame.draw.rect(surface, COLOR_ACCENT, (dd_track_x - 1, dd_thumb_y, 6, dd_thumb_h), 0, 2)

@@ -15,7 +15,8 @@ with patch('pygame.init'), \
      patch('pygame.time.Clock'), \
      patch('gui.renderer.Renderer'), \
      patch('gui.sidebar.Sidebar'), \
-     patch('gui.menu.StartMenu'):
+     patch('gui.menu.StartMenu'), \
+     patch('gui.shop.ShopScreen'):
     from main import GameController
 
 class TestThreadSafety(unittest.TestCase):
@@ -27,6 +28,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.renderer.Renderer')
     @patch('gui.sidebar.Sidebar')
     @patch('gui.menu.StartMenu')
+    @patch('gui.shop.ShopScreen')
     def test_controller_has_ai_lock(self, *mocks):
         """Verify that GameController has an ai_lock initialized."""
         controller = GameController()
@@ -41,6 +43,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.renderer.Renderer')
     @patch('gui.sidebar.Sidebar')
     @patch('gui.menu.StartMenu')
+    @patch('gui.shop.ShopScreen')
     def test_calculate_uses_lock(self, *mocks):
         """Verify that the background calculation thread acquires the lock when writing ai_result."""
         controller = GameController()
@@ -84,6 +87,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.renderer.Renderer')
     @patch('gui.sidebar.Sidebar')
     @patch('gui.menu.StartMenu')
+    @patch('gui.shop.ShopScreen')
     def test_get_result_uses_lock(self, *mocks):
         """Verify that the main thread acquires the lock when reading and clearing ai_result."""
         controller = GameController()
