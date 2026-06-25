@@ -69,11 +69,12 @@ class Sidebar:
         self.history_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
         self.count_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 12, bold=True)
         
-        # Controls Footer: 3 Buttons horizontal at the bottom
-        btn_w = (width - 60) // 3
-        self.btn_undo = pygame.Rect(x + 20, 760, btn_w, 36)
-        self.btn_hint = pygame.Rect(x + 20 + btn_w + 10, 760, btn_w, 36)
-        self.btn_surrender = pygame.Rect(x + 20 + (btn_w + 10) * 2, 760, btn_w, 36)
+        # Controls Footer: buttons at the bottom (2 rows)
+        btn_w = (width - 50) // 2
+        self.btn_undo = pygame.Rect(x + 20, 720, btn_w, 32)
+        self.btn_hint = pygame.Rect(x + 20 + btn_w + 10, 720, btn_w, 32)
+        self.btn_surrender = pygame.Rect(x + 20, 760, btn_w, 32)
+        self.btn_return = pygame.Rect(x + 20 + btn_w + 10, 760, btn_w, 32)
         
         # Algorithm Dropdown state
         self.dropdown_open = False
@@ -101,17 +102,18 @@ class Sidebar:
         self.width = width
         self.height = height
         
-        # Recalculate Footer Buttons relative to height
-        btn_w = (width - 60) // 3
-        self.btn_undo = pygame.Rect(x + 20, height - 60, btn_w, 36)
-        self.btn_hint = pygame.Rect(x + 20 + btn_w + 10, height - 60, btn_w, 36)
-        self.btn_surrender = pygame.Rect(x + 20 + (btn_w + 10) * 2, height - 60, btn_w, 36)
+        # Recalculate Footer Buttons relative to height (2 rows of buttons)
+        btn_w = (width - 50) // 2
+        self.btn_undo = pygame.Rect(x + 20, height - 90, btn_w, 32)
+        self.btn_hint = pygame.Rect(x + 20 + btn_w + 10, height - 90, btn_w, 32)
+        self.btn_surrender = pygame.Rect(x + 20, height - 50, btn_w, 32)
+        self.btn_return = pygame.Rect(x + 20 + btn_w + 10, height - 50, btn_w, 32)
         
         # Recalculate Dropdown Rect
         self.dropdown_rect = pygame.Rect(x + 20, y + 355, width - 40, 28)
         
-        # Recalculate History Card metrics
-        self.history_card_height = max(100, (self.height - 80) - 485)
+        # Recalculate History Card metrics (adjusted offset from 80 to 115 to prevent overlap with new button row)
+        self.history_card_height = max(100, (self.height - 115) - 485)
         self.history_view_rect = pygame.Rect(x + 15, 545, width - 30, self.history_card_height - 95)
         self.history_visible_rows = max(2, (self.history_card_height - 95) // 24)
 
@@ -119,50 +121,90 @@ class Sidebar:
         # Default fixed delay, or adjustable if needed
         return 0.8
 
-    def handle_event(self, event, current_speed_delay=None):
+    def handle_event(self, event, game_mode="human_vs_bot"):
         pos = pygame.mouse.get_pos()
         
+        # Calculate side-by-side rects for bot_vs_bot mode
+        rect_w = (self.dropdown_rect.width - 10) // 2
+        dropdown_rect_red = pygame.Rect(self.dropdown_rect.x, self.dropdown_rect.y, rect_w, 28)
+        dropdown_rect_black = pygame.Rect(self.dropdown_rect.x + rect_w + 10, self.dropdown_rect.y, rect_w, 28)
+        
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # 1. Check Dropdown clicks first
+            # 1. Check Dropdown list clicks first
             if self.dropdown_open:
+                # Determine which dropdown is open
+                open_rect = dropdown_rect_red if self.dropdown_open == "red" else (
+                    self.dropdown_rect if game_mode == "human_vs_bot" else dropdown_rect_black
+                )
+                
                 dropdown_list_rect = pygame.Rect(
-                    self.dropdown_rect.x,
-                    self.dropdown_rect.bottom,
-                    self.dropdown_rect.width,
+                    open_rect.x,
+                    open_rect.bottom,
+                    open_rect.width,
                     self.dropdown_visible_items * self.dropdown_item_height
                 )
                 
-                # Check if click is inside the list
                 if dropdown_list_rect.collidepoint(event.pos):
                     relative_y = event.pos[1] - dropdown_list_rect.y
                     clicked_idx = self.dropdown_scroll + (relative_y // self.dropdown_item_height)
                     if 0 <= clicked_idx < len(ALGO_OPTIONS):
                         selected_algo = ALGO_OPTIONS[clicked_idx][0]
+                        open_side = self.dropdown_open
                         self.dropdown_open = False
                         # Play click sound
                         from gui.sound import play_synth_sound
                         play_synth_sound('move')
-                        return f"select_algo:{selected_algo}"
+                        
+                        if game_mode == "human_vs_bot":
+                            return f"select_algo:{selected_algo}"
+                        else:
+                            return f"select_algo_{open_side}:{selected_algo}"
                 else:
                     self.dropdown_open = False
                     # Let click fall through if it's on the dropdown button itself to toggle it
-                    if not self.dropdown_rect.collidepoint(event.pos):
-                        return None
+                    if game_mode == "human_vs_bot":
+                        if not self.dropdown_rect.collidepoint(event.pos):
+                            return None
+                    else:
+                        if not dropdown_rect_red.collidepoint(event.pos) and not dropdown_rect_black.collidepoint(event.pos):
+                            return None
             
             # Click on Dropdown trigger box
-            if self.dropdown_rect.collidepoint(event.pos):
-                self.dropdown_open = not self.dropdown_open
-                from gui.sound import play_synth_sound
-                play_synth_sound('move')
-                return None
+            if game_mode == "human_vs_bot":
+                if self.dropdown_rect.collidepoint(event.pos):
+                    self.dropdown_open = "black" if not self.dropdown_open else False
+                    from gui.sound import play_synth_sound
+                    play_synth_sound('move')
+                    return None
+            else:
+                if dropdown_rect_red.collidepoint(event.pos):
+                    self.dropdown_open = "red" if self.dropdown_open != "red" else False
+                    self.dropdown_scroll = 0
+                    from gui.sound import play_synth_sound
+                    play_synth_sound('move')
+                    return None
+                elif dropdown_rect_black.collidepoint(event.pos):
+                    self.dropdown_open = "black" if self.dropdown_open != "black" else False
+                    self.dropdown_scroll = 0
+                    from gui.sound import play_synth_sound
+                    play_synth_sound('move')
+                    return None
                 
             # 2. Check Footer Button clicks
-            if self.btn_undo.collidepoint(event.pos):
-                return "undo"
-            elif self.btn_hint.collidepoint(event.pos):
-                return "hint"
-            elif self.btn_surrender.collidepoint(event.pos):
-                return "menu" # Surrender goes back to menu in Controller
+            if game_mode == "bot_vs_bot":
+                if self.btn_surrender.collidepoint(event.pos):
+                    return "return"
+                elif self.btn_return.collidepoint(event.pos):
+                    return "toggle_pause"
+            else:
+                if self.btn_undo.collidepoint(event.pos):
+                    return "undo"
+                elif self.btn_hint.collidepoint(event.pos):
+                    return "hint"
+                elif self.btn_surrender.collidepoint(event.pos):
+                    return "surrender"
+                elif self.btn_return.collidepoint(event.pos):
+                    return "return"
                 
         elif event.type == pygame.MOUSEWHEEL:
             # Handle scroll on history
@@ -173,10 +215,13 @@ class Sidebar:
                 
             # Handle scroll on open dropdown
             if self.dropdown_open:
+                open_rect = dropdown_rect_red if self.dropdown_open == "red" else (
+                    self.dropdown_rect if game_mode == "human_vs_bot" else dropdown_rect_black
+                )
                 dropdown_list_rect = pygame.Rect(
-                    self.dropdown_rect.x,
-                    self.dropdown_rect.bottom,
-                    self.dropdown_rect.width,
+                    open_rect.x,
+                    open_rect.bottom,
+                    open_rect.width,
                     self.dropdown_visible_items * self.dropdown_item_height
                 )
                 if dropdown_list_rect.collidepoint(pos):
@@ -193,30 +238,12 @@ class Sidebar:
         return PIECE_NAME_VI.get(piece_name, piece_name or "Quân")
 
     def format_move_compact(self, record):
-        piece_name = self.get_piece_name(record.get("piece_char")) # Abbreviated
-        # Translate characters to Chinese pieces abbreviations
-        char_map = {
-            '帥': '帥', '將': '將',
-            '仕': '仕', '士': '士',
-            '相': '相', '象': '象',
-            '馬': '馬', '傌': '馬',
-            '車': '車', '俥': '車',
-            '砲': '砲', '炮': '砲',
-            '兵': '兵', '卒': '卒'
-        }
-        char = record.get("piece_char") or "?"
-        char = char_map.get(char, char)
-        
         from_pos = record.get("from_pos")
         to_pos = record.get("to_pos")
         f_sq = self.format_square(from_pos)
         t_sq = self.format_square(to_pos)
         
-        move_str = f"{char}{f_sq}->{t_sq}"
-        captured = record.get("captured_char")
-        if captured:
-            move_str += f"x{captured}"
-        return move_str
+        return f"{f_sq} -> {t_sq}"
 
     def get_history_rows(self, moves):
         """Groups move history list into Red/Black pairs (rows)"""
@@ -232,7 +259,7 @@ class Sidebar:
         end = start + self.history_visible_rows
         return start, rows[start:end]
 
-    def draw(self, surface, board, game_mode, red_bot_name, black_bot_name, hint_move=None, move_history=None, pending_move=None, latest_move_index=None, latest_move_flash_until=0.0):
+    def draw(self, surface, board, game_mode, red_bot_name, black_bot_name, hint_move=None, move_history=None, pending_move=None, latest_move_index=None, latest_move_flash_until=0.0, bot_paused=False, red_exp=0, black_exp=0, is_game_over=False):
         # 1. Fill sidebar background
         sidebar_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(surface, COLOR_SIDEBAR_BG, sidebar_rect)
@@ -267,6 +294,11 @@ class Sidebar:
         opp_name_str = opp_name_str or "Lão Ngoan Đồng"
         opp_name = self.body_font.render(opp_name_str, True, COLOR_BLACK)
         surface.blit(opp_name, (self.x + 68, 108))
+        
+        # Draw Black EXP
+        black_exp_str = f"Black EXP: {black_exp}"
+        black_exp_txt = self.small_font.render(black_exp_str, True, COLOR_TEXT_MUTED)
+        surface.blit(black_exp_txt, (self.x + self.width - 68 - black_exp_txt.get_width(), 108))
         
         # --- Timer / Turn Indicator Box ---
         turn_box = pygame.Rect(self.x + 30, 133, self.width - 60, 26)
@@ -316,6 +348,11 @@ class Sidebar:
         play_name = self.body_font.render(play_name_str, True, COLOR_RED if game_mode != "human_vs_bot" else COLOR_ACCENT)
         surface.blit(play_name, (self.x + self.width - 68 - play_name.get_width(), 188))
         
+        # Draw Red EXP
+        red_exp_str = f"Red EXP: {red_exp}"
+        red_exp_txt = self.small_font.render(red_exp_str, True, COLOR_TEXT_MUTED)
+        surface.blit(red_exp_txt, (self.x + 68, 188))
+        
         # 4. Bảng Xếp Hạng & Thống Kê
         stats_rect = pygame.Rect(self.x + 15, 230, self.width - 30, 75)
         pygame.draw.rect(surface, COLOR_CARD_BG, stats_rect, 0, 8)
@@ -342,50 +379,119 @@ class Sidebar:
         algo_header = self.title_font.render("BẢNG ĐIỀU KHIỂN THUẬT TOÁN", True, COLOR_ACCENT)
         surface.blit(algo_header, (algo_card_rect.x + 15, algo_card_rect.y + 10))
         
-        # Dropdown selection container (Combobox)
-        # Determine current algorithm display name
-        active_bot_name = black_bot_name if game_mode == "human_vs_bot" else (
-            red_bot_name if board.turn == 'red' else black_bot_name
-        )
-        active_algo_key = active_bot_name.split(":")[-1].strip() if ":" in active_bot_name else active_bot_name
-        
-        display_algo = "Chọn chiến thuật..."
+        # Determine side-by-side rects for bot_vs_bot mode
+        rect_w = (self.dropdown_rect.width - 10) // 2
+        dropdown_rect_red = pygame.Rect(self.dropdown_rect.x, self.dropdown_rect.y, rect_w, 28)
+        dropdown_rect_black = pygame.Rect(self.dropdown_rect.x + rect_w + 10, self.dropdown_rect.y, rect_w, 28)
+
+        # Determine current algorithm display names
+        # Red Bot
+        active_algo_key_red = red_bot_name.split(":")[-1].strip() if ":" in red_bot_name else red_bot_name
+        display_algo_red = "Chọn Đỏ..."
         for opt_key, opt_name, _ in ALGO_OPTIONS:
-            if opt_key == active_algo_key:
-                display_algo = opt_name
+            if opt_key == active_algo_key_red:
+                display_algo_red = opt_name
                 break
                 
-        # Draw dropdown box trigger
-        pygame.draw.rect(surface, (30, 18, 14), self.dropdown_rect, 0, 4)
-        pygame.draw.rect(surface, COLOR_GOLD if self.dropdown_open else COLOR_OUTLINE, self.dropdown_rect, 1, 4)
-        
-        # Dropdown Label & arrow
-        dd_txt = self.small_font.render(display_algo, True, COLOR_TEXT)
-        surface.blit(dd_txt, (self.dropdown_rect.x + 10, self.dropdown_rect.centery - dd_txt.get_height() // 2))
-        
-        arrow_char = "▲" if self.dropdown_open else "▼"
-        arrow_txt = self.tiny_font.render(arrow_char, True, COLOR_ACCENT)
-        surface.blit(arrow_txt, (self.dropdown_rect.right - 20, self.dropdown_rect.centery - arrow_txt.get_height() // 2))
-        
-        # Draw AI computation stats Node / Frontier / Explored
-        # Update simulation counters if Bot is thinking (active_bot_name is not "Human" and turn is Bot's)
-        is_bot_thinking = False
-        if game_mode == "human_vs_bot" and board.turn == 'black':
-            is_bot_thinking = True
-        elif game_mode == "bot_vs_bot":
-            is_bot_thinking = True
+        # Black Bot
+        active_algo_key_black = black_bot_name.split(":")[-1].strip() if ":" in black_bot_name else black_bot_name
+        display_algo_black = "Chọn Đen..."
+        for opt_key, opt_name, _ in ALGO_OPTIONS:
+            if opt_key == active_algo_key_black:
+                display_algo_black = opt_name
+                break
+
+        if game_mode == "human_vs_bot":
+            # Draw single dropdown (exactly as before)
+            pygame.draw.rect(surface, (30, 18, 14), self.dropdown_rect, 0, 4)
+            pygame.draw.rect(surface, COLOR_ACCENT if self.dropdown_open else COLOR_OUTLINE, self.dropdown_rect, 1, 4)
             
-        # If thread calculation is running, increment sim counters
-        if is_bot_thinking and time.time() - self.last_sim_update >= 0.15:
-            self.sim_nodes = random.randint(self.sim_nodes + 5, self.sim_nodes + 120)
-            self.sim_frontier = random.randint(15, 65)
-            self.sim_explored = int(self.sim_nodes * random.uniform(0.6, 0.72))
-            self.last_sim_update = time.time()
-        elif not is_bot_thinking:
-            # Idle/Last state values
-            self.sim_nodes = 1284
-            self.sim_frontier = 42
-            self.sim_explored = 856
+            dd_txt = self.small_font.render(display_algo_black, True, COLOR_TEXT)
+            surface.blit(dd_txt, (self.dropdown_rect.x + 10, self.dropdown_rect.centery - dd_txt.get_height() // 2))
+            
+            arrow_char = "▲" if self.dropdown_open else "▼"
+            arrow_txt = self.tiny_font.render(arrow_char, True, COLOR_ACCENT)
+            surface.blit(arrow_txt, (self.dropdown_rect.right - 20, self.dropdown_rect.centery - arrow_txt.get_height() // 2))
+        else:
+            # Draw two side-by-side dropdowns for bot_vs_bot mode
+            # 1. Red Bot Dropdown (Left)
+            pygame.draw.rect(surface, (30, 18, 14), dropdown_rect_red, 0, 4)
+            pygame.draw.rect(surface, COLOR_ACCENT if self.dropdown_open == "red" else COLOR_OUTLINE, dropdown_rect_red, 1, 4)
+            
+            txt_label_red = "Đỏ: " + display_algo_red.split(":")[-1].strip()
+            if len(txt_label_red) > 20:
+                txt_label_red = txt_label_red[:17] + "..."
+            dd_txt_red = self.small_font.render(txt_label_red, True, COLOR_RED)
+            surface.blit(dd_txt_red, (dropdown_rect_red.x + 8, dropdown_rect_red.centery - dd_txt_red.get_height() // 2))
+            
+            arrow_char_red = "▲" if self.dropdown_open == "red" else "▼"
+            arrow_txt_red = self.tiny_font.render(arrow_char_red, True, COLOR_ACCENT)
+            surface.blit(arrow_txt_red, (dropdown_rect_red.right - 18, dropdown_rect_red.centery - arrow_txt_red.get_height() // 2))
+            
+            # 2. Black Bot Dropdown (Right)
+            pygame.draw.rect(surface, (30, 18, 14), dropdown_rect_black, 0, 4)
+            pygame.draw.rect(surface, COLOR_ACCENT if self.dropdown_open == "black" else COLOR_OUTLINE, dropdown_rect_black, 1, 4)
+            
+            txt_label_black = "Đen: " + display_algo_black.split(":")[-1].strip()
+            if len(txt_label_black) > 20:
+                txt_label_black = txt_label_black[:17] + "..."
+            dd_txt_black = self.small_font.render(txt_label_black, True, COLOR_BLACK)
+            surface.blit(dd_txt_black, (dropdown_rect_black.x + 8, dropdown_rect_black.centery - dd_txt_black.get_height() // 2))
+            
+            arrow_char_black = "▲" if self.dropdown_open == "black" else "▼"
+            arrow_txt_black = self.tiny_font.render(arrow_char_black, True, COLOR_ACCENT)
+            surface.blit(arrow_txt_black, (dropdown_rect_black.right - 18, dropdown_rect_black.centery - arrow_txt_black.get_height() // 2))
+        
+        # Track move count to detect new moves and restarts
+        current_move_count = len(move_history) if move_history else 0
+        if not hasattr(self, "last_move_count"):
+            self.last_move_count = current_move_count
+            
+        # If game restarted or is brand new, reset stats to a clean starting base
+        if current_move_count < self.last_move_count or (current_move_count == 0 and self.sim_nodes > 3000):
+            self.sim_nodes = random.randint(1000, 1500)
+            self.sim_frontier = random.randint(20, 40)
+            self.sim_explored = int(self.sim_nodes * random.uniform(0.6, 0.7))
+            self.last_move_count = current_move_count
+            
+        # If a new move was made, add a substantial chunk to the counters only if it was a Bot's move
+        if current_move_count > self.last_move_count:
+            is_bot_move = False
+            if game_mode == "bot_vs_bot":
+                is_bot_move = True
+            elif game_mode == "human_vs_bot":
+                if move_history:
+                    last_move = move_history[-1]
+                    if last_move.get("side") == 'black':
+                        is_bot_move = True
+                        
+            if is_bot_move:
+                added_nodes = random.randint(800, 2000)
+                added_frontier = random.randint(10, 30)
+                self.sim_nodes += added_nodes
+                self.sim_frontier = max(10, self.sim_frontier + added_frontier - random.randint(5, 25))
+                self.sim_explored += int(added_nodes * random.uniform(0.6, 0.75))
+            self.last_move_count = current_move_count
+
+        # Determine if the bot is thinking on this frame
+        is_bot_thinking = False
+        if not is_game_over:
+            if game_mode == "human_vs_bot" and board.turn == 'black':
+                is_bot_thinking = True
+            elif game_mode == "bot_vs_bot" and not bot_paused:
+                is_bot_thinking = True
+
+        # While the game is active, they slowly and continuously grow only when the Bot is actively thinking
+        if not is_game_over and is_bot_thinking:
+            if time.time() - self.last_sim_update >= 0.15:
+                grow_nodes = random.randint(15, 80)
+                self.sim_nodes += grow_nodes
+                self.sim_frontier = random.randint(20, 50)
+                self.sim_explored = int(self.sim_nodes * random.uniform(0.6, 0.75))
+                self.last_sim_update = time.time()
+        else:
+            # Freeze values: do nothing to keep the current counters when game is over or human is thinking
+            pass
             
         stats_box_y = algo_card_rect.y + 76
         stats_box_w = (algo_card_rect.width - 40) // 3
@@ -421,6 +527,16 @@ class Sidebar:
             # Pulsing "ĐANG TÍNH..." text
             is_pulse_alpha = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2 > 0.5
             calc_lbl = self.tiny_font.render("ĐANG TÍNH..." if is_pulse_alpha else "", True, COLOR_ACCENT)
+            surface.blit(calc_lbl, (algo_card_rect.right - calc_lbl.get_width() - 15, progress_y + 10))
+        elif bot_paused:
+            # Paused state: draw a stationary dim gold bar
+            pygame.draw.rect(surface, (120, 100, 40), (algo_card_rect.x + 15, progress_y, algo_card_rect.width - 30, 6), 0, 3)
+            calc_lbl = self.tiny_font.render("ĐÃ TẠM DỪNG", True, COLOR_ACCENT)
+            surface.blit(calc_lbl, (algo_card_rect.right - calc_lbl.get_width() - 15, progress_y + 10))
+        elif is_game_over:
+            # Game over state: draw a stationary green or outlined bar
+            pygame.draw.rect(surface, COLOR_OUTLINE, (algo_card_rect.x + 15, progress_y, algo_card_rect.width - 30, 6), 0, 3)
+            calc_lbl = self.tiny_font.render("KẾT THÚC", True, COLOR_JADE)
             surface.blit(calc_lbl, (algo_card_rect.right - calc_lbl.get_width() - 15, progress_y + 10))
         else:
             # Idle full line progress
@@ -470,7 +586,7 @@ class Sidebar:
             # Red Move Column
             red_str = self.format_move_compact(red_m)
             red_color = COLOR_ACCENT if is_red_latest and time.time() < latest_move_flash_until else COLOR_TEXT
-            if "x" in red_str: red_color = COLOR_JADE
+            if red_m.get("captured_char"): red_color = COLOR_JADE
             r_lbl = self.history_font.render(red_str, True, red_color)
             surface.blit(r_lbl, (history_card_rect.x + 40, y))
             
@@ -478,7 +594,7 @@ class Sidebar:
             if black_m:
                 black_str = self.format_move_compact(black_m)
                 black_color = COLOR_ACCENT if is_black_latest and time.time() < latest_move_flash_until else COLOR_TEXT
-                if "x" in black_str: black_color = COLOR_JADE
+                if black_m.get("captured_char"): black_color = COLOR_JADE
                 b_lbl = self.history_font.render(black_str, True, black_color)
                 surface.blit(b_lbl, (history_card_rect.x + 40 + col_w, y))
                 
@@ -500,30 +616,70 @@ class Sidebar:
         hist_hint = self.tiny_font.render("Cuộn chuột trong bảng lịch sử để xem thêm", True, COLOR_TEXT_MUTED)
         surface.blit(hist_hint, (history_card_rect.x + 15, history_card_rect.bottom - 18))
         
-        # 7. Draw Footer Controls: ĐI LẠI / GỢI Ý / ĐẦU HÀNG
-        # Render action buttons (with premium outline styling)
+        # 7. Draw Footer Controls
         mouse_pos = pygame.mouse.get_pos()
         
-        buttons = [
-            (self.btn_undo, "ĐI LẠI", (46, 204, 113), (39, 174, 96)),
-            (self.btn_hint, "GỢI Ý", (170, 110, 200), (155, 89, 182)),
-            (self.btn_surrender, "ĐẦU HÀNG", (231, 76, 60), (192, 57, 43))
-        ]
-        
-        for rect, label, hover_color, normal_color in buttons:
-            is_hover = rect.collidepoint(mouse_pos)
-            pygame.draw.rect(surface, hover_color if is_hover else normal_color, rect, 0, 6)
-            pygame.draw.rect(surface, COLOR_ACCENT, rect, 1, 6)
+        if game_mode == "bot_vs_bot":
+            # Draw two buttons side-by-side at the bottom: QUAY LẠI (left) and DỪNG/TIẾP TỤC (right)
+            # 1. QUAY LẠI (Left button, positioned at btn_surrender)
+            rect_ret = self.btn_surrender
+            is_hover_ret = rect_ret.collidepoint(mouse_pos)
+            pygame.draw.rect(surface, (52, 152, 219) if is_hover_ret else (41, 128, 185), rect_ret, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT, rect_ret, 1, 6)
             
-            lbl_txt = self.body_font.render(label, True, COLOR_TEXT)
-            surface.blit(lbl_txt, (rect.centerx - lbl_txt.get_width() // 2, rect.centery - lbl_txt.get_height() // 2))
+            lbl_txt_ret = self.body_font.render("QUAY LẠI", True, COLOR_TEXT)
+            surface.blit(lbl_txt_ret, (rect_ret.centerx - lbl_txt_ret.get_width() // 2, rect_ret.centery - lbl_txt_ret.get_height() // 2))
+            
+            # 2. DỪNG/TIẾP TỤC (Right button, positioned at btn_return)
+            rect_pause = self.btn_return
+            is_hover_pause = rect_pause.collidepoint(mouse_pos)
+            pause_label = "TIẾP TỤC" if bot_paused else "DỪNG"
+            pause_color = (46, 204, 113) if bot_paused else (231, 76, 60)
+            pause_hover_color = (39, 174, 96) if bot_paused else (192, 57, 43)
+            
+            pygame.draw.rect(surface, pause_hover_color if is_hover_pause else pause_color, rect_pause, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT, rect_pause, 1, 6)
+            
+            lbl_txt_pause = self.body_font.render(pause_label, True, COLOR_TEXT)
+            surface.blit(lbl_txt_pause, (rect_pause.centerx - lbl_txt_pause.get_width() // 2, rect_pause.centery - lbl_txt_pause.get_height() // 2))
+        else:
+            # human_vs_bot mode: draw 4 buttons (Undo, Hint, Surrender, Return)
+            buttons = [
+                (self.btn_undo, "ĐI LẠI", (46, 204, 113), (39, 174, 96)),
+                (self.btn_hint, "GỢI Ý", (170, 110, 200), (155, 89, 182)),
+                (self.btn_surrender, "ĐẦU HÀNG", (231, 76, 60), (192, 57, 43)),
+                (self.btn_return, "QUAY LẠI", (52, 152, 219), (41, 128, 185))
+            ]
+            
+            for rect, label, hover_color, normal_color in buttons:
+                is_hover = rect.collidepoint(mouse_pos)
+                pygame.draw.rect(surface, hover_color if is_hover else normal_color, rect, 0, 6)
+                pygame.draw.rect(surface, COLOR_ACCENT, rect, 1, 6)
+                
+                lbl_txt = self.body_font.render(label, True, COLOR_TEXT)
+                surface.blit(lbl_txt, (rect.centerx - lbl_txt.get_width() // 2, rect.centery - lbl_txt.get_height() // 2))
             
         # 8. Draw Open Dropdown list on top of everything if open
         if self.dropdown_open:
+            # Determine anchor rect and active key
+            if game_mode == "human_vs_bot":
+                anchor_rect = self.dropdown_rect
+                active_algo_key = active_algo_key_black
+            else:
+                rect_w = (self.dropdown_rect.width - 10) // 2
+                dropdown_rect_red = pygame.Rect(self.dropdown_rect.x, self.dropdown_rect.y, rect_w, 28)
+                dropdown_rect_black = pygame.Rect(self.dropdown_rect.x + rect_w + 10, self.dropdown_rect.y, rect_w, 28)
+                if self.dropdown_open == "red":
+                    anchor_rect = dropdown_rect_red
+                    active_algo_key = active_algo_key_red
+                else:
+                    anchor_rect = dropdown_rect_black
+                    active_algo_key = active_algo_key_black
+
             dropdown_list_rect = pygame.Rect(
-                self.dropdown_rect.x,
-                self.dropdown_rect.bottom,
-                self.dropdown_rect.width,
+                anchor_rect.x,
+                anchor_rect.bottom,
+                anchor_rect.width,
                 self.dropdown_visible_items * self.dropdown_item_height
             )
             # Draw shadow back
@@ -531,7 +687,7 @@ class Sidebar:
             pygame.draw.rect(surface, (10, 5, 4, 180), shadow_rect, 0, 4)
             
             pygame.draw.rect(surface, COLOR_CARD_BG, dropdown_list_rect)
-            pygame.draw.rect(surface, COLOR_GOLD, dropdown_list_rect, 2)
+            pygame.draw.rect(surface, COLOR_ACCENT, dropdown_list_rect, 2)
             
             for i in range(self.dropdown_visible_items):
                 item_idx = self.dropdown_scroll + i
@@ -550,15 +706,23 @@ class Sidebar:
                 elif is_currently_selected:
                     pygame.draw.rect(surface, (40, 25, 20), item_rect)
                     
-                item_color = COLOR_GOLD if is_currently_selected else (COLOR_TEXT if is_item_hover else COLOR_TEXT_MUTED)
+                item_color = COLOR_ACCENT if is_currently_selected else (COLOR_TEXT if is_item_hover else COLOR_TEXT_MUTED)
                 
                 # Render Level prefix text
                 level_prefix = f"L{level_cat + 1}: "
                 prefix_lbl = self.tiny_font.render(level_prefix, True, COLOR_ACCENT)
-                surface.blit(prefix_lbl, (item_rect.x + 8, item_rect.centery - prefix_lbl.get_height() // 2))
+                surface.blit(prefix_lbl, (item_rect.x + 6, item_rect.centery - prefix_lbl.get_height() // 2))
                 
-                name_lbl = self.small_font.render(opt_name.replace(f"Level {level_cat + 1}:", "").strip(), True, item_color)
-                surface.blit(name_lbl, (item_rect.x + 36, item_rect.centery - name_lbl.get_height() // 2))
+                clean_name = opt_name.replace(f"Level {level_cat + 1}:", "").strip()
+                max_text_w = item_rect.width - 28
+                name_lbl = self.small_font.render(clean_name, True, item_color)
+                if name_lbl.get_width() > max_text_w:
+                    truncated_name = clean_name
+                    while len(truncated_name) > 3 and name_lbl.get_width() > max_text_w:
+                        truncated_name = truncated_name[:-1]
+                        name_lbl = self.small_font.render(truncated_name + "...", True, item_color)
+                
+                surface.blit(name_lbl, (item_rect.x + 24, item_rect.centery - name_lbl.get_height() // 2))
                 
             # Draw dropdown scrollbar if needed
             max_dropdown_scroll = max(0, len(ALGO_OPTIONS) - self.dropdown_visible_items)
