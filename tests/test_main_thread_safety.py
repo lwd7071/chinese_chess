@@ -8,6 +8,10 @@ import threading
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Mock pygame before importing GameController
+import sys
+if 'main' in sys.modules:
+    del sys.modules['main']
+
 with patch('pygame.init'), \
      patch('pygame.mixer.init'), \
      patch('pygame.display.set_mode'), \
@@ -19,6 +23,8 @@ with patch('pygame.init'), \
      patch('gui.shop.ShopScreen'), \
      patch('gui.settings.SettingsScreen'):
     from main import GameController
+
+
 
 class TestThreadSafety(unittest.TestCase):
     @patch('pygame.init')
