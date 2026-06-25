@@ -33,6 +33,15 @@ LEVEL_DEFAULT_ALGOS = {
     5: "Alpha-Beta"
 }
 
+LEVEL_ALGOS = {
+    0: ["BFS", "DFS", "UCS"],
+    1: ["Greedy", "A*", "IDA*"],
+    2: ["Hill Climbing", "Simulated Annealing", "Beam Search"],
+    3: ["Online Search", "AND-OR Search", "Belief State"],
+    4: ["Backtracking", "Min-Conflicts", "AC-3"],
+    5: ["Minimax", "Alpha-Beta", "Expectimax"]
+}
+
 class StartMenu:
     def __init__(self, width, height):
         self.width = width
@@ -48,7 +57,7 @@ class StartMenu:
         self.footer_font = pygame.font.SysFont(["JetBrains Mono", "Consolas"], 12)
         
         # State Machine
-        # States: "mode_select", "level_red", "level_black"
+        # States: "mode_select", "level_red", "algo_select_red", "level_black", "algo_select_black"
         self.state = "mode_select"
         self.game_mode = "human_vs_bot"
         
@@ -90,6 +99,16 @@ class StartMenu:
         self.level_rects.append(pygame.Rect(start_x2, start_ys[1], card_w, card_h))
         self.level_rects.append(pygame.Rect(start_x1, start_ys[2], card_w, card_h))
         self.level_rects.append(pygame.Rect(start_x2, start_ys[2], card_w, card_h))
+        
+        # Algorithm selection buttons (3 buttons centered)
+        algo_btn_w = 300
+        algo_btn_h = 60
+        algo_btn_x = width // 2 - algo_btn_w // 2
+        self.algo_btn_rects = [
+            pygame.Rect(algo_btn_x, 300, algo_btn_w, algo_btn_h),
+            pygame.Rect(algo_btn_x, 385, algo_btn_w, algo_btn_h),
+            pygame.Rect(algo_btn_x, 470, algo_btn_w, algo_btn_h),
+        ]
         
         # Royal Seal button collision Rect (centered at bottom)
         self.seal_cx = width // 2
@@ -155,6 +174,16 @@ class StartMenu:
         self.level_rects.append(pygame.Rect(start_x2, start_ys[1], card_w, card_h))
         self.level_rects.append(pygame.Rect(start_x1, start_ys[2], card_w, card_h))
         self.level_rects.append(pygame.Rect(start_x2, start_ys[2], card_w, card_h))
+        
+        # Recalculate algorithm selection buttons
+        algo_btn_w = 300
+        algo_btn_h = 60
+        algo_btn_x = width // 2 - algo_btn_w // 2
+        self.algo_btn_rects = [
+            pygame.Rect(algo_btn_x, 300, algo_btn_w, algo_btn_h),
+            pygame.Rect(algo_btn_x, 385, algo_btn_w, algo_btn_h),
+            pygame.Rect(algo_btn_x, 470, algo_btn_w, algo_btn_h),
+        ]
         
         # Recalculate Royal Seal button collision Rect (centered at bottom)
         self.seal_cx = width // 2
@@ -241,11 +270,9 @@ class StartMenu:
                 self.trigger_transition()
                 return False
                 
-            # Check Royal Seal Button (Khai chiến - direct to level_black, no more intermediate popups!)
+            # Check Royal Seal Button (go to algorithm selection for red)
             if self.red_bot_level is not None and self.btn_seal.collidepoint(pos):
-                # Set default algorithm for chosen red bot level
-                self.red_bot_algo = LEVEL_DEFAULT_ALGOS[self.red_bot_level]
-                self.state = "level_black"
+                self.state = "algo_select_red"
                 self.trigger_transition()
                 from gui.sound import play_synth_sound
                 play_synth_sound('check')
@@ -273,16 +300,46 @@ class StartMenu:
                 self.trigger_transition()
                 return False
                 
-            # Check Royal Seal Button (Khai chiến - starts game directly!)
+            # Check Royal Seal Button (go to algorithm selection for black)
             if self.black_bot_level is not None and self.btn_seal.collidepoint(pos):
-                # Set default algorithm for chosen black bot level
-                self.black_bot_algo = LEVEL_DEFAULT_ALGOS[self.black_bot_level]
-                
-                # Reset menu state for next menu launch
-                self.state = "mode_select"
+                self.state = "algo_select_black"
+                self.trigger_transition()
                 from gui.sound import play_synth_sound
                 play_synth_sound('check')
-                return "game"
+                return False
+                    
+        # --- STATE: algo_select_red ---
+        elif self.state == "algo_select_red":
+            algos = LEVEL_ALGOS[self.red_bot_level]
+            for i, rect in enumerate(self.algo_btn_rects):
+                if rect.collidepoint(pos):
+                    self.red_bot_algo = algos[i]
+                    self.state = "level_black"
+                    self.trigger_transition()
+                    from gui.sound import play_synth_sound
+                    play_synth_sound('check')
+                    return False
+            # Back button
+            if self.btn_level_back.collidepoint(pos):
+                self.state = "level_red"
+                self.trigger_transition()
+                return False
+                
+        # --- STATE: algo_select_black ---
+        elif self.state == "algo_select_black":
+            algos = LEVEL_ALGOS[self.black_bot_level]
+            for i, rect in enumerate(self.algo_btn_rects):
+                if rect.collidepoint(pos):
+                    self.black_bot_algo = algos[i]
+                    self.state = "mode_select"
+                    from gui.sound import play_synth_sound
+                    play_synth_sound('check')
+                    return "game"
+            # Back button
+            if self.btn_level_back.collidepoint(pos):
+                self.state = "level_black"
+                self.trigger_transition()
+                return False
                     
         return False
 
@@ -359,6 +416,63 @@ class StartMenu:
                 i_txt = icon_font.render(icon, True, b_color)
                 surface.blit(i_txt, (draw_rect.right - 38, draw_rect.centery - i_txt.get_height() // 2))
                 
+        # --- STATE: algo_select_red / algo_select_black ---
+        elif self.state in ["algo_select_red", "algo_select_black"]:
+            # Back Button
+            is_hover_back = self.btn_level_back.collidepoint(mouse_pos)
+            pygame.draw.rect(surface, (60, 40, 30) if is_hover_back else (35, 20, 16), self.btn_level_back, 0, 6)
+            pygame.draw.rect(surface, COLOR_GOLD, self.btn_level_back, 1, 6)
+            back_txt = self.body_font.render("QUAY LẠI", True, COLOR_GOLD)
+            surface.blit(back_txt, (self.btn_level_back.centerx - back_txt.get_width() // 2, self.btn_level_back.centery - back_txt.get_height() // 2))
+            
+            # Determine which side
+            is_red = self.state == "algo_select_red"
+            active_level = self.red_bot_level if is_red else self.black_bot_level
+            side_text = "BÊN ĐỎ (RED)" if is_red else "BÊN ĐEN (BLACK)"
+            side_color = COLOR_RED_TEXT if is_red else COLOR_BLACK_TEXT
+            
+            # Header
+            hdr_shadow = self.brand_font.render("Chọn Thuật Toán", True, (15, 8, 6))
+            surface.blit(hdr_shadow, (self.width // 2 - hdr_shadow.get_width() // 2 + 2, 62))
+            hdr_txt = self.brand_font.render("Chọn Thuật Toán", True, COLOR_GOLD)
+            surface.blit(hdr_txt, (self.width // 2 - hdr_txt.get_width() // 2, 60))
+            
+            level_title = LEVEL_DETAILS[active_level][0]
+            sub_lbl = self.brand_sub_font.render(f"{level_title} — {side_text}", True, COLOR_TEXT_MUTED)
+            surface.blit(sub_lbl, (self.width // 2 - sub_lbl.get_width() // 2, 125))
+            
+            # Divider
+            dec_y = 165
+            pygame.draw.line(surface, COLOR_OUTLINE, (self.width // 2 - 200, dec_y), (self.width // 2 + 200, dec_y), 1)
+            pygame.draw.polygon(surface, side_color, [
+                (self.width // 2 - 8, dec_y),
+                (self.width // 2, dec_y - 4),
+                (self.width // 2 + 8, dec_y),
+                (self.width // 2, dec_y + 4)
+            ])
+            
+            # Instruction text
+            instr = self.body_font.render("Chọn một thuật toán bên dưới:", True, COLOR_TEXT)
+            surface.blit(instr, (self.width // 2 - instr.get_width() // 2, 210))
+            
+            # Draw 3 algorithm buttons
+            algos = LEVEL_ALGOS[active_level]
+            for i, rect in enumerate(self.algo_btn_rects):
+                is_hover = rect.collidepoint(mouse_pos)
+                
+                btn_color = (60, 40, 30) if is_hover else (42, 26, 22)
+                border_color = COLOR_GOLD if is_hover else COLOR_OUTLINE
+                border_w = 2 if is_hover else 1
+                
+                pygame.draw.rect(surface, btn_color, rect, 0, 10)
+                pygame.draw.rect(surface, border_color, rect, border_w, 10)
+                
+                # Algorithm name
+                algo_name = algos[i]
+                txt_color = COLOR_GOLD if is_hover else COLOR_TEXT
+                a_txt = self.header_font.render(algo_name, True, txt_color)
+                surface.blit(a_txt, (rect.centerx - a_txt.get_width() // 2, rect.centery - a_txt.get_height() // 2))
+        
         # --- STATE: level_red / level_black (Cấu Hình Trí Tuệ) ---
         elif self.state in ["level_red", "level_black"]:
             # Back Button (Aligned top left)
