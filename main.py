@@ -11,8 +11,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from game.board import Board
 from game.rules import has_lost, is_in_check, is_checkmate, is_stalemate, is_no_cross_river_pieces
 from ai import AI_REGISTRY
+from ai.step_recorder import StepRecorder
 from gui.renderer import Renderer
 from gui.sidebar import Sidebar
+from gui.visualizer import VisualizerPanel, StepController
 from gui.menu import StartMenu
 from gui.shop import ShopScreen
 from gui.sound import play_synth_sound
@@ -50,6 +52,12 @@ class GameController:
         self.menu = StartMenu(width=self.width, height=self.height)
         self.shop = ShopScreen(width=self.width, height=self.height)
         
+        # Step-by-step visualization (for report mode)
+        self.report_mode = False
+        self.step_recorder = StepRecorder()
+        self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+        self.step_controller = StepController()
+        
         self.state = "menu" # menu, game, shop, game_over
         
         # In-game wealth/skin storage (kept in-memory)
@@ -66,6 +74,7 @@ class GameController:
         self.valid_moves = []
         self.hint_move = None
         self.pending_move = None
+        self.pending_ai_move = None
         self.latest_move_index = None
         self.latest_move_flash_until = 0.0
         
@@ -148,6 +157,7 @@ class GameController:
         self.valid_moves = []
         self.hint_move = None
         self.pending_move = None
+        self.pending_ai_move = None
         self.latest_move_index = None
         self.latest_move_flash_until = 0.0
         self.ai_thread = None
@@ -245,44 +255,62 @@ class GameController:
                             play_synth_sound('move')
                             continue
                             
-                    # Sidebar click actions
-                    action = self.sidebar.handle_event(event)
-                    if action:
-                        if action.startswith("select_algo:"):
-                            new_algo = action.split(":")[-1]
-                            if self.menu.game_mode == "human_vs_bot":
-                                self.menu.black_bot_algo = new_algo
-                            else:
-                                if self.board.turn == 'red':
-                                    self.menu.red_bot_algo = new_algo
-                                else:
+                    # Hotkey to toggle report mode
+                    if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                        self.report_mode = not self.report_mode
+                        self.show_popup(f"Report Mode: {'ON' if self.report_mode else 'OFF'}")
+                        if not self.report_mode:
+                            self.step_recorder.clear()
+                            self.pending_ai_move = None
+                        play_synth_sound('move')
+                        continue
+
+                    # Sidebar / Visualizer click actions
+                    if self.report_mode and self.step_recorder.total_steps() > 0:
+                        vis_action = self.visualizer.handle_event(event, self.step_controller, self.step_recorder)
+                        if vis_action == "finish" and getattr(self, 'pending_ai_move', None):
+                            self.trigger_move_animation(self.pending_ai_move[0], self.pending_ai_move[1])
+                            self.step_recorder.clear()
+                            self.pending_ai_move = None
+                            continue
+                    else:
+                        action = self.sidebar.handle_event(event)
+                        if action:
+                            if action.startswith("select_algo:"):
+                                new_algo = action.split(":")[-1]
+                                if self.menu.game_mode == "human_vs_bot":
                                     self.menu.black_bot_algo = new_algo
-                        elif action == "new_game":
-                            self.start_new_game()
-                        elif action == "menu":
-                            self.state = "menu"
-                            self.menu.state = "mode_select"
-                            self.menu.trigger_transition()
-                        elif action == "undo":
-                            if self.menu.game_mode == "human_vs_bot":
-                                if len(self.board.history) >= 2:
-                                    self.board.undo_move()
-                                    self.board.undo_move()
-                            else:
-                                if len(self.board.history) >= 1:
-                                    self.board.undo_move()
-                            self.selected_pos = None
-                            self.valid_moves = []
-                            self.hint_move = None
-                        elif action == "hint":
-                            self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
-                            play_synth_sound('move')
-                    
-                    # Board piece click — select or move pieces
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        board_pos = self.renderer.get_board_pos_from_screen(event.pos)
-                        if board_pos:
-                            self.handle_human_click(board_pos)
+                                else:
+                                    if self.board.turn == 'red':
+                                        self.menu.red_bot_algo = new_algo
+                                    else:
+                                        self.menu.black_bot_algo = new_algo
+                            elif action == "new_game":
+                                self.start_new_game()
+                            elif action == "menu":
+                                self.state = "menu"
+                                self.menu.state = "mode_select"
+                                self.menu.trigger_transition()
+                            elif action == "undo":
+                                if self.menu.game_mode == "human_vs_bot":
+                                    if len(self.board.history) >= 2:
+                                        self.board.undo_move()
+                                        self.board.undo_move()
+                                else:
+                                    if len(self.board.history) >= 1:
+                                        self.board.undo_move()
+                                self.selected_pos = None
+                                self.valid_moves = []
+                                self.hint_move = None
+                            elif action == "hint":
+                                self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
+                                play_synth_sound('move')
+                        
+                        # Board piece click — select or move pieces
+                        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                            board_pos = self.renderer.get_board_pos_from_screen(event.pos)
+                            if board_pos:
+                                self.handle_human_click(board_pos)
                             
                 elif self.state == "game_over":
                     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -296,7 +324,13 @@ class GameController:
                                 
             # 2. Game Logic / Bot turns
             if self.state == "game" and not self.animation:
-                self.handle_bot_turns()
+                if self.report_mode and self.step_recorder.total_steps() > 0:
+                    if self.step_controller.update(self.step_recorder) == "finish" and getattr(self, 'pending_ai_move', None):
+                        self.trigger_move_animation(self.pending_ai_move[0], self.pending_ai_move[1])
+                        self.step_recorder.clear()
+                        self.pending_ai_move = None
+                else:
+                    self.handle_bot_turns()
                 
             # Update hover state for tooltip delay (1s)
             if self.state == "game" and not self.animation:
@@ -382,7 +416,25 @@ class GameController:
         if is_bot and bot_algo and bot_algo != "Human":
             if has_lost(self.board, self.board.turn) or is_no_cross_river_pieces(self.board):
                 return
+            
+            # Report mode: synchronous AI call with recorder
+            if self.report_mode:
+                # Clear recorder for new turn
+                self.step_recorder.clear()
                 
+                # Call AI synchronously (no threading to avoid race condition)
+                bot_func = AI_REGISTRY[bot_algo]
+                move = bot_func(self.board, recorder=self.step_recorder)
+                
+                # Don't execute move yet - wait for user to step through visualization
+                # Store pending move
+                if move and self.step_recorder.total_steps() > 0:
+                    self.pending_ai_move = move
+                elif move:
+                    self.trigger_move_animation(move[0], move[1])
+                return
+            
+            # Normal mode: async AI call (original behavior)
             delay = self.sidebar.get_bot_speed_delay()
             if time.time() - self.last_bot_move_time < delay:
                 return
@@ -515,14 +567,21 @@ class GameController:
         # 4. Draw Top Navigation Bar (Gold balance, Shop, Profile)
         self.draw_top_bar()
 
-        # 5. Draw Sidebar Panel
+        # 5. Draw Sidebar Panel or Visualizer Panel (depending on report_mode)
         red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
         black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
-        self.sidebar.draw(
-            self.screen, self.board, self.menu.game_mode,
-            red_bot, black_bot, hint_move=self.hint_move, move_history=self.board.move_log, pending_move=self.pending_move,
-            latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until
-        )
+        
+        if self.report_mode and self.step_recorder.total_steps() > 0:
+            # Show Visualizer Panel
+            current_step = self.step_recorder.get_current_step()
+            self.visualizer.draw(self.screen, current_step, self.step_controller, self.step_recorder)
+        else:
+            # Show normal Sidebar
+            self.sidebar.draw(
+                self.screen, self.board, self.menu.game_mode,
+                red_bot, black_bot, hint_move=self.hint_move, move_history=self.board.move_log, pending_move=self.pending_move,
+                latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until
+            )
         
         # 6. Draw capture burst particles
         self.renderer.draw_particles(self.screen)

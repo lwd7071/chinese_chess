@@ -1,0 +1,294 @@
+# Documentation for AI Agents
+
+Tài liệu này ghi lại các thay đổi trong quá trình phát triển tính năng Step-by-Step Visualization cho báo cáo AI.
+
+---
+
+## 2026-06-25: Task 1 - Step Recorder Module ✅
+
+### Mục tiêu
+Tạo module `ai/step_recorder.py` chứa tất cả dataclass để ghi lại từng bước thực thi của 18 thuật toán AI.
+
+### Thực hiện
+- **File mới:** `ai/step_recorder.py` (273 dòng)
+- **Kiến trúc:**
+  - 1 base dataclass: `BaseStep` (chứa step_num, algorithm, explanation, chosen_move)
+  - 17 dataclass con cho 18 thuật toán (Level 1-6):
+    - **Level 1:** `BFSStep`, `DFSStep`, `UCSStep`
+    - **Level 2:** `GreedyStep`, `AStarStep`, `IDAStarStep`
+    - **Level 3:** `HillClimbStep`, `SAStep`, `BeamStep`
+    - **Level 4:** `OnlineStep`, `AndOrStep`, `BeliefStep`
+    - **Level 5:** `BacktrackStep`, `MinConflictStep`, `AC3Step`
+    - **Level 6:** `MinimaxStep`, `AlphaBetaStep`, `ExpectimaxStep`
+  - 1 manager class: `StepRecorder` (quản lý danh sách steps, navigation prev/next)
+
+### Thiết kế kỹ thuật
+- Sử dụng `@dataclass` với `field(default_factory=dict/list)` để tránh mutable default
+- Type hints đầy đủ: `Dict[str, Any]`, `List[Dict]`, `Optional[Move]`
+- Type alias: `Move = Tuple[Tuple[int, int], Tuple[int, int]]`
+- Mỗi dataclass có comment giải thích logic thuật toán và cách hiển thị
+
+### Verification
+```bash
+python -c "from ai.step_recorder import *"
+# ✅ Import thành công, không lỗi syntax
+```
+
+### Hoàn thành Task 7-10: GUI & Integration (2026-06-25) ✅
+
+**Task 7: GUI VisualizerPanel** ✅
+- Triển khai 3 layout chính: UCS/A* (3-column), Alpha-Beta (path, siblings, pruning), SA (temperature, Boltzmann formula).
+- Fallback layout tự động trích xuất các trường dataclass cho Tier Basic và Text.
+
+**Task 8: StepController** ✅
+- Các nút bấm `[◀ PREV]`, `[NEXT ▶]`, `[▶▶ AUTO]`, `[⏸ PAUSE]`.
+- Tự động chuyển thành `[FINISH ▶]` tại bước cuối cùng để áp dụng nước đi.
+
+**Task 9 & 10: Integration vào main.py & Testing** ✅
+- Tích hợp phím tắt `R` để bật/tắt `report_mode` trực tiếp trong trận đấu.
+- Execute AI đồng bộ trên main thread khi report_mode=True, tránh race condition với GUI.
+- Hoàn tất kiểm tra 18/18 thuật toán hoạt động hoàn hảo.
+
+**Total remaining: 0 hours (Project 100% Complete)**
+
+---
+
+
+## 2026-06-25: Task 2 - Tích hợp Recorder vào Level 1 ✅
+
+### Mục tiêu
+Thêm parameter `recorder=None` vào 3 hàm AI Level 1 (BFS, DFS, UCS) và gọi `recorder.add_step()` tại các điểm quan trọng.
+
+### Thực hiện
+- **File sửa:** `ai/level1.py`
+- **Các hàm đã update:**
+  1. `ucs_move(board, recorder=None)` - Tier Full
+  2. `bfs_move(board, depth=2, recorder=None)` - Tier Basic
+  3. `dfs_move(board, depth=2, recorder=None)` - Tier Basic
+
+### Thiết kế kỹ thuật
+
+#### UCS (Tier Full - Demo chính)
+```python
+def ucs_move(board, recorder=None):
+    # Mapping piece names to Vietnamese
+    PIECE_NAME_VI = {'general': 'Tướng', 'advisor': 'Sĩ', ...}
+    
+    frontier_list = []
+    explored_list = []
+    
+    for i, (from_pos, to_pos) in enumerate(legal_moves):
+        # Calculate cost = 1000 - captured_value
+        cost = 1000 - cap_val
+        
+        # Build node info
+        node_info = {'move': ..., 'g_cost': cost, 'piece_captured': piece_name, ...}
+        
+        # Add to frontier
+        frontier_list.append(node_info)
+        
+        # Record step if recorder provided
+        if recorder:
+            sorted_frontier = sorted(frontier_list, key=lambda x: x['g_cost'])
+            recorder.add_step(UCSStep(...))
+        
+        # Move to explored
+        explored_list.append(node_info)
+```
+
+**Key points:**
+- Frontier được sort theo cost tăng dần trước khi ghi
+- Vietnamese piece names cho dễ hiểu khi demo
+- Explanation format: `"Xét nước (0,0)→(0,5): cost = 1000 - 900(Xe) = 100"`
+
+#### BFS (Tier Basic)
+```python
+def bfs_move(board, depth=2, recorder=None):
+    step_counter = 0
+    explored_nodes = []
+    
+    while queue:
+        curr = queue.popleft()
+        
+        if recorder and step_counter < 20:  # Limit steps
+            recorder.add_step(BFSStep(...))
+            step_counter += 1
+        
+        explored_nodes.append(...)
+```
+
+**Key points:**
+- Giới hạn 20 steps để tránh quá nhiều (BFS mở rộng rất nhanh)
+- Ghi lại queue hiện tại (chỉ 10 nodes đầu) và explored list
+
+#### DFS (Tier Basic)
+```python
+def dfs_move(board, depth=2, recorder=None):
+    step_counter = [0]  # List để mutation trong nested function
+    
+    def dfs_search_with_recording(board, remaining_depth, current_stack):
+        if recorder and step_counter[0] < 20:
+            recorder.add_step(DFSStep(...))
+            step_counter[0] += 1
+```
+
+**Key points:**
+- DFS đệ quy → dùng `step_counter = [0]` để mutate trong nested function
+- `current_stack` track đường đi hiện tại (giống callstack)
+- Limit 20 steps tránh explosion
+
+### Verification
+
+**Test script:** `test_level1_recorder.py`
+
+```bash
+$ python test_level1_recorder.py
+
+=== TEST UCS với Recorder ===
+✅ UCS move: ((7, 1), (0, 1))
+✅ Đã ghi 44 steps
+✅ Step 1: UCS - Xét nước (9, 8)→(8, 8): cost = 1000 - 0(—) = 1000
+
+=== TEST BFS với Recorder ===
+✅ BFS move: ((7, 1), (0, 1))
+✅ Đã ghi 20 steps
+
+=== TEST DFS với Recorder ===
+✅ DFS move: ((7, 1), (0, 1))
+✅ Đã ghi 20 steps
+
+✅ TẤT CẢ TEST PASSED!
+```
+
+**Backward compatibility:** ✅ Gọi với `recorder=None` vẫn hoạt động bình thường
+
+### Tích hợp tiếp theo
+- **Task 3:** Level 2 (Greedy, A*, IDA*) - Tier Full cho A*
+- **Task 4:** Level 3 (Hill Climbing, SA, Beam) - Tier Full cho SA
+- **Task 5:** Level 6 (Minimax, Alpha-Beta, Expectimax) - Tier Full cho Alpha-Beta
+- **Task 6:** GUI Visualizer Panel
+
+---
+
+
+## 2026-06-25: Task 3-6 - Tích hợp Recorder vào tất cả Level còn lại ✅
+
+### Tổng quan
+Hoàn thành tích hợp recorder vào TẤT CẢ 18 thuật toán AI (Level 1-6).
+
+### Task 3: Level 2 (Greedy, A*, IDA*) ✅
+
+**Files:** `ai/level2.py`
+
+**Implementations:**
+1. `greedy_move(board, recorder=None)` - Tier Basic
+   - Candidates sorted by h descending (highest value first)
+   - Explanation: "chọn h LỚN NHẤT"
+   - Limit 20 steps
+
+2. `a_star_move(board, recorder=None)` - **Tier Full** ⭐
+   - Formula: `f(n) = g(n) + h(n)`
+   - `g = 1000 - cap_val`, `h = opponent_material`
+   - Frontier sorted by f ascending
+   - Vietnamese piece names
+   - All legal moves recorded
+
+3. `ida_star_move(board, recorder=None)` - Tier Basic
+   - Iterative deepening with threshold
+   - Records iteration changes
+   - Cutoff detection with `is_cutoff` flag
+   - Limit 30 steps
+
+### Task 4: Level 3 (Hill Climbing, SA, Beam) ✅
+
+**Files:** `ai/level3.py`
+
+**Implementations:**
+1. `hill_climbing_move(board, recorder=None)` - Tier Basic
+   - Neighbors sorted by score
+   - Plateau detection
+   - Limit 20 steps
+
+2. `simulated_annealing_move(board, T=100.0, alpha=0.9, recorder=None)` - **Tier Full** ⭐
+   - Temperature tracking: `T *= alpha`
+   - Delta E calculation: `delta = score - current_score`
+   - Acceptance probability: `P = e^(ΔE/T)`
+   - Explanation with emoji: "✅ Chấp nhận" or "❌ Từ chối"
+   - Limit 30 steps
+
+3. `beam_search_move(board, k=3, recorder=None)` - Tier Basic
+   - Top k beams selection
+   - Worst-case response analysis (minimax-like)
+   - 2 steps: selection + evaluation
+
+### Task 5: Level 6 (Minimax, Alpha-Beta, Expectimax) ✅
+
+**Files:** `ai/level6.py`
+
+**Implementations:**
+1. `minimax_move(board, depth=3, recorder=None)` - Tier Basic
+   - MAX/MIN node tracking
+   - current_path + siblings_evaluated
+   - NO full tree (memory optimization)
+   - Limit 20 steps
+
+2. `alpha_beta_move(board, depth=4, recorder=None)` - **Tier Full** ⭐
+   - Alpha/Beta tracking with updates
+   - Pruning detection: `is_pruned = (beta <= alpha)`
+   - Prune reason: "β(200) ≤ α(350) → cắt nhánh"
+   - Path tracking from root
+   - Limit 30 steps
+
+3. `expectimax_move(board, depth=3, recorder=None)` - Tier Basic
+   - CHANCE node detection
+   - Expected value: `0.7 * best + 0.3 * avg(others)`
+   - Limit 20 steps
+
+### Task 6: Level 4 & 5 (Text Tier) ✅
+
+**Files:** `ai/level4.py`, `ai/level5.py`
+
+**Level 4 - Complex Environments:**
+1. `online_search_move(board, recorder=None)`
+   - Weights before/after adjustment
+   - In-check detection
+   - 2 steps: adjustment + selection
+
+2. `and_or_search_move(board, recorder=None)`
+   - OR nodes (ta) + AND nodes (đối thủ)
+   - Worst-case score tracking
+   - Limit 10 steps
+
+3. `belief_state_search_move(board, recorder=None)`
+   - Opponent style detection (aggressive/defensive/positional)
+   - Belief probabilities
+   - Expected utility formula
+   - 2 steps: detection + selection
+
+**Level 5 - CSP:**
+1. `backtracking_mrv_move(board, recorder=None)`
+   - MRV selection (minimum domain size)
+   - Domain tracking for all variables
+   - 2 steps: domain calculation + selection
+
+2. `min_conflicts_move(board, recorder=None)`
+   - Conflict count before/after
+   - Candidates sorted by conflicts
+   - 1 step
+
+3. `ac3_move(board, recorder=None)`
+   - Safe vs pruned moves
+   - Prune reason with attacker info
+   - 1 step
+
+### Summary Statistics
+
+**Total functions updated:** 18
+**Total lines added:** ~800
+**Tier Full (demo chính):** 4 (UCS, A*, SA, Alpha-Beta)
+**Tier Basic:** 8 (BFS, DFS, Greedy, IDA*, Hill, Minimax, Beam, Expectimax)
+**Tier Text:** 6 (Level 4 + Level 5)
+
+**All imports verified:** ✅
+
+---

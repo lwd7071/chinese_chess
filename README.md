@@ -45,9 +45,12 @@ chinese_chess/
 │   ├── pieces.py             # Định nghĩa quân cờ và luật di chuyển pseudo-legal cho 7 quân cờ
 │   └── rules.py              # Xác định trạng thái chiếu tướng (check), chiếu bí (mate), hết nước đi (stalemate)
 ├── gui/
+│   ├── assets.py             # Quản lý tài nguyên, hình ảnh và hệ thống avatar
+│   ├── easing.py             # Các hàm nội suy toán học tạo chuyển động (animation) mượt mà
 │   ├── menu.py               # Giao diện Menu chính và màn hình chọn thuật toán AI
 │   ├── renderer.py           # Vẽ bàn cờ, quân cờ (Hán tự/Latinh), các hiệu ứng gợi ý & chiếu tướng
-│   ├── sidebar.py            # Bảng điều khiển bên phải (Xem lượt đi, hoàn nước, gợi ý)
+│   ├── shop.py               # Màn hình Cửa hàng (Kỳ trân dị bảo) mua sắm trang bị, avatar
+│   ├── sidebar.py            # Bảng điều khiển bên phải (Combobox chọn AI, thống kê Node, lịch sử)
 │   └── sound.py              # Trình quản lý và tổng hợp âm thanh (di chuyển, ăn quân, chiếu tướng)
 ├── tests/
 │   └── test_*.py             # Hệ thống unit test chi tiết kiểm thử TDD từng quân cờ và logic AI
@@ -64,13 +67,15 @@ chinese_chess/
 
 ## Các tính năng chính
 
-- **2 Chế độ chơi linh hoạt**:
-  - **Người đấu Bot (Human vs Bot)**: Người chơi (quân Đỏ) thi đấu với Bot AI (quân Đen) tự chọn.
-  - **Bot đấu Bot (Bot vs Bot)**: Hai thuật toán AI tự động thi đấu đối đầu với nhau (hỗ trợ thanh trượt điều chỉnh tốc độ).
-- **Hệ thống AI 6 cấp độ**: Tích hợp các thuật toán tìm kiếm đa dạng ứng với từng cấp độ khó.
-- **Hoàn nước (Undo)**: Cho phép quay lại các nước đi trước đó (hoàn 2 nước trong Human vs Bot hoặc 1 nước trong Bot vs Bot).
-- **Gợi ý nước đi (Hint)**: Hỗ trợ tìm kiếm nước đi tối ưu tức thời thông qua tìm kiếm Alpha-Beta độ sâu cao.
-- **Đa luồng tính toán (Threading)**: Các thuật toán AI tính toán trên luồng nền giúp giao diện Pygame mượt mà, không bị đơ/treo.
+- **2 Chế độ chơi linh hoạt & Bảng điều khiển thông minh**:
+  - **Người đấu Bot (Human vs Bot)**: Người chơi (quân Đỏ) thi đấu với Bot AI (quân Đen) tự chọn thông qua Dropdown box trực quan.
+  - **Bot đấu Bot (Bot vs Bot)**: Hai thuật toán AI tự động thi đấu đối đầu với nhau. Bảng điều khiển chia làm 2 Combobox riêng biệt cho phép chọn và đổi chiến thuật độc lập cho cả Bot Đỏ và Bot Đen bất kỳ lúc nào.
+- **Hệ thống AI 6 cấp độ (18 Thuật toán)**: Tích hợp các thuật toán tìm kiếm đa dạng từ Tìm kiếm mù, Heuristic, Tìm kiếm cục bộ, Khám phá môi trường, CSP đến Đối kháng chuyên sâu.
+- **Tạm dừng AI thông minh (Smart AI Pause)**: Tự động tạm dừng hoạt động của các AI khi người dùng mở danh sách chọn thuật toán, giúp thao tác mượt mà không bị gián đoạn.
+- **Giao diện Hoàng Gia (Royal Theme) & Hoạt ảnh (Animation)**: Thiết kế tông màu gỗ đỏ ấm áp kết hợp vàng cổ điển (Antique Gold), tích hợp các hàm easing giúp quân cờ di chuyển mượt mà.
+- **Cửa hàng Kỳ Trân Dị Bảo (Shop System)**: Giao diện cửa hàng tích hợp cho phép trang bị avatar, bàn cờ và các vật phẩm độc đáo.
+- **Hoàn nước (Undo) & Gợi ý (Hint)**: Cho phép quay lại các nước đi trước đó hoặc tính toán gợi ý nước đi tối ưu tức thời bằng Alpha-Beta.
+- **Đa luồng tính toán (Threading)**: AI tính toán hoàn toàn trên luồng nền (background thread), đảm bảo giao diện Pygame đạt FPS cao, không giật lag.
 - **Hiệu ứng & Âm thanh**:
   - Âm thanh sinh động tổng hợp trực tiếp bằng mã nguồn (Move, Capture, Check).
   - Tự động hiển thị chữ Hán cổ truyền hoặc ký tự Latin viết tắt tùy chỉnh.
@@ -88,10 +93,10 @@ chinese_chess/
    - Áp dụng thuật toán tìm kiếm cục bộ (Local Search). Trong đó Simulated Annealing (SA) chấp nhận các bước đi ngẫu nhiên dựa trên nhiệt độ để tránh tối ưu cục bộ.
 4. **Level 4: Online / AND-OR / Belief**
    - Lập kế hoạch AND-OR đối phó với sự cố và môi trường không chắc chắn, duy trì tập trạng thái Belief.
-5. **Level 5: CSP (MRV / Min-Conflicts)**
-   - Mô hình hóa dưới dạng Bài toán thỏa mãn ràng buộc (Constraint Satisfaction Problem), né tránh các ô nguy hiểm và ưu tiên bảo vệ Tướng.
-6. **Level 6: Minimax / Alpha-Beta**
-   - Đối kháng chuyên sâu, dự đoán trước 4-6 nước đi tiếp theo kết hợp cắt tỉa Alpha-Beta tối ưu hóa không gian tìm kiếm.
+5. **Level 5: Backtracking / Min-Conflicts / AC-3**
+   - Mô hình hóa bàn cờ dưới dạng Bài toán thỏa mãn ràng buộc (Constraint Satisfaction Problem - CSP). Sử dụng Backtracking kết hợp lọc AC-3 (Arc Consistency) và heuristic Min-Conflicts để né tránh các ô bị tấn công, ưu tiên bảo vệ Tướng và tối ưu hóa thế trận.
+6. **Level 6: Minimax / Alpha-Beta / Expectimax**
+   - Đối kháng chuyên sâu, dự đoán trước 4-6 nước đi tiếp theo kết hợp cắt tỉa Alpha-Beta tối ưu hóa không gian tìm kiếm. Ngoài ra, tích hợp Expectimax để xử lý các nước đi mang tính xác suất hoặc dự đoán hành vi không chắc chắn của đối thủ.
 
 ---
 
