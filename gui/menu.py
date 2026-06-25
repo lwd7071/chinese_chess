@@ -48,13 +48,13 @@ class StartMenu:
         self.height = height
         
         # Load fonts
-        self.brand_font = pygame.font.SysFont(["Playfair Display", "Segoe UI", "Tahoma"], 46, bold=True)
-        self.brand_sub_font = pygame.font.SysFont(["Source Serif 4", "Segoe UI", "Tahoma"], 18)
-        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 24, bold=True)
-        self.header_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 18, bold=True)
-        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 15, bold=True)
-        self.detail_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
-        self.footer_font = pygame.font.SysFont(["JetBrains Mono", "Consolas"], 12)
+        self.brand_font = pygame.font.SysFont("Playfair Display, Segoe UI, Tahoma", 46, bold=True)
+        self.brand_sub_font = pygame.font.SysFont("Source Serif 4, Segoe UI, Tahoma", 18)
+        self.title_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 24, bold=True)
+        self.header_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 18, bold=True)
+        self.body_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 15, bold=True)
+        self.detail_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 13)
+        self.footer_font = pygame.font.SysFont("JetBrains Mono, Consolas", 12)
         
         # State Machine
         # States: "mode_select", "level_red", "algo_select_red", "level_black", "algo_select_black"

@@ -1,0 +1,360 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Cửa Tiệm - Hoàng Gia Tượng Kỳ</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&amp;family=Playfair+Display:wght@600;700&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-low": "#271814",
+                      "primary": "#f2ca50",
+                      "inverse-primary": "#735c00",
+                      "background": "#1e100c",
+                      "secondary-fixed-dim": "#59de9b",
+                      "secondary-container": "#00a669",
+                      "on-error": "#690005",
+                      "on-tertiary-container": "#4d4427",
+                      "surface-bright": "#483530",
+                      "secondary": "#59de9b",
+                      "surface-container": "#2c1c18",
+                      "on-tertiary": "#383015",
+                      "outline": "#99907c",
+                      "on-tertiary-fixed": "#221b03",
+                      "error-container": "#93000a",
+                      "surface-tint": "#e9c349",
+                      "surface-variant": "#43302c",
+                      "on-tertiary-fixed-variant": "#4f4629",
+                      "surface-dim": "#1e100c",
+                      "primary-container": "#d4af37",
+                      "on-primary-fixed-variant": "#574500",
+                      "tertiary": "#dccda7",
+                      "surface-container-lowest": "#180b07",
+                      "outline-variant": "#4d4635",
+                      "surface-container-highest": "#43302c",
+                      "primary-fixed-dim": "#e9c349",
+                      "on-secondary-fixed": "#002111",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed": "#f0e2ba",
+                      "on-primary": "#3c2f00",
+                      "surface": "#1e100c",
+                      "on-primary-fixed": "#241a00",
+                      "primary-fixed": "#ffe088",
+                      "secondary-fixed": "#78fbb6",
+                      "on-surface-variant": "#d0c5af",
+                      "on-secondary-fixed-variant": "#005232",
+                      "on-background": "#fadcd5",
+                      "inverse-surface": "#fadcd5",
+                      "tertiary-container": "#bfb28d",
+                      "inverse-on-surface": "#3e2c28",
+                      "on-surface": "#fadcd5",
+                      "surface-container-high": "#372622",
+                      "on-error-container": "#ffdad6",
+                      "on-secondary": "#003921",
+                      "on-primary-container": "#554300",
+                      "on-secondary-container": "#00311c",
+                      "tertiary-fixed-dim": "#d4c69f"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "margin-mobile": "16px",
+                      "board-padding": "12px",
+                      "margin-desktop": "40px",
+                      "gutter": "24px"
+              },
+              "fontFamily": {
+                      "display-lg-mobile": [
+                              "Playfair Display"
+                      ],
+                      "display-lg": [
+                              "Playfair Display"
+                      ],
+                      "headline-md": [
+                              "Playfair Display"
+                      ],
+                      "label-tech": [
+                              "JetBrains Mono"
+                      ],
+                      "body-rtxt": [
+                              "\"Source Serif 4\""
+                      ]
+              },
+              "fontSize": {
+                      "display-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-tech": [
+                              "13px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-rtxt": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Ambient texture overlay for organic realism */
+        .wood-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        
+        /* Subtle specular highlight for tactile elements */
+        .specular-edge {
+            box-shadow: inset 1px 1px 0px 0px rgba(255, 255, 255, 0.1);
+        }
+
+        /* Ambient Occlusion base shadow */
+        .ao-shadow {
+            box-shadow: 0 12px 24px -4px rgba(0,0,0,0.8), 0 4px 8px -2px rgba(0,0,0,0.6);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-rtxt min-h-screen antialiased selection:bg-primary/30 relative">
+<!-- Global Noise Texture -->
+<div class="fixed inset-0 w-full h-full wood-texture z-[-1]"></div>
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed bg-surface-container-lowest/80 backdrop-blur-md shadow-sm border-b border-outline-variant/30 docked full-width top-0 z-50">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-screen-2xl mx-auto">
+<!-- Brand -->
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center specular-edge shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">castle</span>
+</div>
+<h1 class="font-display-lg text-headline-md text-primary tracking-tight">Hoàng Gia Tượng Kỳ</h1>
+</div>
+<!-- Desktop Navigation -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 pb-1" href="#">Kỳ Đài</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 pb-1" href="#">Thư Viện</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 pb-1" href="#">Xếp Hạng</a>
+<!-- Active Item -->
+<a class="text-primary border-b-2 border-primary font-bold hover:text-primary transition-colors duration-300 pb-1 translate-y-[1px] transition-all" href="#">Cửa Tiệm</a>
+</nav>
+<!-- Trailing Actions & User Wealth -->
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 bg-surface-container-high px-4 py-2 rounded-full border border-outline-variant/30 specular-edge shadow-inner">
+<span class="font-label-tech text-label-tech text-primary">1,250</span>
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors duration-300 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors duration-300 flex items-center justify-center hidden md:flex">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-32 pb-24 px-margin-mobile md:px-margin-desktop max-w-screen-xl mx-auto">
+<!-- Page Header -->
+<div class="mb-16 text-center max-w-2xl mx-auto">
+<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary mb-4 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">Cửa Tiệm Hoàng Gia</h2>
+<p class="font-body-rtxt text-body-rtxt text-on-surface-variant">Trang hoàng kỳ đài, khẳng định đẳng cấp. Khám phá những tuyệt tác thủ công dành riêng cho Kỳ Vương.</p>
+<div class="w-24 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent mx-auto mt-8"></div>
+</div>
+<!-- Section: Bàn Cờ (Boards) -->
+<section class="mb-20">
+<div class="flex items-center gap-4 mb-8">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">grid_on</span>
+<h3 class="font-headline-md text-headline-md text-on-surface tracking-wide uppercase">Bàn Cờ</h3>
+<div class="flex-1 h-px bg-gradient-to-r from-outline-variant/50 to-transparent ml-4"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Item 1: Default/Owned -->
+<div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant/30 ao-shadow relative group flex flex-col h-full">
+<!-- Image Area -->
+<div class="aspect-[4/3] relative overflow-hidden bg-surface-container-high border-b border-outline-variant/50 p-4">
+<div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent z-10 pointer-events-none rounded-t-xl"></div>
+<img class="w-full h-full object-cover rounded-lg shadow-[inset_0_4px_12px_rgba(0,0,0,0.8)] specular-edge transition-transform duration-700 group-hover:scale-105" data-alt="A hyper-realistic top-down macro shot of a traditional Chinese Xiangqi chess board crafted from rich, dark ebony wood. The surface features deep, warm brown tones with visible, exquisite wood grain patterns. The grid lines are subtly burned into the wood. The lighting is warm and directional from the top-left, casting soft, realistic shadows and highlighting the tactile, polished texture of the luxury wooden surface in a dark, scholarly setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABQC_OeCgSFOb1s4uwT2qrezK3aWNBhYjcmHtIEskWNbEKrHWRkxqx61hKHT4vcVFtqv9xxNAhL2nmF4FmxQySj4V0ca93yKD6W68X_teT1kOsByUGLuLO04K-Ww5PCDE06DmQsIxC5TcCknqlniSDUFLoB0RiaaD-Gp28GIdd7RhAiYLtr7TDpkGDbBgVS8F6bEWhV9KsgD3_HmBLY3CK5soo4aEZYIUSxdIlVybSzhzP65u3zCwI3IXA2pz7UgxX7B-Vxu-h-XI">
+<div class="absolute top-6 right-6 bg-surface-variant/90 backdrop-blur text-on-surface-variant font-label-tech text-[11px] px-3 py-1 rounded-full border border-outline-variant/50 flex items-center gap-1 z-20">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                            ĐANG DÙNG
+                        </div>
+</div>
+<!-- Details Area -->
+<div class="p-6 flex flex-col flex-1 bg-surface-container-low wood-texture relative">
+<h4 class="font-headline-md text-[20px] text-on-surface mb-2">Gỗ Mộc Cổ Điển</h4>
+<p class="font-body-rtxt text-[15px] text-on-surface-variant mb-6 flex-1">Phong cách truyền thống với vân gỗ tự nhiên, mang lại cảm giác tĩnh tại và sâu lắng.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1.5 opacity-50">
+<span class="font-label-tech text-[16px] text-on-surface line-through">0</span>
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+</div>
+<button class="bg-surface-variant text-on-surface-variant font-label-tech text-[13px] tracking-wider px-6 py-2.5 rounded shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none uppercase border border-outline-variant/20">
+                                Đang sử dụng
+                            </button>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant/30 ao-shadow relative group flex flex-col h-full">
+<div class="aspect-[4/3] relative overflow-hidden bg-surface-container-high border-b border-outline-variant/50 p-4">
+<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent z-10 pointer-events-none rounded-t-xl"></div>
+<img class="w-full h-full object-cover rounded-lg shadow-[inset_0_4px_12px_rgba(0,0,0,0.8)] specular-edge transition-transform duration-700 group-hover:scale-105" data-alt="A stunningly realistic close-up of a high-end Xiangqi game board made of pure white marble with delicate, smoky grey veins running through it. The grid lines are inlaid with shimmering imperial gold. The scene is illuminated by crisp, cool lighting that accentuates the polished, reflective specular highlights on the cold stone surface. The aesthetic conveys absolute luxury, wealth, and pristine elegance against a dark contrasting background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeeLffapQcsRaS1CgMO9JTu05BUfAaUWduIhiVVXdBig7OMKlMzHa-1Vnmf-xDljN3n3YNbli5YkkAmj-aiYBDtpiu9oxMQKimctREWX9v3shMUdfQuCvyTUZRbOjpAhCQ03Zd01UjguxVWK-LL2BTaQG31nC5MN45HoF_hYf-EZjTbM3jqVcuNqRq8wfBqY7duXIngRsN4b388tG9UKkvuPySUBt9Ar9RDfP4muzOH1NKRLpVzSnd2q1HlZcMMqg42cVN1gY4pfw">
+</div>
+<div class="p-6 flex flex-col flex-1 bg-surface-container-low wood-texture relative">
+<h4 class="font-headline-md text-[20px] text-primary mb-2">Cẩm Thạch Trắng</h4>
+<p class="font-body-rtxt text-[15px] text-on-surface-variant mb-6 flex-1">Đá cẩm thạch nguyên khối khảm chỉ vàng. Lạnh lùng, sang trọng và đầy uy quyền.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tech text-[18px] text-primary font-bold drop-shadow-[0_0_8px_rgba(242,202,80,0.3)]">500</span>
+<span class="material-symbols-outlined text-primary text-lg drop-shadow-[0_0_8px_rgba(242,202,80,0.3)]" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-tech text-[13px] tracking-wider font-bold px-6 py-2.5 rounded shadow-[0_4px_0_theme(colors.inverse-primary)] active:translate-y-[4px] active:shadow-none transition-all duration-100 uppercase flex items-center gap-2 hover:bg-primary">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+                                Mua Ngay
+                            </button>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant/30 ao-shadow relative group flex flex-col h-full">
+<div class="aspect-[4/3] relative overflow-hidden bg-surface-container-high border-b border-outline-variant/50 p-4">
+<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent z-10 pointer-events-none rounded-t-xl"></div>
+<img class="w-full h-full object-cover rounded-lg shadow-[inset_0_4px_12px_rgba(0,0,0,0.8)] specular-edge transition-transform duration-700 group-hover:scale-105" data-alt="A dramatic architectural visualization of a futuristic Xiangqi board made entirely of dark, smoked glass suspended over a glowing red neon underlight. The grid lines are laser-etched into the glass, glowing faintly. The overall mood is dark, tense, and modern, blending high-tech sci-fi aesthetics with the ancient board game structure. Reflections of subtle studio lights bounce off the polished glass surface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBY4Z7U3ekc3xDfRJ0WsBYtINB9JFlCTlkl6Emx5Fccub0SwsIi7ZA0GTOkTVcl-5iAu3_OQdsIVfwVlSttI1f38bLgTdOF6zjOnQF_byygpQ96jigz8rrZp8LDJfj24T1Z6J58AHzndEzB5m1Vlr88vtnfN-nc4X36GBGDLh35Z_9r20svZECHmLfmORluI-qf2kSf4uz0JgZbI0LqoGqTmBBwj8va3T1Oy629cS3FcpidBRjiaq-f1X_yTX14ndEy8hJNBWBy5qo">
+</div>
+<div class="p-6 flex flex-col flex-1 bg-surface-container-low wood-texture relative">
+<h4 class="font-headline-md text-[20px] text-secondary-fixed-dim mb-2">Hắc Kính Dạ Quang</h4>
+<p class="font-body-rtxt text-[15px] text-on-surface-variant mb-6 flex-1">Kính cường lực tối màu kết hợp vạch kẻ dạ quang. Khẳng định cá tính khác biệt.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tech text-[18px] text-primary font-bold">800</span>
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-tech text-[13px] tracking-wider font-bold px-6 py-2.5 rounded shadow-[0_4px_0_theme(colors.inverse-primary)] active:translate-y-[4px] active:shadow-none transition-all duration-100 uppercase flex items-center gap-2 hover:bg-primary">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+                                Mua Ngay
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section: Quân Cờ (Pieces) -->
+<section>
+<div class="flex items-center gap-4 mb-8">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">chess</span>
+<h3 class="font-headline-md text-headline-md text-on-surface tracking-wide uppercase">Quân Cờ</h3>
+<div class="flex-1 h-px bg-gradient-to-r from-outline-variant/50 to-transparent ml-4"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Piece Item 1 -->
+<div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant/30 ao-shadow relative group flex flex-col h-full">
+<div class="aspect-[4/3] relative overflow-hidden bg-surface-container-high border-b border-outline-variant/50 p-4">
+<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent z-10 pointer-events-none rounded-t-xl"></div>
+<img class="w-full h-full object-cover rounded-full shadow-[0_12px_24px_rgba(0,0,0,0.8)] specular-edge scale-90 transition-transform duration-700 group-hover:scale-100 group-hover:rotate-3" data-alt="A detailed macro photograph of exquisite Xiangqi chess pieces carved from translucent, vibrant imperial green jade. The pieces rest on a dark wooden surface. Each circular stone features intricately engraved traditional Chinese characters filled with pure, reflective gold leaf. A soft, focused light beam hits the pieces from the upper left, revealing the glowing inner depth of the jade and creating sharp, realistic ambient occlusion shadows beneath them." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDumaFKweac3AXrNdjpMvYxGiPkF-hzHgiw3tC0N6Om_8c6oLyFzU7exdG6qWSDMcBk8-fHbDFP8da8CTZ48KDtk0SRVQ6zHSTUHeCw-5udwDKsE369eGIVu81uyd_8Hc1DdznDxQRYnra-MEhCBoEG_SqaTuPgbCQ-86IKPHI3A1kGiXH_r1_8bSaI_PhcC97Wvre6JcK71B5NmnpS4uueMF04mA1jKEBu3t9q1lcjeILtdd5GLCvLH3mH_TASa1oTA0fFLNoXZ4M">
+</div>
+<div class="p-6 flex flex-col flex-1 bg-surface-container-low wood-texture relative">
+<div class="absolute top-0 right-6 -translate-y-1/2 bg-surface border border-outline-variant/50 rounded-full px-3 py-1 flex items-center gap-1 shadow-lg">
+<span class="material-symbols-outlined text-primary text-[14px]">star</span>
+<span class="font-label-tech text-[10px] text-primary uppercase">Cực Phẩm</span>
+</div>
+<h4 class="font-headline-md text-[20px] text-[#59de9b] mb-2">Ngọc Bích Đế Vương</h4>
+<p class="font-body-rtxt text-[15px] text-on-surface-variant mb-6 flex-1">Ngọc lục bảo quý hiếm khắc chữ vàng ròng. Tuyệt tác dành cho bậc trượng phu.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tech text-[18px] text-primary font-bold">1,000</span>
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-tech text-[13px] tracking-wider font-bold px-6 py-2.5 rounded shadow-[0_4px_0_theme(colors.inverse-primary)] active:translate-y-[4px] active:shadow-none transition-all duration-100 uppercase flex items-center gap-2 hover:bg-primary">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+                                Mua Ngay
+                            </button>
+</div>
+</div>
+</div>
+<!-- Piece Item 2 -->
+<div class="bg-surface-container rounded-xl overflow-hidden border border-outline-variant/30 ao-shadow relative group flex flex-col h-full">
+<div class="aspect-[4/3] relative overflow-hidden bg-surface-container-high border-b border-outline-variant/50 p-4">
+<div class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent z-10 pointer-events-none rounded-t-xl"></div>
+<img class="w-full h-full object-cover rounded-full shadow-[0_12px_24px_rgba(0,0,0,0.8)] specular-edge scale-90 transition-transform duration-700 group-hover:scale-100 group-hover:-rotate-3" data-alt="A hyper-realistic render of futuristic yet traditional Xiangqi chess stones forged from brushed cold steel. The metallic discs have a heavy, tactile, industrial feel with razor-sharp beveled edges catching bright specular highlights. The engraved characters are filled with a subtle, glowing neon-blue pigment, bridging ancient tradition with a dark, moody cyberpunk aesthetic. The pieces sit heavily on a matte black textured surface under dramatic, moody studio lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDFjw3UIgu4GronWcaAQ3izM7H7HdAJnsBF83upMcQxgKsjYt1zYLMpAyrA6gi5D_i4F_SeJS66QfiKoRkmr_t2xBG2oJf27ctQJu0kJqMEgYE15RyhYIp3UnUc4bWLaDI90AXif1KZw_JNX-TP_uitI8LJZyMaSq1d0gq0xysT9T_4HduSR9y4Zcn8nqDDHOmKteM2vEUv3RteZ395horlGjwSvRa_q39amrvOSxSYkD1VeKgIWv2oH4Db5mpEC1tSnswhWqxEro">
+</div>
+<div class="p-6 flex flex-col flex-1 bg-surface-container-low wood-texture relative">
+<h4 class="font-headline-md text-[20px] text-tertiary mb-2">Thép Lạnh Cyberpunk</h4>
+<p class="font-body-rtxt text-[15px] text-on-surface-variant mb-6 flex-1">Thép nguyên khối tiện CNC chính xác, rãnh chữ khắc ánh sáng neon âm bản.</p>
+<div class="flex items-center justify-between mt-auto">
+<div class="flex items-center gap-1.5">
+<span class="font-label-tech text-[18px] text-primary font-bold">1,200</span>
+<span class="material-symbols-outlined text-primary text-lg" style="font-variation-settings: 'FILL' 1;">generating_tokens</span>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-tech text-[13px] tracking-wider font-bold px-6 py-2.5 rounded shadow-[0_4px_0_theme(colors.inverse-primary)] active:translate-y-[4px] active:shadow-none transition-all duration-100 uppercase flex items-center gap-2 hover:bg-primary">
+<span class="material-symbols-outlined text-[18px]">shopping_cart</span>
+                                Mua Ngay
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Shared Component for Mobile fallback) -->
+<nav class="bg-surface-container-lowest/95 shadow-[0_-4px_12px_rgba(0,0,0,0.6)] border-t border-outline-variant/50 docked full-width bottom-0 rounded-t-full fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim py-1 w-16" href="#">
+<span class="material-symbols-outlined text-[24px]">play_circle</span>
+<span class="font-label-tech text-[10px] mt-1">Chơi Ngay</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim py-1 w-16" href="#">
+<span class="material-symbols-outlined text-[24px]">menu_book</span>
+<span class="font-label-tech text-[10px] mt-1">Học Tập</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary-fixed-dim py-1 w-16" href="#">
+<span class="material-symbols-outlined text-[24px]">group</span>
+<span class="font-label-tech text-[10px] mt-1">Kỳ Hữu</span>
+</a>
+<!-- Mapping Shop to Profile intent on mobile bottom nav temporarily for consistency -->
+<a class="flex flex-col items-center justify-center text-primary bg-primary-container/10 rounded-xl px-2 py-1 w-16 scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">storefront</span>
+<span class="font-label-tech text-[10px] mt-1 font-bold">Cửa Tiệm</span>
+</a>
+</nav>
+</body></html>
+

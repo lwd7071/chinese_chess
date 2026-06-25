@@ -1,0 +1,573 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Hoàng Gia Tượng Kỳ - Game Board</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&amp;family=Playfair+Display:wght@600;700&amp;family=Source+Serif+4:wght@400&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#180b07",
+                        "secondary-fixed-dim": "#59de9b",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "surface": "#1e100c",
+                        "on-primary-container": "#554300",
+                        "on-tertiary-fixed-variant": "#4f4629",
+                        "surface-container-low": "#271814",
+                        "primary": "#f2ca50",
+                        "inverse-on-surface": "#3e2c28",
+                        "secondary": "#59de9b",
+                        "primary-fixed": "#ffe088",
+                        "secondary-fixed": "#78fbb6",
+                        "tertiary-fixed": "#f0e2ba",
+                        "background": "#1e100c",
+                        "on-primary-fixed-variant": "#574500",
+                        "surface-container-highest": "#43302c",
+                        "outline": "#99907c",
+                        "on-tertiary-container": "#4d4427",
+                        "surface-tint": "#e9c349",
+                        "secondary-container": "#00a669",
+                        "surface-variant": "#43302c",
+                        "surface-dim": "#1e100c",
+                        "on-surface": "#fadcd5",
+                        "surface-container-high": "#372622",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#d0c5af",
+                        "error-container": "#93000a",
+                        "on-secondary": "#003921",
+                        "inverse-primary": "#735c00",
+                        "tertiary-container": "#bfb28d",
+                        "on-error": "#690005",
+                        "on-tertiary-fixed": "#221b03",
+                        "on-tertiary": "#383015",
+                        "tertiary-fixed-dim": "#d4c69f",
+                        "outline-variant": "#4d4635",
+                        "on-primary": "#3c2f00",
+                        "tertiary": "#dccda7",
+                        "on-secondary-container": "#00311c",
+                        "surface-container": "#2c1c18",
+                        "surface-bright": "#483530",
+                        "primary-fixed-dim": "#e9c349",
+                        "primary-container": "#d4af37",
+                        "on-background": "#fadcd5",
+                        "inverse-surface": "#fadcd5",
+                        "on-secondary-fixed": "#002111",
+                        "on-secondary-fixed-variant": "#005232"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "board-padding": "12px",
+                        "gutter": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "display-lg": [
+                            "Comic Sans MS", "sans-serif"
+                        ],
+                        "label-tech": [
+                            "Comic Sans MS", "sans-serif"
+                        ],
+                        "body-rtxt": [
+                            "Comic Sans MS", "sans-serif"
+                        ],
+                        "display-lg-mobile": [
+                            "Comic Sans MS", "sans-serif"
+                        ],
+                        "headline-md": [
+                            "Comic Sans MS", "sans-serif"
+                        ]
+                    },
+                    "fontSize": {
+                        "display-lg": [
+                            "48px",
+                            {
+                                "lineHeight": "1.2",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                            }
+                        ],
+                        "label-tech": [
+                            "13px",
+                            {
+                                "lineHeight": "1.0",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "500"
+                            }
+                        ],
+                        "body-rtxt": [
+                            "18px",
+                            {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                            }
+                        ],
+                        "display-lg-mobile": [
+                            "32px",
+                            {
+                                "lineHeight": "1.2",
+                                "fontWeight": "700"
+                            }
+                        ],
+                        "headline-md": [
+                            "24px",
+                            {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    </script>
+<!-- GSAP for animations -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+        /* Custom Styles for Board and Pieces */
+        .wood-texture {
+            background-color: transparent;
+        }
+        
+        .paper-texture {
+            background-color: transparent;
+            box-shadow: none;
+            background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCIYh8_KTli9YvCxIHs-c-bHpSBl8A-ZC3MGPmwhueqVx2ifr4MRyq1LxOY2vQYQpbWBWjLUNSfwOhNN-W8ipb8f_xAX3Qw_DJKilwijRUxDukXARHYft-Or5UBAQZBz8HQ_BnwP9d7GSSLeVoA7NyHuCgF4N9IjgNOaaJRqm6QP8zO_GBG3qk2uFACsgXn7ZfHNSAgaddBfrf68bZgSV0j0yQfVL2KrFnAJbwYzTewg43muI4NJPjDOOriF16sGCbS13E_rRLfoxk');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(4, 1fr) 0.5fr repeat(4, 1fr);
+            gap: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .board-cell {
+            border: none;
+            position: relative;
+        }
+
+        .board-cell.river {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', sans-serif;
+            color: transparent;
+            font-size: 24px;
+            letter-spacing: 2em;
+        }
+
+        /* Ambient Occlusion & Materials */
+        .piece {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 20;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .piece::after {
+            display: none;
+        }
+
+        .piece-red {
+            background: #f0e2ba;
+            color: #93000a;
+            text-shadow: none;
+            box-shadow: none;
+        }
+
+        .piece-black {
+            background: #372622;
+            color: #59de9b;
+            text-shadow: none;
+            box-shadow: none;
+        }
+
+        /* Interactions */
+        .piece.dragging {
+            z-index: 30;
+            box-shadow: none;
+        }
+
+        .pulse-red {
+            animation: none;
+        }
+
+        .valid-move {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: rgba(242, 202, 80, 0.6);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: none;
+            z-index: 15;
+            cursor: pointer;
+        }
+
+        /* Glassmorphism Sidebar */
+        .glass-panel {
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border: none;
+            box-shadow: none;
+        }
+
+        /* Perspective Board Container */
+        .board-perspective-wrapper {
+            perspective: none;
+            transform-style: flat;
+        }
+
+        .board-3d {
+            transform: none;
+            box-shadow: none;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+        }
+        
+        .board-3d::before {
+            display: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(153, 144, 124, 0.3);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(153, 144, 124, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen overflow-hidden flex flex-col font-body-rtxt">
+<!-- Top Navigation Bar -->
+<nav class="bg-transparent flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 z-50 fixed top-0 full-width border-none shadow-none">
+<div class="font-display-lg text-headline-md text-primary tracking-tight">Hoàng Gia Tượng Kỳ</div>
+<div class="hidden md:flex gap-8">
+<a class="text-primary font-bold hover:text-primary transition-colors duration-300 pb-1" href="#">Trận Đấu</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 pb-1" href="#">Kỳ Đài</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300 pb-1" href="#">Thư Viện</a>
+</div>
+<div class="flex items-center gap-4 text-primary">
+<div class="flex items-center gap-2 mr-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">monetization_on</span>
+<span class="font-bold text-primary">1250 Vàng</span>
+</div>
+<button class="hover:text-primary-fixed transition-colors duration-300">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+<button class="hover:text-primary-fixed transition-colors duration-300">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_balance_wallet</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden ml-2">
+<img class="w-full h-full object-cover" data-alt="A highly detailed close-up portrait of a scholarly chess master avatar. The character wears traditional, dark silk robes with subtle gold embroidery. The lighting is dramatic and moody, with a strong rim light highlighting the master's focused expression against a dark, textured background. The aesthetic is hyper-realistic luxury digital art." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNyMl3rUGH60T9G5I3OPiJdd4FjAKqwlg1BnolQbTqkAGDV7aMm7kIHJcqwkM7LvOqks9Hcwa3l5LzQ1Zb6Fqsk2CySqWiZaX5BJAIJdV_NQrmAVhoPjmUaG_L4OOdfgFEy8VASSGeYeADkEY1lMZ6koJeNly4_pDvAlBNUHiorBa94QpYZViJWNskhoA1h6vJEjqgmL90ixP5k2viMxP_bpvPNtiW0FPYM2rWzsgJaaprJh9h41fmkD56fDyBItaVuN-kBCXCFW4">
+</div>
+</div>
+</nav>
+<!-- Main Game Area -->
+<main class="flex-1 flex mt-[72px] relative w-full h-[calc(100vh-72px)] bg-background">
+<!-- Ambient Background -->
+<div class="absolute inset-0 z-0 opacity-40 wood-texture mix-blend-multiply"></div>
+<div class="absolute inset-0 bg-cover bg-center w-full h-full opacity-20 z-0" data-alt="A sprawling, dimly lit ancient study room. The background is slightly out of focus, showing dark mahogany bookshelves filled with scrolls, a flickering warm candle light casting long shadows, and subtle mist in the air. The atmosphere is tense, scholarly, and heavily steeped in traditional Asian luxury aesthetics." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDAYmoV1Ja1_w2qYFgLYPJIHNGcYJ68LUx-xPhENSurCk-7wAG_mDea84Fb0J0li_wuy_Ed9vAYqsBrXYXt5UEvrsBPtB4cSiZlA5UjoKXYRgfoiM6KCq8F0cUxWdkAe6YgQ9HKISYQwxdLK2njsQZGNXcAYHRSNii-8eSQ8CTpIbzxrn763PbJYqmfJifvfyzFfDPHNHhqQPzQU0sWF2qxDxBXKmlv3qJzmojiZHtAhJr5TD4xbiOb8TjY6t5HEZSgbutxljP9KbI')"></div>
+<div class="absolute inset-0 z-0"></div>
+<!-- Board Area (Center) -->
+<div class="flex-1 flex items-center justify-center relative z-10 p-gutter board-perspective-wrapper">
+<!-- The Board Container -->
+<div class="relative w-full max-w-[600px] aspect-[8/9] board-3d bg-transparent">
+<!-- Inner Paper Surface -->
+<div class="absolute inset-0 paper-texture p-0" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAexNqUxP2fcVe6i9rhuMPuX1zCBogluqxGjMK11zdvhsbdakc9S53y_MZMht0HmfcPlbnZlCHsyhOlUFPCbolZOxDIzNZxGpKL1semFZjLvsCg4swMt9z6RLsnEnam2U50fFoHX_C4E9v5M67Xhd6YTvC204jAqdL3q9mYrMYfvzMjubXmlo3m3l7skaCnv2Zepg0OU5esSNGqINjasDIRpAJoFCeT3mQvz0q9lxH2b79JQ6EkVfJTE6EbMNNXVX4a5Vw4ff21mH4'); background-size: cover; background-position: center;">
+<!-- Board Grid Lines -->
+<div class="w-full h-full relative border-none">
+<div class="board-grid w-full h-full absolute inset-0">
+<!-- Rows 1-4 (Top Half) -->
+<!-- Cells generated via JS for brevity in HTML, but structured here for visualization -->
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<!-- River -->
+<div class="board-cell river col-span-8">
+<span></span><span></span>
+</div>
+<!-- Rows 6-9 (Bottom Half) -->
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+<div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div><div class="board-cell"></div>
+</div>
+<!-- Palace Diagonals (Top & Bottom) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none hidden" style="z-index: 5;">
+<!-- Top Palace -->
+<line stroke="rgba(77,70,53,0.8)" stroke-width="1" x1="37.5%" x2="62.5%" y1="0" y2="22.2%"></line>
+<line stroke="rgba(77,70,53,0.8)" stroke-width="1" x1="62.5%" x2="37.5%" y1="0" y2="22.2%"></line>
+<!-- Bottom Palace -->
+<line stroke="rgba(77,70,53,0.8)" stroke-width="1" x1="37.5%" x2="62.5%" y1="77.8%" y2="100%"></line>
+<line stroke="rgba(77,70,53,0.8)" stroke-width="1" x1="62.5%" x2="37.5%" y1="77.8%" y2="100%"></line>
+<!-- Star points (Marks for Cannons/Soldiers) - illustrative few -->
+<path d="M 12.5% 22.2% m -2 -2 l -4 0 m 4 0 l 0 -4 m 4 4 l 4 0 m -4 0 l 0 -4 m -4 8 l -4 0 m 4 0 l 0 4 m 4 -4 l 4 0 m -4 0 l 0 4" fill="none" stroke="rgba(77,70,53,0.8)" stroke-width="1"></path>
+</svg>
+<!-- Pieces Container (Absolute positioning on intersections) -->
+<!-- Positions are calculated relative to intersections (0-8 X, 0-9 Y) -->
+<div class="absolute inset-0 z-20 pointer-events-none" id="pieces-layer">
+<!-- Red Pieces (Bottom) -->
+<div class="piece piece-red pointer-events-auto" style="left: 50%; top: 100%;">帥</div> <!-- General (In Check example) -->
+<div class="piece piece-red pointer-events-auto" style="left: 37.5%; top: 100%;">仕</div>
+<div class="piece piece-red pointer-events-auto" style="left: 62.5%; top: 100%;">仕</div>
+<div class="piece piece-red pointer-events-auto" style="left: 12.5%; top: 77.8%;">炮</div>
+<!-- Black Pieces (Top) -->
+<div class="piece piece-black pointer-events-auto" style="left: 50%; top: 0%;">將</div>
+<div class="piece piece-black pointer-events-auto" style="left: 0%; top: 0%;">車</div>
+<div class="piece piece-black pointer-events-auto" style="left: 12.5%; top: 22.2%;">砲</div>
+<!-- Mid-board pieces for interaction demonstration -->
+<div class="piece piece-red pointer-events-auto" id="draggable-piece" style="left: 50%; top: 66.7%;">兵</div>
+<div class="piece piece-black pointer-events-auto pulse-red" style="left: 50%; top: 33.3%;">卒</div> <!-- Example of piece causing check -->
+<!-- Valid Move Indicators (Shown when '兵' is clicked) -->
+<div class="valid-move hidden" style="left: 50%; top: 55.6%;"></div>
+<div class="valid-move hidden" style="left: 37.5%; top: 66.7%;"></div>
+<div class="valid-move hidden" style="left: 62.5%; top: 66.7%;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Glassmorphism Sidebar (Right) -->
+<aside class="w-80 h-full glass-panel z-30 flex flex-col hidden lg:flex overflow-hidden border-none shadow-none bg-transparent">
+<!-- Player Stats Header -->
+<div class="p-6 flex flex-col gap-4">
+<!-- Opponent -->
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-transparent">
+<img class="w-full h-full object-cover" data-alt="A hyper-realistic digital painting of an old, wise Chinese chess grandmaster. His face is weathered, eyes sharp and focused. He wears a dark green jade pendant. The background is a dark, out-of-focus temple interior. Warm, directional lighting from the left." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCd2dyWl3KDjcQTXwiqrWxlCsz7fwi1aC-Bm74yP3lMCG18NnnMl20tx4OJ_BsmmBgfE-ZV3KVaCaSQ-h4DpghTeMWoLcND4iRTFStqbT437fZNbM-ASed-ct4VTLfhFe4t3_9h2m37mswr0gPqt7MD5J6CeRgwhVCfWTrrybpbO6W-U72UufBXez00jsKpl9zJM6nM-iNgRbeCbiAQZr89ZMpDrCTvnSTdISEv34eVKVcm5sZqV_yAHT_FiF0b3PBLD-mryTbuYYg">
+</div>
+<div>
+<div class="font-label-tech text-label-tech text-on-surface-variant">ĐỐI THỦ</div>
+<div class="font-display-lg text-headline-md text-secondary-fixed-dim mt-1">Lão Ngoan Đồng</div>
+</div>
+</div>
+<!-- Timer / Turn Indicator -->
+<div class="bg-transparent p-3 flex justify-between items-center mt-2 border-none">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-label-tech text-xl text-primary font-bold">05:24</span>
+</div>
+<div class="px-2 py-1 bg-transparent text-primary text-xs font-label-tech tracking-widest border-none">
+                        LƯỢT CỦA BẠN
+                    </div>
+</div>
+<!-- You -->
+<div class="flex items-center gap-3 justify-end mt-2">
+<div class="text-right">
+<div class="font-label-tech text-label-tech text-on-surface-variant">BẠN</div>
+<div class="font-display-lg text-headline-md text-primary mt-1">Kỳ Vương</div>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-transparent">
+<img class="w-full h-full object-cover" data-alt="A highly detailed close-up portrait of a scholarly chess master avatar. The character wears traditional, dark silk robes with subtle gold embroidery. The lighting is dramatic and moody, with a strong rim light highlighting the master's focused expression against a dark, textured background. The aesthetic is hyper-realistic luxury digital art." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsCMSj1Jr2M4pASj-eiZG1GXVeRhnqkmFMX2EjemrDvOV0smvu5qvXja7Rm68wS_34IlZD6evAgsCJRjX680OQuv6YYGrCb7Hnhz4OAYlaHHB0rCS4yV9L6b6McE2oi4z8YbKTMs_V0BY9_pI7HmetBCV9Vpw_L66sIatlB97oUkSZQT81i_hU6p8XF5T1AX1eWlNZ_7DvLAgjVwq2tZriNfvWagaoUdDiWSQnS418e5wxTeRYoAsalMDru6ZAmqa_hbE65Sz9mM0">
+</div>
+</div>
+</div>
+<!-- Leaderboard / Stats -->
+<div class="p-4 flex flex-col gap-2 mt-4">
+<div class="font-label-tech text-label-tech text-primary mb-2 font-bold">Bảng Xếp Hạng &amp; Thống Kê</div>
+<div class="text-on-surface-variant py-1 flex justify-between">
+<span>Kỷ lục thời gian:</span>
+<span class="text-secondary-fixed-dim">02:15</span>
+</div>
+<div class="text-on-surface-variant py-1 flex justify-between">
+<span>Phần thưởng thắng:</span>
+<span class="text-primary font-bold">+50 Vàng</span>
+</div>
+</div><div class="p-4 flex flex-col gap-4 mt-2 border-t border-outline-variant/30">
+<div class="font-label-tech text-label-tech text-primary font-bold tracking-widest">BẢNG ĐIỀU KHIỂN THUẬT TOÁN</div>
+<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-1">
+<label class="text-[10px] text-outline font-label-tech">CẤP ĐỘ &amp; CHIẾN THUẬT</label>
+<select class="bg-surface-container-highest text-on-surface border-none text-xs font-body-rtxt p-2 rounded-none focus:ring-1 focus:ring-primary">
+<optgroup class="bg-surface-container-highest" label="Level 1: Uninformed Search">
+<option>BFS (Breadth-First)</option>
+<option>DFS (Depth-First)</option>
+<option>UCS (Uniform Cost)</option>
+</optgroup>
+<optgroup class="bg-surface-container-highest" label="Level 2: Heuristic Search">
+<option>Greedy Search</option>
+<option selected="">A* Algorithm</option>
+<option>IDA* (Iterative Deepening)</option>
+</optgroup>
+<optgroup class="bg-surface-container-highest" label="Level 3: Local Search">
+<option>Hill Climbing</option>
+<option>Simulated Annealing</option>
+<option>Beam Search</option>
+</optgroup>
+<optgroup class="bg-surface-container-highest" label="Level 4: Planning">
+<option>Online Search</option>
+<option>AND-OR Search</option>
+<option>Belief State</option>
+</optgroup>
+<optgroup class="bg-surface-container-highest" label="Level 5: CSP">
+<option>MRV Heuristic</option>
+<option>Min-Conflicts</option>
+</optgroup>
+<optgroup class="bg-surface-container-highest" label="Level 6: Adversarial">
+<option>Minimax</option>
+<option>Alpha-Beta Pruning</option>
+</optgroup>
+</select>
+</div>
+<div class="grid grid-cols-3 gap-2 bg-surface-container-low p-3 border border-outline-variant/20">
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-outline font-label-tech">NODE</span>
+<span class="text-sm font-bold text-primary">1,284</span>
+</div>
+<div class="flex flex-col items-center border-x border-outline-variant/20">
+<span class="text-[10px] text-outline font-label-tech">FRONTIER</span>
+<span class="text-sm font-bold text-secondary-fixed-dim">42</span>
+</div>
+<div class="flex flex-col items-center">
+<span class="text-[10px] text-outline font-label-tech">EXPLORED</span>
+<span class="text-sm font-bold text-on-surface-variant">856</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3"></div>
+</div>
+<span class="text-[10px] text-primary font-label-tech">ĐANG TÍNH...</span>
+</div>
+</div>
+</div>
+<!-- Move History -->
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+<div class="font-label-tech text-label-tech text-outline mb-2">LỊCH SỬ NƯỚC ĐI</div>
+<!-- History Items -->
+<div class="flex justify-between items-center text-on-surface-variant py-1 border-none">
+<span class="font-label-tech w-8 text-outline">1.</span>
+<span class="font-body-rtxt">Pháo 2 bình 5</span>
+<span class="font-body-rtxt text-secondary-fixed-dim">Mã 8 tấn 7</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant py-1 border-none">
+<span class="font-label-tech w-8 text-outline">2.</span>
+<span class="font-body-rtxt">Mã 2 tấn 3</span>
+<span class="font-body-rtxt text-secondary-fixed-dim">Xe 9 bình 8</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant py-1 border-none">
+<span class="font-label-tech w-8 text-outline">3.</span>
+<span class="font-body-rtxt">Xe 1 bình 2</span>
+<span class="font-body-rtxt text-secondary-fixed-dim">Pháo 8 bình 9</span>
+</div>
+<div class="flex justify-between items-center py-1 bg-transparent px-2 mt-1 border-none">
+<span class="font-label-tech w-8 text-primary">4.</span>
+<span class="font-body-rtxt text-primary font-bold">Binh 5 tấn 1</span>
+<span class="font-body-rtxt text-outline">...</span>
+</div>
+</div>
+<!-- Controls Footer -->
+<div class="p-6 flex gap-4 justify-between border-none">
+<button class="flex-1 flex flex-col items-center justify-center gap-1 text-on-surface-variant hover:text-primary transition-colors bg-transparent p-3 rounded-none border-none active:translate-y-[2px] duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">undo</span>
+<span class="font-label-tech text-[10px]">ĐI LẠI</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center gap-1 text-primary hover:text-primary-fixed transition-colors bg-transparent p-3 rounded-none border-none active:translate-y-[2px] duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<span class="font-label-tech text-[10px]">GỢI Ý</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center gap-1 text-error hover:text-error-container transition-colors bg-transparent p-3 rounded-none border-none active:translate-y-[2px] duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">flag</span>
+<span class="font-label-tech text-[10px]">ĐẦU HÀNG</span>
+</button>
+</div>
+</aside>
+</main>
+<!-- Scripts for Interactions -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const draggablePiece = document.getElementById('draggable-piece');
+            const validMoves = document.querySelectorAll('.valid-move');
+            const board = document.querySelector('.board-3d');
+            let isDragging = false;
+
+            // Simple Interaction Simulation
+            draggablePiece.addEventListener('mousedown', () => {
+                isDragging = true;
+                draggablePiece.classList.add('dragging');
+                
+                // Show valid moves
+                validMoves.forEach(move => move.classList.remove('hidden'));
+
+                // GSAP Lift Effect
+                gsap.to(draggablePiece, {
+                    scale: 1.15,
+                    duration: 0.2,
+                    ease: "power2.out"
+                });
+            });
+
+            document.addEventListener('mouseup', () => {
+                if(isDragging) {
+                    isDragging = false;
+                    draggablePiece.classList.remove('dragging');
+                    
+                    // Hide valid moves
+                    validMoves.forEach(move => move.classList.add('hidden'));
+
+                    // GSAP Drop Effect
+                    gsap.to(draggablePiece, {
+                        scale: 1,
+                        duration: 0.15,
+                        ease: "power2.in"
+                    });
+
+                    // Subtle board shake on drop to simulate weight
+                    gsap.to(board, {
+                        y: 0,
+                        duration: 0.05,
+                        yoyo: true,
+                        repeat: 1
+                    });
+                }
+            });
+
+            // Pulse effect for piece causing check is handled by CSS class 'pulse-red'
+        });
+    </script>
+</body></html>
+

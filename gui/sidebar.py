@@ -54,20 +54,27 @@ ALGO_OPTIONS = [
 ]
 
 class Sidebar:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, chinese_supported=False, font_name=None):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         
+        self.chinese_supported = chinese_supported
+        self.font_name = font_name
+        
         # Load fonts
-        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 20, bold=True)
-        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 15, bold=True)
-        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13, bold=True)
-        self.small_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
-        self.tiny_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 11)
-        self.history_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
-        self.count_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 12, bold=True)
+        self.title_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 20, bold=True)
+        self.body_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 15, bold=True)
+        self.mono_font = pygame.font.SysFont("Consolas, Courier New", 13, bold=True)
+        self.small_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 13)
+        self.tiny_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 11)
+        self.count_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 12, bold=True)
+        
+        if self.chinese_supported and self.font_name:
+            self.history_font = pygame.font.SysFont(self.font_name, 13)
+        else:
+            self.history_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 13)
         
         # Controls Footer: buttons at the bottom (2 rows)
         btn_w = (width - 50) // 2
@@ -238,6 +245,34 @@ class Sidebar:
         return PIECE_NAME_VI.get(piece_name, piece_name or "Quân")
 
     def format_move_compact(self, record):
+        # Translate characters to Chinese pieces abbreviations
+        char_map = {
+            '帥': '帥', '將': '將',
+            '仕': '仕', '士': '士',
+            '相': '相', '象': '象',
+            '馬': '馬', '傌': '馬',
+            '車': '車', '俥': '車',
+            '砲': '砲', '炮': '砲',
+            '兵': '兵', '卒': '卒'
+        }
+        
+        # Translate to English piece names if Chinese is not supported
+        en_map = {
+            '帥': 'G', '將': 'G',
+            '仕': 'A', '士': 'A',
+            '相': 'E', '象': 'E',
+            '馬': 'H', '傌': 'H',
+            '車': 'R', '俥': 'R',
+            '砲': 'C', '炮': 'C',
+            '兵': 'P', '卒': 'P'
+        }
+        
+        if not self.chinese_supported:
+            char = record.get("piece_name") or "?"
+        else:
+            char = record.get("piece_char") or "?"
+            char = char_map.get(char, char)
+            
         from_pos = record.get("from_pos")
         to_pos = record.get("to_pos")
         f_sq = self.format_square(from_pos)
@@ -322,7 +357,7 @@ class Sidebar:
         if board.is_in_check(board.turn):
             pulse = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2
             if pulse > 0.5:
-                turn_val_str = "⚠️ BỊ CHIẾU ⚠️"
+                turn_val_str = "!!! BỊ CHIẾU !!!"
                 turn_val_color = COLOR_RED
                 
         turn_val = self.small_font.render(turn_val_str, True, turn_val_color)
