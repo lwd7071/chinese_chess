@@ -21,7 +21,7 @@ with patch('pygame.init'), \
      patch('gui.sidebar.Sidebar'), \
      patch('gui.menu.StartMenu'), \
      patch('gui.shop.ShopScreen'), \
-     patch('gui.settings.SettingsScreen'):
+     patch('gui.settings.SettingsScreen'), \
      patch('gui.visualizer.VisualizerPanel'):
     from main import GameController
 
