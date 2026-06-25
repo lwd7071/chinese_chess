@@ -1,0 +1,326 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Hoàng Gia Tượng Kỳ - Chọn Cấp Độ</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#180b07",
+                        "secondary-fixed-dim": "#59de9b",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "surface": "#1e100c",
+                        "on-primary-container": "#554300",
+                        "on-tertiary-fixed-variant": "#4f4629",
+                        "surface-container-low": "#271814",
+                        "primary": "#f2ca50",
+                        "inverse-on-surface": "#3e2c28",
+                        "secondary": "#59de9b",
+                        "primary-fixed": "#ffe088",
+                        "secondary-fixed": "#78fbb6",
+                        "tertiary-fixed": "#f0e2ba",
+                        "background": "#1e100c",
+                        "on-primary-fixed-variant": "#574500",
+                        "surface-container-highest": "#43302c",
+                        "outline": "#99907c",
+                        "on-tertiary-container": "#4d4427",
+                        "surface-tint": "#e9c349",
+                        "secondary-container": "#00a669",
+                        "surface-variant": "#43302c",
+                        "surface-dim": "#1e100c",
+                        "on-surface": "#fadcd5",
+                        "surface-container-high": "#372622",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#d0c5af",
+                        "error-container": "#93000a",
+                        "on-secondary": "#003921",
+                        "inverse-primary": "#735c00",
+                        "tertiary-container": "#bfb28d",
+                        "on-error": "#690005",
+                        "on-tertiary-fixed": "#221b03",
+                        "on-tertiary": "#383015",
+                        "tertiary-fixed-dim": "#d4c69f",
+                        "outline-variant": "#4d4635",
+                        "on-primary": "#3c2f00",
+                        "tertiary": "#dccda7",
+                        "on-secondary-container": "#00311c",
+                        "surface-container": "#2c1c18",
+                        "surface-bright": "#483530",
+                        "primary-fixed-dim": "#e9c349",
+                        "primary-container": "#d4af37",
+                        "on-background": "#fadcd5",
+                        "inverse-surface": "#fadcd5",
+                        "on-secondary-fixed": "#002111",
+                        "on-secondary-fixed-variant": "#005232"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "board-padding": "12px",
+                        "gutter": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Playfair Display"],
+                        "label-tech": ["JetBrains Mono"],
+                        "body-rtxt": ["\"Source Serif 4\""],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-tech": ["13px", { "lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "body-rtxt": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Organic Realism Textures & Shadows */
+        .texture-paper {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+        }
+        .texture-wood {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='woodFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02 0.1' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.03 0' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23woodFilter)'/%3E%3C/svg%3E");
+        }
+        .shadow-ambient {
+            box-shadow: 0 12px 24px -6px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.1);
+        }
+        .shadow-inset-carved {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.05);
+        }
+        .highlight-top-left {
+            border-top: 1px solid rgba(255,255,255,0.15);
+            border-left: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Material Gradients */
+        .bg-bronze {
+            background: linear-gradient(135deg, #5c4033 0%, #3e2723 100%);
+            border: 1px solid #795548;
+        }
+        .bg-silver {
+            background: linear-gradient(135deg, #424242 0%, #212121 100%);
+            border: 1px solid #757575;
+        }
+        .bg-gold-jade {
+            background: linear-gradient(135deg, #1b3a2a 0%, #0d1e15 100%);
+            border: 1px solid #c8a14b;
+        }
+        .text-gold {
+            color: #d4af37;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        /* Interactive States */
+        .level-card {
+            transition: all 0.3s ease;
+        }
+        .level-card.selected {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px -5px rgba(212, 175, 55, 0.2), inset 0 1px 1px rgba(255,255,255,0.2);
+            border-color: #d4af37;
+            z-index: 10;
+        }
+        .level-card:hover:not(.selected) {
+            border-color: rgba(212, 175, 55, 0.5);
+        }
+        .level-card.dimmed {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .royal-seal-btn:active {
+            transform: translateY(2px);
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.6);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body-rtxt selection:bg-primary/30 selection:text-primary">
+<!-- Top Navigation -->
+<header class="hidden md:flex bg-surface-container-lowest/80 backdrop-blur-md flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 font-display-lg text-display-lg-mobile md:text-display-lg font-display-lg text-headline-md text-primary tracking-tight docked full-width top-0 border-b border-outline-variant/30 shadow-sm z-50">
+<div>Hoàng Gia Tượng Kỳ</div>
+<nav class="flex gap-6">
+<a class="text-primary border-b-2 border-primary font-bold hover:text-primary transition-colors duration-300" href="#">Trận Đấu</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Thư Viện</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Xếp Hạng</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors duration-300" href="#">Cửa Tiệm</a>
+</nav>
+<div class="flex gap-4">
+<button class="hover:text-primary transition-colors duration-300"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span></button>
+<button class="hover:text-primary transition-colors duration-300"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_balance_wallet</span></button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center relative p-margin-mobile md:p-margin-desktop overflow-hidden texture-paper">
+<!-- Background Ambient Glow -->
+<div class="absolute inset-0 pointer-events-none flex justify-center items-center opacity-20">
+<div class="w-[800px] h-[800px] rounded-full bg-primary/20 blur-[100px]"></div>
+</div>
+<div class="text-center mb-12 relative z-10">
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary mb-2 text-gold tracking-tight">Cấu Hình Trí Tuệ</h1>
+<p class="font-body-rtxt text-body-rtxt text-on-surface-variant">Lựa chọn thuật toán cốt lõi cho đối thủ của bạn.</p>
+</div>
+<!-- Algorithm Selection Grid -->
+<div class="w-full max-w-4xl relative z-10" id="level-container">
+<div class="flex flex-col md:flex-row md:flex-wrap gap-4 justify-center">
+<!-- Level 1 -->
+<div class="level-card w-full md:w-[calc(50%-8px)] p-6 rounded-xl bg-surface-container shadow-ambient highlight-top-left flex flex-col relative cursor-pointer border border-outline-variant/30" data-level="1">
+<div class="absolute inset-0 texture-wood opacity-30 rounded-xl pointer-events-none"></div>
+<div class="relative z-10 text-left flex flex-col h-full justify-center">
+<div class="font-label-tech text-label-tech text-on-surface-variant tracking-widest uppercase mb-1">Cấp Độ 1</div>
+<h2 class="font-display-lg text-headline-md text-surface-tint mb-2">BFS / DFS / UCS</h2>
+<p class="font-body-rtxt text-sm text-on-surface/80">Tìm kiếm mù (Uninformed Search).</p>
+</div>
+</div>
+<!-- Level 2 -->
+<div class="level-card w-full md:w-[calc(50%-8px)] p-6 rounded-xl bg-surface-container shadow-ambient highlight-top-left flex flex-col relative cursor-pointer border border-outline-variant/30" data-level="2">
+<div class="absolute inset-0 texture-wood opacity-30 rounded-xl pointer-events-none"></div>
+<div class="relative z-10 text-left flex flex-col h-full justify-center">
+<div class="font-label-tech text-label-tech text-on-surface-variant tracking-widest uppercase mb-1">Cấp Độ 2</div>
+<h2 class="font-display-lg text-headline-md text-surface-tint mb-2">Greedy / A* / IDA*</h2>
+<p class="font-body-rtxt text-sm text-on-surface/80">Tìm kiếm Heuristic (Informed Search).</p>
+</div>
+</div>
+<!-- Level 3 -->
+<div class="level-card w-full md:w-[calc(50%-8px)] p-6 rounded-xl bg-surface-container shadow-ambient highlight-top-left flex flex-col relative cursor-pointer border border-outline-variant/30" data-level="3">
+<div class="absolute inset-0 texture-wood opacity-30 rounded-xl pointer-events-none"></div>
+<div class="relative z-10 text-left flex flex-col h-full justify-center">
+<div class="font-label-tech text-label-tech text-on-surface-variant tracking-widest uppercase mb-1">Cấp Độ 3</div>
+<h2 class="font-display-lg text-headline-md text-secondary-fixed-dim mb-2">Hill Climbing / SA / Beam</h2>
+<p class="font-body-rtxt text-sm text-on-surface/80">Tìm kiếm cục bộ (Local Search).</p>
+</div>
+</div>
+<!-- Level 4 -->
+<div class="level-card w-full md:w-[calc(50%-8px)] p-6 rounded-xl bg-surface-container shadow-ambient highlight-top-left flex flex-col relative cursor-pointer border border-outline-variant/30" data-level="4">
+<div class="absolute inset-0 texture-wood opacity-30 rounded-xl pointer-events-none"></div>
+<div class="relative z-10 text-left flex flex-col h-full justify-center">
+<div class="font-label-tech text-label-tech text-on-surface-variant tracking-widest uppercase mb-1">Cấp Độ 4</div>
+<h2 class="font-display-lg text-headline-md text-secondary-fixed-dim mb-2">Online / AND-OR / Belief</h2>
+<p class="font-body-rtxt text-sm text-on-surface/80">Lập kế hoạch AND-OR &amp; Belief State.</p>
+</div>
+</div>
+<!-- Level 5 -->
+<div class="level-card w-full md:w-[calc(50%-8px)] p-6 rounded-xl bg-surface-container shadow-ambient highlight-top-left flex flex-col relative cursor-pointer border border-outline-variant/30" data-level="5">
+<div class="absolute inset-0 texture-wood opacity-30 rounded-xl pointer-events-none"></div>
+<div class="relative z-10 text-left flex flex-col h-full justify-center">
+<div class="font-label-tech text-label-tech text-primary-fixed-dim tracking-widest uppercase mb-1">Cấp Độ 5</div>
+<h2 class="font-display-lg text-headline-md text-primary mb-2">CSP (MRV / Min-Conflicts)</h2>
+<p class="font-body-rtxt text-sm text-on-surface/80">Bài toán thỏa mãn ràng buộc (CSP).</p>
+</div>
+</div>
+<!-- Level 6 -->
+<div class="level-card w-full md:w-[calc(50%-8px)] p-6 rounded-xl bg-surface-container shadow-ambient highlight-top-left flex flex-col relative cursor-pointer border border-primary/40" data-level="6">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 rounded-xl pointer-events-none mix-blend-screen"></div>
+<div class="absolute inset-0 texture-wood opacity-30 rounded-xl pointer-events-none"></div>
+<div class="relative z-10 text-left flex flex-col h-full justify-center">
+<div class="font-label-tech text-label-tech text-primary-fixed tracking-widest uppercase mb-1 animate-pulse">Cấp Độ 6</div>
+<h2 class="font-display-lg text-headline-md text-gold mb-2 font-bold">Minimax / Alpha-Beta</h2>
+<p class="font-body-rtxt text-sm text-primary-fixed/90 font-medium">Đối kháng Minimax &amp; Alpha-Beta.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Area -->
+<div class="mt-12 mb-8 relative z-20 flex flex-col items-center">
+<!-- Selected State Hint -->
+<div class="font-label-tech text-label-tech text-primary-fixed-dim h-6 mb-4 opacity-0 transition-opacity duration-300" id="selection-hint">
+                Đã chọn: Cấp độ <span id="hint-level-num"></span>
+</div>
+<!-- Royal Seal Button -->
+<button class="royal-seal-btn group relative w-48 h-48 flex items-center justify-center outline-none focus:outline-none transition-transform duration-200">
+<!-- Seal Base (Outer Ring) -->
+<div class="absolute inset-0 bg-gradient-to-b from-[#8B0000] to-[#4A0000] rounded-full shadow-ambient highlight-top-left border-2 border-[#5C0000]"></div>
+<!-- Inner Carving -->
+<div class="absolute inset-4 bg-gradient-to-t from-[#600000] to-[#800000] rounded-full shadow-inset-carved flex flex-col items-center justify-center border border-[#3A0000]">
+<span class="font-display-lg text-headline-md text-[#FFC107] tracking-widest text-shadow-md mb-1 group-hover:scale-105 transition-transform">BẮT ĐẦU</span>
+<span class="font-label-tech text-[10px] text-[#FFA000]/70 tracking-[0.2em] uppercase">Khai Chiến</span>
+</div>
+</button>
+</div>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.level-card');
+            const hint = document.getElementById('selection-hint');
+            const hintNum = document.getElementById('hint-level-num');
+            const startBtn = document.querySelector('.royal-seal-btn');
+
+            let selectedLevel = null;
+
+            cards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const level = card.dataset.level;
+                    
+                    if (selectedLevel === level) {
+                        cards.forEach(c => {
+                            c.classList.remove('selected', 'dimmed');
+                        });
+                        selectedLevel = null;
+                        hint.classList.remove('opacity-100');
+                        hint.classList.add('opacity-0');
+                        startBtn.style.filter = 'grayscale(1)';
+                        startBtn.style.opacity = '0.5';
+                        startBtn.style.pointerEvents = 'none';
+                        return;
+                    }
+
+                    selectedLevel = level;
+
+                    cards.forEach(c => {
+                        if (c === card) {
+                            c.classList.add('selected');
+                            c.classList.remove('dimmed');
+                        } else {
+                            c.classList.remove('selected');
+                            c.classList.add('dimmed');
+                        }
+                    });
+
+                    hintNum.textContent = level;
+                    hint.classList.remove('opacity-0');
+                    hint.classList.add('opacity-100');
+
+                    startBtn.style.filter = 'grayscale(0)';
+                    startBtn.style.opacity = '1';
+                    startBtn.style.pointerEvents = 'auto';
+
+                    if (window.innerWidth < 768) {
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                });
+            });
+
+            startBtn.style.filter = 'grayscale(1)';
+            startBtn.style.opacity = '0.5';
+            startBtn.style.pointerEvents = 'none';
+            
+            startBtn.addEventListener('mouseenter', () => {
+                if(selectedLevel) {
+                    startBtn.style.transform = 'scale(1.05)';
+                }
+            });
+            startBtn.addEventListener('mouseleave', () => {
+                if(selectedLevel) {
+                    startBtn.style.transform = 'scale(1)';
+                }
+            });
+        });
+    </script>
+</body></html>
+

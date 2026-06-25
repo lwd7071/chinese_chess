@@ -57,6 +57,7 @@ cover/
 # CodeGraph
 .codegraph/
 .agents/
-docs/
+
 run_evals.py
 .claude/
+test/

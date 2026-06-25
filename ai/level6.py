@@ -2,6 +2,8 @@
 import time
 import random
 from ai.eval import evaluate_board, PIECE_VALUES
+from ai.step_recorder import MinimaxStep, AlphaBetaStep, ExpectimaxStep, MAX_VISUALIZATION_STEPS
+
 
 def sort_moves(board, moves):
     """Sorts moves to optimize Alpha-Beta pruning: captures first, then other moves"""
@@ -13,10 +15,15 @@ def sort_moves(board, moves):
         return 0
     return sorted(moves, key=score_move, reverse=True)
 
-def minimax_move(board, depth=3):
+def minimax_move(board, depth=3, recorder=None):
     """
     Minimax search with depth-limiting.
     Assumes opponent plays optimally to minimize our payoff.
+    
+    Args:
+        board: Current board state
+        depth: Maximum search depth
+        recorder: Optional StepRecorder for visualization
     """
     color = board.turn
     legal_moves = board.get_all_legal_moves(color)
@@ -29,8 +36,9 @@ def minimax_move(board, depth=3):
     
     # We limit execution time to 1.5 seconds max
     start_time = time.time()
+    step_counter = [0]
     
-    def search(b, d, is_max):
+    def search(b, d, is_max, path):
         if d == 0 or time.time() - start_time > 1.2:
             return evaluate_board(b)
             
@@ -40,28 +48,57 @@ def minimax_move(board, depth=3):
             return float('-inf') if is_max else float('inf')
             
         ordered = sort_moves(b, moves)[:12] # Limit branching factor for speed
+        siblings = []
         
         if is_max:
             max_val = float('-inf')
             for m in ordered:
                 b.make_move(m[0], m[1], test_only=True)
-                val = search(b, d - 1, False)
+                val = search(b, d - 1, False, path + [m])
                 b.undo_move(test_only=True)
                 max_val = max(max_val, val)
+                siblings.append({'move': m, 'value': val})
+                
+                # Record step (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
+                    recorder.add_step(MinimaxStep(
+                        step_num=step_counter[0] + 1,
+                        algorithm="Minimax",
+                        explanation=f"MAX node depth={d}, value={val:.0f}",
+                        current_node={'move': m, 'depth': d, 'is_max': True, 'value': val},
+                        current_path=[{'move': p, 'depth': depth - len(path) + i} for i, p in enumerate(path + [m])],
+                        siblings_evaluated=siblings.copy(),
+                        best_so_far={'move': m, 'value': max_val}
+                    ))
+                    step_counter[0] += 1
             return max_val
         else:
             min_val = float('inf')
             for m in ordered:
                 b.make_move(m[0], m[1], test_only=True)
-                val = search(b, d - 1, True)
+                val = search(b, d - 1, True, path + [m])
                 b.undo_move(test_only=True)
                 min_val = min(min_val, val)
+                siblings.append({'move': m, 'value': val})
+                
+                # Record step (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
+                    recorder.add_step(MinimaxStep(
+                        step_num=step_counter[0] + 1,
+                        algorithm="Minimax",
+                        explanation=f"MIN node depth={d}, value={val:.0f}",
+                        current_node={'move': m, 'depth': d, 'is_max': False, 'value': val},
+                        current_path=[{'move': p, 'depth': depth - len(path) + i} for i, p in enumerate(path + [m])],
+                        siblings_evaluated=siblings.copy(),
+                        best_so_far={'move': m, 'value': min_val}
+                    ))
+                    step_counter[0] += 1
             return min_val
 
     # Root call
     for m in sorted_moves[:15]:
         board.make_move(m[0], m[1], test_only=True)
-        score = search(board, depth - 1, color == 'black') # Black is min (if color is red, next player is black/min)
+        score = search(board, depth - 1, color == 'black', [m]) # Black is min (if color is red, next player is black/min)
         board.undo_move(test_only=True)
         
         if color == 'red':
@@ -75,10 +112,15 @@ def minimax_move(board, depth=3):
                 
     return best_move
 
-def alpha_beta_move(board, depth=4):
+def alpha_beta_move(board, depth=4, recorder=None):
     """
     Minimax search with Alpha-Beta Pruning.
     Prunes branches that cannot influence the final decision, allowing deeper search.
+    
+    Args:
+        board: Current board state
+        depth: Maximum search depth
+        recorder: Optional StepRecorder for visualization
     """
     color = board.turn
     legal_moves = board.get_all_legal_moves(color)
@@ -90,8 +132,9 @@ def alpha_beta_move(board, depth=4):
     best_score = float('-inf') if color == 'red' else float('inf')
     
     start_time = time.time()
+    step_counter = [0]  # For recording
     
-    def search(b, d, alpha, beta, is_max):
+    def search(b, d, alpha, beta, is_max, path):
         if d == 0 or time.time() - start_time > 1.2:
             return evaluate_board(b)
             
@@ -100,15 +143,38 @@ def alpha_beta_move(board, depth=4):
             return float('-inf') if is_max else float('inf')
             
         ordered = sort_moves(b, moves)[:15] # higher branch allowance due to pruning
+        siblings = []
         
         if is_max:
             max_val = float('-inf')
             for m in ordered:
                 b.make_move(m[0], m[1], test_only=True)
-                val = search(b, d - 1, alpha, beta, False)
+                val = search(b, d - 1, alpha, beta, False, path + [m])
                 b.undo_move(test_only=True)
+                
+                siblings.append({'move': m, 'value': val})
                 max_val = max(max_val, val)
+                old_alpha = alpha
                 alpha = max(alpha, max_val)
+                
+                # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
+                    is_pruned = (beta <= alpha)
+                    recorder.add_step(AlphaBetaStep(
+                        step_num=step_counter[0] + 1,
+                        algorithm="Alpha-Beta",
+                        explanation=f"MAX node depth={d}, α={old_alpha:.0f}→{alpha:.0f}, β={beta:.0f}" + 
+                                  (f" → Cắt tỉa!" if is_pruned else ""),
+                        current_node={'move': m, 'depth': d, 'is_max': True, 'value': val},
+                        current_path=[{'move': p, 'depth': depth - len(path) + i} for i, p in enumerate(path + [m])],
+                        alpha=alpha,
+                        beta=beta,
+                        is_pruned=is_pruned,
+                        prune_reason=f"β({beta:.0f}) ≤ α({alpha:.0f}) → cắt nhánh" if is_pruned else "",
+                        siblings_evaluated=siblings.copy()
+                    ))
+                    step_counter[0] += 1
+                
                 if beta <= alpha:
                     break # Beta cutoff
             return max_val
@@ -116,10 +182,32 @@ def alpha_beta_move(board, depth=4):
             min_val = float('inf')
             for m in ordered:
                 b.make_move(m[0], m[1], test_only=True)
-                val = search(b, d - 1, alpha, beta, True)
+                val = search(b, d - 1, alpha, beta, True, path + [m])
                 b.undo_move(test_only=True)
+                
+                siblings.append({'move': m, 'value': val})
                 min_val = min(min_val, val)
+                old_beta = beta
                 beta = min(beta, min_val)
+                
+                # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
+                    is_pruned = (beta <= alpha)
+                    recorder.add_step(AlphaBetaStep(
+                        step_num=step_counter[0] + 1,
+                        algorithm="Alpha-Beta",
+                        explanation=f"MIN node depth={d}, α={alpha:.0f}, β={old_beta:.0f}→{beta:.0f}" +
+                                  (f" → Cắt tỉa!" if is_pruned else ""),
+                        current_node={'move': m, 'depth': d, 'is_max': False, 'value': val},
+                        current_path=[{'move': p, 'depth': depth - len(path) + i} for i, p in enumerate(path + [m])],
+                        alpha=alpha,
+                        beta=beta,
+                        is_pruned=is_pruned,
+                        prune_reason=f"β({beta:.0f}) ≤ α({alpha:.0f}) → cắt nhánh" if is_pruned else "",
+                        siblings_evaluated=siblings.copy()
+                    ))
+                    step_counter[0] += 1
+                
                 if beta <= alpha:
                     break # Alpha cutoff
             return min_val
@@ -130,7 +218,7 @@ def alpha_beta_move(board, depth=4):
     
     for m in sorted_moves[:20]:
         board.make_move(m[0], m[1], test_only=True)
-        score = search(board, depth - 1, alpha, beta, color == 'black')
+        score = search(board, depth - 1, alpha, beta, color == 'black', [m])
         board.undo_move(test_only=True)
         
         if color == 'red':
@@ -146,13 +234,18 @@ def alpha_beta_move(board, depth=4):
             
     return best_move
 
-def expectimax_move(board, depth=3):
+def expectimax_move(board, depth=3, recorder=None):
     """
     Expectimax Search:
     Assumes opponent does not play fully optimally, but has:
     - 70% chance of making the best minimax move.
     - 30% chance of making a random move.
     We compute expected values at opponent's nodes (Chance nodes).
+    
+    Args:
+        board: Current board state
+        depth: Maximum search depth
+        recorder: Optional StepRecorder for visualization
     """
     ai_color = board.turn
     legal_moves = board.get_all_legal_moves(ai_color)
@@ -164,6 +257,7 @@ def expectimax_move(board, depth=3):
     best_score = float('-inf') if ai_color == 'red' else float('inf')
     
     start_time = time.time()
+    step_counter = [0]
     
     def search(b, d, is_ai_turn):
         if d == 0 or time.time() - start_time > 1.2:
@@ -223,6 +317,21 @@ def expectimax_move(board, depth=3):
             others_avg = sum(results[1:]) / (num_moves - 1)
             
             expected_val = 0.7 * best_res + 0.3 * others_avg
+            
+            # Record step (limit to MAX_VISUALIZATION_STEPS)
+            if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
+                recorder.add_step(ExpectimaxStep(
+                    step_num=step_counter[0] + 1,
+                    algorithm="Expectimax",
+                    explanation=f"CHANCE node depth={d}, E[V]={expected_val:.0f} (70% best + 30% avg)",
+                    current_node={'depth': d, 'is_ai_turn': is_ai_turn},
+                    is_chance_node=True,
+                    child_values=[{'value': v} for v in results],
+                    best_value=best_res,
+                    expected_value=expected_val
+                ))
+                step_counter[0] += 1
+            
             return expected_val
 
     # Root call (AI's first moves)

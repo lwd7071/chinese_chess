@@ -73,3 +73,275 @@ Overall Status: 3/3 passed
 EVAL RUN END: 2026-06-18T21:19:45.759809
 ============================================================
 
+============================================================
+EVAL RUN START: 2026-06-25T20:54:00.720794
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (1.00s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.48s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: FAIL (1.87s)
+--- OUTPUT ---
+pygame 2.6.1 (SDL 2.28.4, Python 3.13.14)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+EEE
+======================================================================
+ERROR: test_calculate_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_calculate_uses_lock)
+Verify that the background calculation thread acquires the lock when writing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 49, in test_calculate_uses_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+======================================================================
+ERROR: test_controller_has_ai_lock (tests.test_main_thread_safety.TestThreadSafety.test_controller_has_ai_lock)
+Verify that GameController has an ai_lock initialized.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 34, in test_controller_has_ai_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+======================================================================
+ERROR: test_get_result_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_get_result_uses_lock)
+Verify that the main thread acquires the lock when reading and clearing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 93, in test_get_result_uses_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.064s
+
+FAILED (errors=3)
+
+--------------
+  Trial 2/3...
+    Trial 2: FAIL (0.74s)
+--- OUTPUT ---
+pygame 2.6.1 (SDL 2.28.4, Python 3.13.14)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+EEE
+======================================================================
+ERROR: test_calculate_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_calculate_uses_lock)
+Verify that the background calculation thread acquires the lock when writing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 49, in test_calculate_uses_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+======================================================================
+ERROR: test_controller_has_ai_lock (tests.test_main_thread_safety.TestThreadSafety.test_controller_has_ai_lock)
+Verify that GameController has an ai_lock initialized.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 34, in test_controller_has_ai_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+======================================================================
+ERROR: test_get_result_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_get_result_uses_lock)
+Verify that the main thread acquires the lock when reading and clearing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 93, in test_get_result_uses_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.038s
+
+FAILED (errors=3)
+
+--------------
+  Trial 3/3...
+    Trial 3: FAIL (0.93s)
+--- OUTPUT ---
+pygame 2.6.1 (SDL 2.28.4, Python 3.13.14)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+EEE
+======================================================================
+ERROR: test_calculate_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_calculate_uses_lock)
+Verify that the background calculation thread acquires the lock when writing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 49, in test_calculate_uses_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+======================================================================
+ERROR: test_controller_has_ai_lock (tests.test_main_thread_safety.TestThreadSafety.test_controller_has_ai_lock)
+Verify that GameController has an ai_lock initialized.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 34, in test_controller_has_ai_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+======================================================================
+ERROR: test_get_result_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_get_result_uses_lock)
+Verify that the main thread acquires the lock when reading and clearing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\Lib\unittest\mock.py", line 1432, in patched
+    return func(*newargs, **newkeywargs)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\tests\test_main_thread_safety.py", line 93, in test_get_result_uses_lock
+    controller = GameController()
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\main.py", line 58, in __init__
+    self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\gui\visualizer.py", line 87, in __init__
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 460, in SysFont
+    return constructor(fontname, size, set_bold, set_italic)
+  File "C:\Users\ADMIN\Documents\MyProject\chinese_chess\venv\Lib\site-packages\pygame\sysfont.py", line 378, in font_constructor
+    font = Font(fontpath, size)
+pygame.error: font not initialized
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.046s
+
+FAILED (errors=3)
+
+--------------
+Regression [thread-safety]: FAIL (pass^3 = 0.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     FAIL (pass^3 = 0.00%)
+Overall Status: 2/3 passed
+EVAL RUN END: 2026-06-25T20:54:05.744996
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-25T20:54:19.387595
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.64s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.46s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.88s)
+  Trial 2/3...
+    Trial 2: PASS (0.79s)
+  Trial 3/3...
+    Trial 3: PASS (0.68s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-25T20:54:22.856355
+============================================================
+
