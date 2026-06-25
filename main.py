@@ -48,14 +48,18 @@ class GameController:
         
         # Init GUI modules
         self.renderer = Renderer(cell_size=60, offset_x=40, offset_y=80)
-        self.sidebar = Sidebar(x=620, y=0, width=480, height=self.height)
+        self.sidebar = Sidebar(x=620, y=0, width=480, height=self.height,
+                               chinese_supported=self.renderer.chinese_supported,
+                               font_name=self.renderer.font_name)
         self.menu = StartMenu(width=self.width, height=self.height)
         self.shop = ShopScreen(width=self.width, height=self.height)
         
         # Step-by-step visualization (for report mode)
         self.report_mode = False
         self.step_recorder = StepRecorder()
-        self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height)
+        self.visualizer = VisualizerPanel(x=620, y=0, width=480, height=self.height,
+                                          chinese_supported=self.renderer.chinese_supported,
+                                          font_name=self.renderer.font_name)
         self.step_controller = StepController()
         
         self.state = "menu" # menu, game, shop, game_over
@@ -145,6 +149,10 @@ class GameController:
         # Update sidebar layout
         self.sidebar.update_layout(self.board_width, 0, self.sidebar_width, self.height)
         
+        # Update visualizer layout
+        if hasattr(self, 'visualizer') and self.visualizer:
+            self.visualizer.update_layout(self.board_width, 0, self.sidebar_width, self.height)
+            
         # Update menu layout
         self.menu.update_layout(self.width, self.height)
         
@@ -165,6 +173,8 @@ class GameController:
         self.animation = None
         self.last_bot_move_time = time.time()
         self.game_over_result = ""
+        self.step_recorder.clear()
+        self.step_controller = StepController()
 
     def show_popup(self, message):
         self.popup_message = message
@@ -266,7 +276,7 @@ class GameController:
                         continue
 
                     # Sidebar / Visualizer click actions
-                    if self.report_mode and self.step_recorder.total_steps() > 0:
+                    if self.report_mode and self.step_recorder.total_steps() > 0 and self.ai_thread is None:
                         vis_action = self.visualizer.handle_event(event, self.step_controller, self.step_recorder)
                         if vis_action == "finish" and getattr(self, 'pending_ai_move', None):
                             self.trigger_move_animation(self.pending_ai_move[0], self.pending_ai_move[1])
@@ -324,7 +334,7 @@ class GameController:
                                 
             # 2. Game Logic / Bot turns
             if self.state == "game" and not self.animation:
-                if self.report_mode and self.step_recorder.total_steps() > 0:
+                if self.report_mode and self.step_recorder.total_steps() > 0 and self.ai_thread is None:
                     if self.step_controller.update(self.step_recorder) == "finish" and getattr(self, 'pending_ai_move', None):
                         self.trigger_move_animation(self.pending_ai_move[0], self.pending_ai_move[1])
                         self.step_recorder.clear()
@@ -417,21 +427,35 @@ class GameController:
             if has_lost(self.board, self.board.turn) or is_no_cross_river_pieces(self.board):
                 return
             
-            # Report mode: synchronous AI call with recorder
+            # Report mode: asynchronous AI call with recorder
             if self.report_mode:
-                # Clear recorder for new turn
-                self.step_recorder.clear()
-                
-                # Call AI synchronously (no threading to avoid race condition)
-                bot_func = AI_REGISTRY[bot_algo]
-                move = bot_func(self.board, recorder=self.step_recorder)
-                
-                # Don't execute move yet - wait for user to step through visualization
-                # Store pending move
-                if move and self.step_recorder.total_steps() > 0:
-                    self.pending_ai_move = move
-                elif move:
-                    self.trigger_move_animation(move[0], move[1])
+                if self.ai_thread is None and not self.pending_ai_move:
+                    self.step_recorder.clear()
+                    bot_func = AI_REGISTRY[bot_algo]
+                    board_copy = self.board.copy()
+                    
+                    def calculate():
+                        result = bot_func(board_copy, recorder=self.step_recorder)
+                        with self.ai_lock:
+                            self.ai_result = result
+                            
+                    self.ai_thread = threading.Thread(target=calculate)
+                    self.ai_thread.daemon = True
+                    self.ai_thread.start()
+                    
+                if self.ai_thread and not self.ai_thread.is_alive():
+                    self.ai_thread = None
+                    with self.ai_lock:
+                        move = self.ai_result
+                        self.ai_result = None
+                        
+                    # Don't execute move yet - wait for user to step through visualization
+                    # Store pending move
+                    if move and self.step_recorder.total_steps() > 0:
+                        self.pending_ai_move = move
+                        self.step_controller = StepController()
+                    elif move:
+                        self.trigger_move_animation(move[0], move[1])
                 return
             
             # Normal mode: async AI call (original behavior)
@@ -571,10 +595,10 @@ class GameController:
         red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
         black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
         
-        if self.report_mode and self.step_recorder.total_steps() > 0:
+        if self.report_mode and (self.step_recorder.total_steps() > 0 or self.ai_thread is not None):
             # Show Visualizer Panel
             current_step = self.step_recorder.get_current_step()
-            self.visualizer.draw(self.screen, current_step, self.step_controller, self.step_recorder)
+            self.visualizer.draw(self.screen, current_step, self.step_controller, self.step_recorder, is_computing=(self.ai_thread is not None))
         else:
             # Show normal Sidebar
             self.sidebar.draw(
@@ -601,7 +625,7 @@ class GameController:
             p_surf.fill((44, 28, 24, 240))
             pygame.draw.rect(p_surf, COLOR_ACCENT, (0, 0, p_width, p_height), 2, 8)
             
-            p_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 14, bold=True)
+            p_font = pygame.font.SysFont("Segoe UI, Tahoma", 14, bold=True)
             p_txt = p_font.render(self.popup_message, True, COLOR_ACCENT)
             p_surf.blit(p_txt, (p_width // 2 - p_txt.get_width() // 2, p_height // 2 - p_txt.get_height() // 2))
             self.screen.blit(p_surf, (px, py))
@@ -614,13 +638,13 @@ class GameController:
         pygame.draw.line(self.screen, COLOR_OUTLINE, (0, 72), (self.board_width, 72), 1)
         
         # Title "Hoàng Gia Tượng Kỳ"
-        brand_font = pygame.font.SysFont(["Playfair Display", "Segoe UI"], 18, bold=True)
+        brand_font = pygame.font.SysFont("Playfair Display, Segoe UI", 18, bold=True)
         brand_txt = brand_font.render("Hoàng Gia Tượng Kỳ", True, COLOR_ACCENT)
         self.screen.blit(brand_txt, (15, 36 - brand_txt.get_height() // 2))
         
         # Navigation Tabs: Trận Đấu (Active) / Cửa Tiệm / Cài Đặt
         mouse_pos = pygame.mouse.get_pos()
-        tab_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 13, bold=True)
+        tab_font = pygame.font.SysFont("Segoe UI, Tahoma", 13, bold=True)
         
         # Tab "Trận Đấu" - Active
         active_color = COLOR_ACCENT
@@ -648,11 +672,11 @@ class GameController:
         
         # Coin icon
         pygame.draw.circle(self.screen, COLOR_ACCENT, (gold_box.x + 14, gold_box.centery), 6)
-        c_font = pygame.font.SysFont(["Segoe UI"], 8, bold=True)
+        c_font = pygame.font.SysFont("Segoe UI", 8, bold=True)
         c_txt = c_font.render("V", True, (40, 25, 10))
         self.screen.blit(c_txt, (gold_box.x + 14 - c_txt.get_width() // 2, gold_box.centery - c_txt.get_height() // 2 + 1))
         
-        gold_font = pygame.font.SysFont(["Consolas", "Segoe UI"], 12, bold=True)
+        gold_font = pygame.font.SysFont("Consolas, Segoe UI", 12, bold=True)
         gold_val_txt = gold_font.render(f"{self.gold:,}", True, COLOR_ACCENT)
         self.screen.blit(gold_val_txt, (gold_box.x + 25, gold_box.centery - gold_val_txt.get_height() // 2))
         
@@ -660,7 +684,7 @@ class GameController:
         avatar_center = (self.board_width - 25, 36)
         pygame.draw.circle(self.screen, COLOR_ACCENT, avatar_center, 15)
         pygame.draw.circle(self.screen, (55, 35, 30), avatar_center, 13)
-        av_font = pygame.font.SysFont(["Segoe UI"], 10, bold=True)
+        av_font = pygame.font.SysFont("Segoe UI", 10, bold=True)
         av_txt = av_font.render("KV", True, COLOR_ACCENT)
         self.screen.blit(av_txt, (avatar_center[0] - av_txt.get_width() // 2, avatar_center[1] - av_txt.get_height() // 2))
 
@@ -677,16 +701,16 @@ class GameController:
         pygame.draw.rect(self.screen, (44, 28, 24), (panel_x, panel_y, panel_width, panel_height), 0, 12)
         pygame.draw.rect(self.screen, COLOR_ACCENT, (panel_x, panel_y, panel_width, panel_height), 2, 12)
         
-        hdr_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 26, bold=True)
+        hdr_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 26, bold=True)
         hdr_txt = hdr_font.render("TRẬN ĐẤU KẾT THÚC", True, COLOR_ACCENT)
         self.screen.blit(hdr_txt, (self.width // 2 - hdr_txt.get_width() // 2, panel_y + 30))
         
-        res_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 18, bold=True)
+        res_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 18, bold=True)
         res_color = COLOR_RED if "Đỏ" in self.game_over_result else (COLOR_BLACK if "Đen" in self.game_over_result else COLOR_TEXT)
         res_txt = res_font.render(self.game_over_result, True, res_color)
         self.screen.blit(res_txt, (self.width // 2 - res_txt.get_width() // 2, panel_y + 85))
         
-        btn_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 16, bold=True)
+        btn_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 16, bold=True)
         
         # Draw Retry button
         pygame.draw.rect(self.screen, (39, 174, 96), self.btn_game_over_retry, 0, 6)

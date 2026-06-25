@@ -2,6 +2,8 @@
 import random
 from collections import deque
 from ai.eval import evaluate_board, PIECE_VALUES
+from ai.step_recorder import BFSStep, DFSStep, UCSStep, MAX_VISUALIZATION_STEPS
+
 
 class BFSNode:
     def __init__(self, node_id, parent_id, root_move, move, board, depth):
@@ -59,8 +61,7 @@ def bfs_move(board, depth=2, recorder=None):
         curr = queue.popleft()
         
         # Record step if recorder provided
-        if recorder and step_counter < 20:  # Limit steps to avoid too many
-            from ai.step_recorder import BFSStep
+        if recorder and step_counter < MAX_VISUALIZATION_STEPS:  # Limit steps to avoid too many
             queue_info = [{'id': f'n{n.id}', 'move': n.move, 'depth': n.depth} for n in list(queue)[:10]]
             recorder.add_step(BFSStep(
                 step_num=step_counter + 1,
@@ -131,31 +132,6 @@ def bfs_move(board, depth=2, recorder=None):
 
     return best_move
 
-def dfs_search(board, remaining_depth):
-    if remaining_depth == 0:
-        return evaluate_board(board)
-        
-    moves = board.get_all_legal_moves(board.turn)
-    if not moves:
-        return evaluate_board(board)
-        
-    if board.turn == 'red':
-        max_val = float('-inf')
-        for m in moves:
-            board.make_move(m[0], m[1], test_only=True)
-            val = dfs_search(board, remaining_depth - 1)
-            board.undo_move(test_only=True)
-            max_val = max(max_val, val)
-        return max_val
-    else:
-        min_val = float('inf')
-        for m in moves:
-            board.make_move(m[0], m[1], test_only=True)
-            val = dfs_search(board, remaining_depth - 1)
-            board.undo_move(test_only=True)
-            min_val = min(min_val, val)
-        return min_val
-
 def dfs_move(board, depth=2, recorder=None):
     """
     DFS: Depth-limited depth-first search propagating evaluations using minimax logic.
@@ -183,8 +159,7 @@ def dfs_move(board, depth=2, recorder=None):
             return evaluate_board(board)
         
         # Record step if recorder provided (limit to avoid explosion)
-        if recorder and step_counter[0] < 20:
-            from ai.step_recorder import DFSStep
+        if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
             recorder.add_step(DFSStep(
                 step_num=step_counter[0] + 1,
                 algorithm="DFS",
@@ -298,7 +273,6 @@ def ucs_move(board, recorder=None):
             # Sort frontier by cost for visualization
             sorted_frontier = sorted(frontier_list, key=lambda x: x['g_cost'])
             
-            from ai.step_recorder import UCSStep
             recorder.add_step(UCSStep(
                 step_num=i + 1,
                 algorithm="UCS",

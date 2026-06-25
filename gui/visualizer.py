@@ -10,7 +10,6 @@ Date: 2026-06-25
 
 import pygame
 import time
-import math
 from ai.step_recorder import (
     BaseStep, UCSStep, AStarStep, AlphaBetaStep, SAStep,
     GreedyStep, IDAStarStep, BFSStep, DFSStep, HillClimbStep,
@@ -78,19 +77,33 @@ class VisualizerPanel:
     Replaces Sidebar when report_mode=True.
     """
     
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, chinese_supported=False, font_name=None):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
+        self.chinese_supported = chinese_supported
+        self.font_name = font_name
         
         # Fonts
-        self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
-        self.header_font = pygame.font.SysFont(["Segoe UI", "Arial"], 16, bold=True)
-        self.body_font = pygame.font.SysFont(["Segoe UI", "Arial"], 14)
-        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13)
-        self.small_font = pygame.font.SysFont(["Segoe UI", "Arial"], 12)
-        self.tiny_font = pygame.font.SysFont(["Segoe UI", "Arial"], 10)
+        self.title_font = pygame.font.SysFont("Segoe UI, Arial", 20, bold=True)
+        self.header_font = pygame.font.SysFont("Segoe UI, Arial", 16, bold=True)
+        self.body_font = pygame.font.SysFont("Segoe UI, Arial", 14)
+        self.mono_font = pygame.font.SysFont("Consolas, Courier New", 13)
+        self.small_font = pygame.font.SysFont("Segoe UI, Arial", 12)
+        self.tiny_font = pygame.font.SysFont("Segoe UI, Arial", 10)
+        
+        self.update_layout(x, y, width, height)
+        
+        # Scroll state for long lists
+        self.scroll_offset = 0
+        self.max_scroll = 0
+        
+    def update_layout(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
         
         # Navigation buttons
         btn_y = y + height - 60
@@ -101,10 +114,6 @@ class VisualizerPanel:
         self.btn_prev = pygame.Rect(center_x - btn_w * 1.5 - gap, btn_y, btn_w, 36)
         self.btn_next = pygame.Rect(center_x - btn_w // 2, btn_y, btn_w, 36)
         self.btn_auto = pygame.Rect(center_x + btn_w // 2 + gap, btn_y, btn_w, 36)
-        
-        # Scroll state for long lists
-        self.scroll_offset = 0
-        self.max_scroll = 0
         
     def handle_event(self, event, controller, recorder):
         """Handle mouse clicks and scroll events"""
@@ -130,7 +139,7 @@ class VisualizerPanel:
             
         return None
     
-    def draw(self, surface, step: BaseStep, controller, recorder):
+    def draw(self, surface, step: BaseStep, controller, recorder, is_computing=False):
         """Main render method"""
         # Background
         bg_rect = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -138,7 +147,7 @@ class VisualizerPanel:
         pygame.draw.line(surface, COLOR_OUTLINE, (self.x, self.y), (self.x, self.y + self.height), 2)
         
         if step is None:
-            self._render_empty(surface)
+            self._render_empty(surface, is_computing)
             return
         
         # Header with step counter
@@ -148,7 +157,7 @@ class VisualizerPanel:
         content_y = self.y + 80
         content_rect = pygame.Rect(self.x + 15, content_y, self.width - 30, self.height - 160)
         
-        if isinstance(step, (UCSStep, AStarStep)):
+        if isinstance(step, (UCSStep, AStarStep, BFSStep, DFSStep, GreedyStep)):
             self._render_search_3col(surface, step, content_rect)
         elif isinstance(step, AlphaBetaStep):
             self._render_alpha_beta(surface, step, content_rect)
@@ -161,9 +170,10 @@ class VisualizerPanel:
         # Navigation footer
         self._render_footer(surface, controller, recorder)
     
-    def _render_empty(self, surface):
+    def _render_empty(self, surface, is_computing=False):
         """Shown when no steps available"""
-        msg = self.body_font.render("Chưa có dữ liệu visualization", True, COLOR_TEXT_MUTED)
+        text = "Đang tính toán nước đi..." if is_computing else "Chưa có dữ liệu visualization"
+        msg = self.body_font.render(text, True, COLOR_TEXT_MUTED)
         surface.blit(msg, (self.x + self.width // 2 - msg.get_width() // 2, self.y + self.height // 2))
     
     def _render_header(self, surface, step, recorder):
@@ -218,7 +228,7 @@ class VisualizerPanel:
     # ========================================================================
     
     def _render_search_3col(self, surface, step, rect):
-        """Render 3-column layout for UCS/A* (Tier Full)"""
+        """Render 3-column layout for UCS/A*/BFS/DFS/Greedy (Tier Full & basic list)"""
         # Explanation box at top
         expl_rect = pygame.Rect(rect.x, rect.y, rect.width, 60)
         pygame.draw.rect(surface, COLOR_CARD, expl_rect, 0, 6)
@@ -235,11 +245,31 @@ class VisualizerPanel:
         col_h = rect.height - 140
         col_w = (rect.width - 20) // 3
         
-        columns = [
-            ("CURRENT", [step.current_node], COLOR_ACCENT),
-            ("FRONTIER", getattr(step, 'frontier', [])[:8], COLOR_JADE),
-            ("EXPLORED", getattr(step, 'explored', [])[:8], COLOR_TEXT_MUTED)
-        ]
+        # Map columns dynamically based on step class
+        if isinstance(step, BFSStep):
+            columns = [
+                ("CURRENT", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+                ("QUEUE", getattr(step, 'queue', [])[:8], COLOR_JADE),
+                ("EXPLORED", getattr(step, 'explored', [])[:8], COLOR_TEXT_MUTED)
+            ]
+        elif isinstance(step, DFSStep):
+            columns = [
+                ("CURRENT", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+                ("STACK", getattr(step, 'stack', [])[:8], COLOR_JADE),
+                ("EXPLORED", getattr(step, 'explored', [])[:8], COLOR_TEXT_MUTED)
+            ]
+        elif isinstance(step, GreedyStep):
+            columns = [
+                ("CURRENT", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+                ("CANDIDATES", getattr(step, 'candidates', [])[:8], COLOR_JADE),
+                ("EXPLORED", [], COLOR_TEXT_MUTED)
+            ]
+        else:
+            columns = [
+                ("CURRENT", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+                ("FRONTIER", getattr(step, 'frontier', [])[:8], COLOR_JADE),
+                ("EXPLORED", getattr(step, 'explored', [])[:8], COLOR_TEXT_MUTED)
+            ]
         
         for i, (title, items, color) in enumerate(columns):
             col_x = rect.x + i * (col_w + 10)
@@ -262,13 +292,47 @@ class VisualizerPanel:
                     break
                 y = col_rect.y + 35 + idx * 22
                 
-                # Format item based on type
+                # Format item based on step type
                 if isinstance(step, UCSStep):
                     cost = item.get('g_cost', 0)
-                    txt = self.tiny_font.render(f"cost: {cost}", True, COLOR_TEXT)
+                    move = item.get('move')
+                    cap = item.get('piece_captured', '—')
+                    move_str = f"({move[0][0]},{move[0][1]})→({move[1][0]},{move[1][1]})" if move else "—"
+                    cap_str = f" {cap}" if cap and cap != '—' else ""
+                    txt = self.tiny_font.render(f"{move_str}{cap_str} c:{cost}", True, COLOR_TEXT)
+                    
                 elif isinstance(step, AStarStep):
                     f_val = item.get('f', 0)
-                    txt = self.tiny_font.render(f"f: {f_val:.0f}", True, COLOR_TEXT)
+                    move = item.get('move')
+                    cap = item.get('piece_captured', '—')
+                    move_str = f"({move[0][0]},{move[0][1]})→({move[1][0]},{move[1][1]})" if move else "—"
+                    cap_str = f" {cap}" if cap and cap != '—' else ""
+                    txt = self.tiny_font.render(f"{move_str}{cap_str} f:{f_val:.0f}", True, COLOR_TEXT)
+                    
+                elif isinstance(step, BFSStep):
+                    nid = item.get('id', '—')
+                    move = item.get('move')
+                    depth = item.get('depth', 0)
+                    move_str = f" ({move[0][0]},{move[0][1]})→({move[1][0]},{move[1][1]})" if move else ""
+                    txt = self.tiny_font.render(f"{nid}{move_str} d:{depth}", True, COLOR_TEXT)
+                    
+                elif isinstance(step, DFSStep):
+                    move = item.get('move')
+                    depth = item.get('depth', 0)
+                    if move:
+                        move_str = f"({move[0][0]},{move[0][1]})→({move[1][0]},{move[1][1]})"
+                        txt = self.tiny_font.render(f"{move_str} d:{depth}", True, COLOR_TEXT)
+                    else:
+                        txt = self.tiny_font.render(f"depth: {depth}", True, COLOR_TEXT)
+                    
+                elif isinstance(step, GreedyStep):
+                    h = item.get('h', 0)
+                    move = item.get('move')
+                    cap = item.get('piece', '—')
+                    move_str = f"({move[0][0]},{move[0][1]})→({move[1][0]},{move[1][1]})" if move else "—"
+                    cap_str = f" {cap}" if cap and cap != '—' else ""
+                    txt = self.tiny_font.render(f"{move_str}{cap_str} h:{h}", True, COLOR_TEXT)
+                    
                 else:
                     txt = self.tiny_font.render(str(item)[:20], True, COLOR_TEXT)
                 
@@ -339,7 +403,7 @@ class VisualizerPanel:
         
         # Pruning indicator
         if step.is_pruned:
-            prune_txt = self.body_font.render(f"✂️ {step.prune_reason}", True, COLOR_RED)
+            prune_txt = self.body_font.render(f"[CẮT GIẢM] {step.prune_reason}", True, COLOR_RED)
             surface.blit(prune_txt, (rect.x + 10, ab_rect.bottom + 10))
         
         # Siblings display
@@ -366,7 +430,7 @@ class VisualizerPanel:
         pygame.draw.rect(surface, COLOR_CARD, temp_rect, 0, 8)
         pygame.draw.rect(surface, COLOR_OUTLINE, temp_rect, 1, 8)
         
-        temp_lbl = self.small_font.render("🌡️ NHIỆT ĐỘ", True, COLOR_TEXT_MUTED)
+        temp_lbl = self.small_font.render("NHIỆT ĐỘ (T)", True, COLOR_TEXT_MUTED)
         surface.blit(temp_lbl, (temp_rect.x + 15, temp_rect.y + 10))
         
         temp_val = self.title_font.render(f"T = {step.temperature:.1f}", True, COLOR_ACCENT)
@@ -403,7 +467,7 @@ class VisualizerPanel:
         surface.blit(prob_txt, (formula_rect.x + 15, formula_rect.y + 45))
         
         # Decision
-        decision_icon = "✅ CHẤP NHẬN" if step.accepted else "❌ TỪ CHỐI"
+        decision_icon = "[OK] CHẤP NHẬN" if step.accepted else "[X] TỪ CHỐI"
         decision_color = COLOR_JADE if step.accepted else COLOR_RED
         decision = self.header_font.render(decision_icon, True, decision_color)
         surface.blit(decision, (formula_rect.x + 15, formula_rect.y + 80))

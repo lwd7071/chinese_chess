@@ -1,0 +1,249 @@
+<!DOCTYPE html><html class="dark" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Hoàng Gia Tượng Kỳ - Main Menu</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&amp;family=JetBrains+Mono:wght@400;500;700&amp;family=Source+Serif+4:opsz,wght@8..60,400..700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-lowest": "#180b07",
+                      "secondary-fixed-dim": "#59de9b",
+                      "on-error-container": "#ffdad6",
+                      "on-primary-fixed": "#241a00",
+                      "surface": "#1e100c",
+                      "on-primary-container": "#554300",
+                      "on-tertiary-fixed-variant": "#4f4629",
+                      "surface-container-low": "#271814",
+                      "primary": "#f2ca50",
+                      "inverse-on-surface": "#3e2c28",
+                      "secondary": "#59de9b",
+                      "primary-fixed": "#ffe088",
+                      "secondary-fixed": "#78fbb6",
+                      "tertiary-fixed": "#f0e2ba",
+                      "background": "#1e100c",
+                      "on-primary-fixed-variant": "#574500",
+                      "surface-container-highest": "#43302c",
+                      "outline": "#99907c",
+                      "on-tertiary-container": "#4d4427",
+                      "surface-tint": "#e9c349",
+                      "secondary-container": "#00a669",
+                      "surface-variant": "#43302c",
+                      "surface-dim": "#1e100c",
+                      "on-surface": "#fadcd5",
+                      "surface-container-high": "#372622",
+                      "error": "#ffb4ab",
+                      "on-surface-variant": "#d0c5af",
+                      "error-container": "#93000a",
+                      "on-secondary": "#003921",
+                      "inverse-primary": "#735c00",
+                      "tertiary-container": "#bfb28d",
+                      "on-error": "#690005",
+                      "on-tertiary-fixed": "#221b03",
+                      "on-tertiary": "#383015",
+                      "tertiary-fixed-dim": "#d4c69f",
+                      "outline-variant": "#4d4635",
+                      "on-primary": "#3c2f00",
+                      "tertiary": "#dccda7",
+                      "on-secondary-container": "#00311c",
+                      "surface-container": "#2c1c18",
+                      "surface-bright": "#483530",
+                      "primary-fixed-dim": "#e9c349",
+                      "primary-container": "#d4af37",
+                      "on-background": "#fadcd5",
+                      "inverse-surface": "#fadcd5",
+                      "on-secondary-fixed": "#002111",
+                      "on-secondary-fixed-variant": "#005232"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-desktop": "40px",
+                      "margin-mobile": "16px",
+                      "board-padding": "12px",
+                      "gutter": "24px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "display-lg": [
+                              "Playfair Display"
+                      ],
+                      "label-tech": [
+                              "JetBrains Mono"
+                      ],
+                      "body-rtxt": [
+                              "\"Source Serif 4\""
+                      ],
+                      "display-lg-mobile": [
+                              "Playfair Display"
+                      ],
+                      "headline-md": [
+                              "Playfair Display"
+                      ]
+              },
+              "fontSize": {
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-tech": [
+                              "13px",
+                              {
+                                      "lineHeight": "1.0",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-rtxt": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .wood-texture {
+            background-image: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)" opacity="0.05"/%3E%3C/svg%3E');
+        }
+        
+        .menu-item-hover {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .menu-item-hover:hover {
+            transform: translateX(8px);
+            text-shadow: 0 0 12px rgba(242, 202, 80, 0.4);
+        }
+
+        .menu-item-hover:active {
+            transform: translateY(2px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen w-screen overflow-hidden font-body-rtxt relative">
+<!-- Background Layer: Wooden Table & Ambient Occlusion -->
+<div class="absolute inset-0 z-0 bg-surface-container-lowest flex items-center justify-center">
+<!-- Render prompt for background -->
+<div class="bg-cover bg-center w-full h-full absolute inset-0 opacity-40 mix-blend-luminosity" data-alt="A highly realistic, luxurious mahogany wood table surface viewed from a slight top-down angle. A traditional Chinese Chess (Xiangqi) board is partially visible, etched into thick ancient paper. Several polished, cold jade playing stones with deep gold carved characters are scattered organically on the board. The lighting is intensely atmospheric, with a single, warm light source from the top-left casting long, dramatic ambient occlusion shadows across the wood grain and from the physical pieces. The overall mood is prestigious, focused, and tactile, utilizing a color palette of deep ebony browns, warm burnt sienna lines, and luminous pale jade greens against dark shadows." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCU7z0pfbgR5hgPgLjibdqjRhn6otjUuiBCD-7TPsZDbUrDoN1v5FFLjxns-oRAGXumqrkdGJUnYuZby4CWBueoeHSc0gtzmWvZbuASEnKIpM43Xj4ps8TUu5fjUsdyLlhrrAf6KKYLTrVeWGkMggTU34ua_neRzf-oCLyeiuJcBqPpNFY_9gOrm1GpcEQ7-XrJBaGCHB03p4oDc-__XusL-G3eNSuSSzFLSdqyeq7oKVFTNFxSJfmCtQXW7H_Of3AuovRq7vKHNWk')"></div>
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-lowest/20 via-surface/80 to-surface-container-highest/90"></div>
+<div class="absolute inset-0 wood-texture pointer-events-none mix-blend-overlay"></div>
+</div>
+<!-- Main Content Canvas -->
+<main class="relative z-10 w-full h-full flex flex-col md:flex-row items-center justify-between px-margin-mobile md:px-margin-desktop py-12 md:py-24">
+<!-- Left Side: Brand Anchor -->
+<div class="flex-1 flex flex-col items-center md:items-start justify-center md:pl-24 mb-12 md:mb-0">
+<h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-primary tracking-tight text-center md:text-left drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]" id="brand-logo">
+                Hoàng Gia Tượng Kỳ
+            </h1>
+<p class="font-body-rtxt text-body-rtxt text-on-surface-variant mt-4 max-w-md text-center md:text-left opacity-80" id="brand-subtitle">
+                Đỉnh Cao Trí Tuệ • Khí Chất Hoàng Gia
+            </p>
+</div>
+<!-- Right Side: Menu Navigation Cluster -->
+<div class="flex-1 flex flex-col items-center md:items-end justify-center md:pr-32 w-full max-w-sm md:max-w-md" id="menu-container">
+<nav class="flex flex-col gap-6 w-full">
+<!-- Menu Item 1 -->
+<button class="menu-item-hover bg-transparent border-none text-on-surface hover:text-primary py-3 flex items-center justify-end md:justify-between group w-full cursor-pointer transition-colors">
+<span class="font-['Comic_Sans_MS'] text-xl md:text-2xl tracking-wide z-10">Người đấu Bot</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors z-10 ml-4 md:ml-0" data-icon="smart_toy">smart_toy</span>
+</button>
+<!-- Menu Item 2 -->
+<button class="menu-item-hover bg-transparent border-none text-on-surface hover:text-primary py-3 flex items-center justify-end md:justify-between group w-full cursor-pointer transition-colors">
+<span class="font-['Comic_Sans_MS'] text-xl md:text-2xl tracking-wide z-10">Bot đấu Bot</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors z-10 ml-4 md:ml-0" data-icon="memory">memory</span>
+</button>
+<!-- Menu Item 3 -->
+<button class="menu-item-hover bg-transparent border-none text-on-surface hover:text-primary py-3 flex items-center justify-end md:justify-between group w-full cursor-pointer transition-colors">
+<span class="font-['Comic_Sans_MS'] text-xl md:text-2xl tracking-wide z-10">Thách đấu Trực tuyến</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors z-10 ml-4 md:ml-0" data-icon="swords">swords</span>
+</button>
+<!-- Menu Item 4 -->
+<button class="menu-item-hover bg-transparent border-none text-on-surface hover:text-primary py-3 flex items-center justify-end md:justify-between group w-full cursor-pointer transition-colors">
+<span class="font-['Comic_Sans_MS'] text-xl md:text-2xl tracking-wide z-10">Cửa tiệm</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors z-10 ml-4 md:ml-0" data-icon="storefront">storefront</span>
+</button>
+<!-- Menu Item 5 -->
+<button class="menu-item-hover bg-transparent border-none text-on-surface hover:text-primary py-3 flex items-center justify-end md:justify-between group w-full cursor-pointer transition-colors">
+<span class="font-['Comic_Sans_MS'] text-xl md:text-2xl tracking-wide z-10">Cài đặt</span>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors z-10 ml-4 md:ml-0" data-icon="settings">settings</span>
+</button>
+</nav>
+</div>
+</main>
+<!-- Footer Information Anchor -->
+<footer class="absolute bottom-6 right-6 md:right-12 z-20" id="footer-info">
+<p class="font-label-tech text-label-tech text-on-surface-variant/60 tracking-wider">Nhóm 1 - HCMUTE</p>
+</footer>
+<!-- GSAP Animation Script -->
+<script>
+        document.addEventListener("DOMContentLoaded", (event) => {
+            gsap.from("#brand-logo", {
+                duration: 1.5,
+                y: 30,
+                opacity: 0,
+                ease: "power3.out",
+                delay: 0.2
+            });
+
+            gsap.from("#brand-subtitle", {
+                duration: 1.5,
+                y: 20,
+                opacity: 0,
+                ease: "power3.out",
+                delay: 0.4
+            });
+
+            const menuItems = gsap.utils.toArray('#menu-container button');
+            
+            gsap.from(menuItems, {
+                duration: 0.8,
+                x: 100,
+                opacity: 0,
+                stagger: 0.15,
+                ease: "back.out(1.2)",
+                delay: 0.5
+            });
+
+            gsap.from("#footer-info", {
+                duration: 1,
+                opacity: 0,
+                ease: "power2.inOut",
+                delay: 1.5
+            });
+        });
+    </script>
+</body></html>
+

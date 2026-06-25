@@ -14,6 +14,9 @@ from typing import Any, List, Dict, Optional, Tuple
 # Type alias cho dễ đọc
 Move = Tuple[Tuple[int, int], Tuple[int, int]]  # ((from_r, from_c), (to_r, to_c))
 
+MAX_VISUALIZATION_STEPS = 30
+
+
 
 # ============================================================================
 # BASE DATACLASS

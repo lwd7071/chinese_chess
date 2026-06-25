@@ -60,3 +60,4 @@ cover/
 
 run_evals.py
 .claude/
+test/

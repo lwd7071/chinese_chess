@@ -54,20 +54,27 @@ ALGO_OPTIONS = [
 ]
 
 class Sidebar:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, chinese_supported=False, font_name=None):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         
+        self.chinese_supported = chinese_supported
+        self.font_name = font_name
+        
         # Load fonts
-        self.title_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 20, bold=True)
-        self.body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 15, bold=True)
-        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13, bold=True)
-        self.small_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
-        self.tiny_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 11)
-        self.history_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 13)
-        self.count_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 12, bold=True)
+        self.title_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 20, bold=True)
+        self.body_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 15, bold=True)
+        self.mono_font = pygame.font.SysFont("Consolas, Courier New", 13, bold=True)
+        self.small_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 13)
+        self.tiny_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 11)
+        self.count_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 12, bold=True)
+        
+        if self.chinese_supported and self.font_name:
+            self.history_font = pygame.font.SysFont(self.font_name, 13)
+        else:
+            self.history_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 13)
         
         # Controls Footer: 3 Buttons horizontal at the bottom
         btn_w = (width - 60) // 3
@@ -123,40 +130,7 @@ class Sidebar:
         pos = pygame.mouse.get_pos()
         
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # 1. Check Dropdown clicks first
-            if self.dropdown_open:
-                dropdown_list_rect = pygame.Rect(
-                    self.dropdown_rect.x,
-                    self.dropdown_rect.bottom,
-                    self.dropdown_rect.width,
-                    self.dropdown_visible_items * self.dropdown_item_height
-                )
-                
-                # Check if click is inside the list
-                if dropdown_list_rect.collidepoint(event.pos):
-                    relative_y = event.pos[1] - dropdown_list_rect.y
-                    clicked_idx = self.dropdown_scroll + (relative_y // self.dropdown_item_height)
-                    if 0 <= clicked_idx < len(ALGO_OPTIONS):
-                        selected_algo = ALGO_OPTIONS[clicked_idx][0]
-                        self.dropdown_open = False
-                        # Play click sound
-                        from gui.sound import play_synth_sound
-                        play_synth_sound('move')
-                        return f"select_algo:{selected_algo}"
-                else:
-                    self.dropdown_open = False
-                    # Let click fall through if it's on the dropdown button itself to toggle it
-                    if not self.dropdown_rect.collidepoint(event.pos):
-                        return None
-            
-            # Click on Dropdown trigger box
-            if self.dropdown_rect.collidepoint(event.pos):
-                self.dropdown_open = not self.dropdown_open
-                from gui.sound import play_synth_sound
-                play_synth_sound('move')
-                return None
-                
-            # 2. Check Footer Button clicks
+            # Check Footer Button clicks
             if self.btn_undo.collidepoint(event.pos):
                 return "undo"
             elif self.btn_hint.collidepoint(event.pos):
@@ -170,19 +144,6 @@ class Sidebar:
                 max_scroll = max(0, self._history_total - self.history_visible_rows)
                 self.history_scroll = max(0, min(max_scroll, self.history_scroll - event.y))
                 return None
-                
-            # Handle scroll on open dropdown
-            if self.dropdown_open:
-                dropdown_list_rect = pygame.Rect(
-                    self.dropdown_rect.x,
-                    self.dropdown_rect.bottom,
-                    self.dropdown_rect.width,
-                    self.dropdown_visible_items * self.dropdown_item_height
-                )
-                if dropdown_list_rect.collidepoint(pos):
-                    max_dropdown_scroll = max(0, len(ALGO_OPTIONS) - self.dropdown_visible_items)
-                    self.dropdown_scroll = max(0, min(max_dropdown_scroll, self.dropdown_scroll - event.y))
-                    return None
                     
         return None
 
@@ -193,7 +154,6 @@ class Sidebar:
         return PIECE_NAME_VI.get(piece_name, piece_name or "Quân")
 
     def format_move_compact(self, record):
-        piece_name = self.get_piece_name(record.get("piece_char")) # Abbreviated
         # Translate characters to Chinese pieces abbreviations
         char_map = {
             '帥': '帥', '將': '將',
@@ -204,17 +164,37 @@ class Sidebar:
             '砲': '砲', '炮': '砲',
             '兵': '兵', '卒': '卒'
         }
-        char = record.get("piece_char") or "?"
-        char = char_map.get(char, char)
         
+        # Translate to English piece names if Chinese is not supported
+        en_map = {
+            '帥': 'G', '將': 'G',
+            '仕': 'A', '士': 'A',
+            '相': 'E', '象': 'E',
+            '馬': 'H', '傌': 'H',
+            '車': 'R', '俥': 'R',
+            '砲': 'C', '炮': 'C',
+            '兵': 'P', '卒': 'P'
+        }
+        
+        if not self.chinese_supported:
+            char = record.get("piece_name") or "?"
+        else:
+            char = record.get("piece_char") or "?"
+            char = char_map.get(char, char)
+            
         from_pos = record.get("from_pos")
         to_pos = record.get("to_pos")
         f_sq = self.format_square(from_pos)
         t_sq = self.format_square(to_pos)
         
         move_str = f"{char}{f_sq}->{t_sq}"
+        
         captured = record.get("captured_char")
         if captured:
+            if not self.chinese_supported:
+                captured = en_map.get(captured, record.get("captured_name") or "?")
+            else:
+                captured = char_map.get(captured, captured)
             move_str += f"x{captured}"
         return move_str
 
@@ -290,7 +270,7 @@ class Sidebar:
         if board.is_in_check(board.turn):
             pulse = (math.sin(pygame.time.get_ticks() * 0.015) + 1) / 2
             if pulse > 0.5:
-                turn_val_str = "⚠️ BỊ CHIẾU ⚠️"
+                turn_val_str = "!!! BỊ CHIẾU !!!"
                 turn_val_color = COLOR_RED
                 
         turn_val = self.small_font.render(turn_val_str, True, turn_val_color)
@@ -355,17 +335,13 @@ class Sidebar:
                 display_algo = opt_name
                 break
                 
-        # Draw dropdown box trigger
+        # Draw algorithm display box (static)
         pygame.draw.rect(surface, (30, 18, 14), self.dropdown_rect, 0, 4)
-        pygame.draw.rect(surface, COLOR_GOLD if self.dropdown_open else COLOR_OUTLINE, self.dropdown_rect, 1, 4)
+        pygame.draw.rect(surface, COLOR_OUTLINE, self.dropdown_rect, 1, 4)
         
-        # Dropdown Label & arrow
+        # Algorithm Label
         dd_txt = self.small_font.render(display_algo, True, COLOR_TEXT)
         surface.blit(dd_txt, (self.dropdown_rect.x + 10, self.dropdown_rect.centery - dd_txt.get_height() // 2))
-        
-        arrow_char = "▲" if self.dropdown_open else "▼"
-        arrow_txt = self.tiny_font.render(arrow_char, True, COLOR_ACCENT)
-        surface.blit(arrow_txt, (self.dropdown_rect.right - 20, self.dropdown_rect.centery - arrow_txt.get_height() // 2))
         
         # Draw AI computation stats Node / Frontier / Explored
         # Update simulation counters if Bot is thinking (active_bot_name is not "Human" and turn is Bot's)
@@ -518,58 +494,4 @@ class Sidebar:
             lbl_txt = self.body_font.render(label, True, COLOR_TEXT)
             surface.blit(lbl_txt, (rect.centerx - lbl_txt.get_width() // 2, rect.centery - lbl_txt.get_height() // 2))
             
-        # 8. Draw Open Dropdown list on top of everything if open
-        if self.dropdown_open:
-            dropdown_list_rect = pygame.Rect(
-                self.dropdown_rect.x,
-                self.dropdown_rect.bottom,
-                self.dropdown_rect.width,
-                self.dropdown_visible_items * self.dropdown_item_height
-            )
-            # Draw shadow back
-            shadow_rect = dropdown_list_rect.inflate(4, 4)
-            pygame.draw.rect(surface, (10, 5, 4, 180), shadow_rect, 0, 4)
-            
-            pygame.draw.rect(surface, COLOR_CARD_BG, dropdown_list_rect)
-            pygame.draw.rect(surface, COLOR_GOLD, dropdown_list_rect, 2)
-            
-            for i in range(self.dropdown_visible_items):
-                item_idx = self.dropdown_scroll + i
-                if item_idx >= len(ALGO_OPTIONS):
-                    break
-                    
-                opt_key, opt_name, level_cat = ALGO_OPTIONS[item_idx]
-                iy = dropdown_list_rect.y + i * self.dropdown_item_height
-                item_rect = pygame.Rect(dropdown_list_rect.x + 2, iy, dropdown_list_rect.width - 4, self.dropdown_item_height)
-                
-                is_item_hover = item_rect.collidepoint(mouse_pos)
-                is_currently_selected = opt_key == active_algo_key
-                
-                if is_item_hover:
-                    pygame.draw.rect(surface, (55, 35, 30), item_rect)
-                elif is_currently_selected:
-                    pygame.draw.rect(surface, (40, 25, 20), item_rect)
-                    
-                item_color = COLOR_GOLD if is_currently_selected else (COLOR_TEXT if is_item_hover else COLOR_TEXT_MUTED)
-                
-                # Render Level prefix text
-                level_prefix = f"L{level_cat + 1}: "
-                prefix_lbl = self.tiny_font.render(level_prefix, True, COLOR_ACCENT)
-                surface.blit(prefix_lbl, (item_rect.x + 8, item_rect.centery - prefix_lbl.get_height() // 2))
-                
-                name_lbl = self.small_font.render(opt_name.replace(f"Level {level_cat + 1}:", "").strip(), True, item_color)
-                surface.blit(name_lbl, (item_rect.x + 36, item_rect.centery - name_lbl.get_height() // 2))
-                
-            # Draw dropdown scrollbar if needed
-            max_dropdown_scroll = max(0, len(ALGO_OPTIONS) - self.dropdown_visible_items)
-            if max_dropdown_scroll > 0:
-                dd_track_x = dropdown_list_rect.right - 8
-                dd_track_y = dropdown_list_rect.y + 4
-                dd_track_h = dropdown_list_rect.height - 8
-                pygame.draw.rect(surface, (50, 30, 25), (dd_track_x, dd_track_y, 4, dd_track_h), 0, 2)
-                
-                dd_visible_ratio = self.dropdown_visible_items / len(ALGO_OPTIONS)
-                dd_thumb_h = max(16, int(dd_track_h * dd_visible_ratio))
-                dd_thumb_range = max(1, dd_track_h - dd_thumb_h)
-                dd_thumb_y = dd_track_y + int((dd_thumb_range * self.dropdown_scroll) / max_dropdown_scroll)
-                pygame.draw.rect(surface, COLOR_ACCENT, (dd_track_x - 1, dd_thumb_y, 6, dd_thumb_h), 0, 2)
+

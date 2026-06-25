@@ -1,6 +1,8 @@
 # Level 2 AI: Greedy, A*, IDA*
 import random
 from ai.eval import PIECE_VALUES
+from ai.step_recorder import GreedyStep, AStarStep, IDAStarStep, MAX_VISUALIZATION_STEPS
+
 
 def get_opponent_material(board, color):
     opp = 'black' if color == 'red' else 'red'
@@ -54,12 +56,10 @@ def greedy_move(board, recorder=None):
             max_val = val
             best_move = (from_pos, to_pos)
         
-        # Record step if recorder provided (only first 20 to avoid clutter)
-        if recorder and i < 20:
+        # Record step if recorder provided (only first MAX_VISUALIZATION_STEPS to avoid clutter)
+        if recorder and i < MAX_VISUALIZATION_STEPS:
             # Sort candidates by h descending (highest value first)
             sorted_candidates = sorted(candidates, key=lambda x: x['h'], reverse=True)
-            
-            from ai.step_recorder import GreedyStep
             recorder.add_step(GreedyStep(
                 step_num=i + 1,
                 algorithm="Greedy",
@@ -138,8 +138,6 @@ def a_star_move(board, recorder=None):
         if recorder:
             # Sort frontier by f for visualization
             sorted_frontier = sorted(frontier_list, key=lambda x: x['f'])
-            
-            from ai.step_recorder import AStarStep
             recorder.add_step(AStarStep(
                 step_num=i + 1,
                 algorithm="A*",
@@ -180,9 +178,8 @@ def ida_star_move(board, recorder=None):
         h = get_opponent_material(board, board.turn)
         f = g + h
         
-        # Record step if recorder provided (limit to 30 steps)
-        if recorder and step_counter[0] < 30:
-            from ai.step_recorder import IDAStarStep
+        # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS steps)
+        if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
             recorder.add_step(IDAStarStep(
                 step_num=step_counter[0] + 1,
                 algorithm="IDA*",
@@ -232,8 +229,7 @@ def ida_star_move(board, recorder=None):
     best_move = legal_moves[0]
     
     for iteration in range(3): # Max 3 iterations to prevent slow down
-        if recorder and step_counter[0] < 30:
-            from ai.step_recorder import IDAStarStep
+        if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
             recorder.add_step(IDAStarStep(
                 step_num=step_counter[0] + 1,
                 algorithm="IDA*",
