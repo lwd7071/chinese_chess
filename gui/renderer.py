@@ -437,8 +437,13 @@ class Renderer:
             
         # Draw 1px character outline
         txt_outline = self.piece_font.render(char, True, outline_color)
-        ox = cx - txt_outline.get_width() // 2
-        oy = cy - txt_outline.get_height() // 2
+        rect = txt_outline.get_bounding_rect()
+        if rect.width > 0 and rect.height > 0:
+            ox = cx - (rect.x + rect.width // 2) - 2
+            oy = cy - (rect.y + rect.height // 2) - 2
+        else:
+            ox = cx - txt_outline.get_width() // 2 - 2
+            oy = cy - txt_outline.get_height() // 2 - 2
         
         surface.blit(txt_outline, (ox - 1, oy))
         surface.blit(txt_outline, (ox + 1, oy))

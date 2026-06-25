@@ -17,6 +17,7 @@ from gui.sidebar import Sidebar
 from gui.visualizer import VisualizerPanel, StepController
 from gui.menu import StartMenu
 from gui.shop import ShopScreen
+from gui.settings import SettingsScreen
 from gui.sound import play_synth_sound
 from gui.easing import ease_out_back
 
@@ -31,6 +32,27 @@ COLOR_TEXT = (250, 220, 213)          # On-surface text
 COLOR_TEXT_MUTED = (180, 165, 150)    # Muted beige
 COLOR_RED = (231, 76, 60)             # Red turn/side
 COLOR_BLACK = (241, 196, 15)          # Black turn/side
+
+def calculate_remaining_piece_score(board, winner_color):
+    piece_values = {
+        'P': 10,
+        'A': 20,
+        'E': 20,
+        'H': 45,
+        'C': 45,
+        'R': 90,
+        'G': 0
+    }
+    score = 0
+    for row in board.matrix:
+        for piece in row:
+            if piece and piece.color == winner_color:
+                score += piece_values.get(piece.name, 0)
+    return score
+
+def calculate_win_exp(board, winner_color):
+    score = calculate_remaining_piece_score(board, winner_color)
+    return 100 + score // 2
 
 class GameController:
     def __init__(self):
@@ -53,7 +75,13 @@ class GameController:
                                font_name=self.renderer.font_name)
         self.menu = StartMenu(width=self.width, height=self.height)
         self.shop = ShopScreen(width=self.width, height=self.height)
+        self.settings = SettingsScreen(width=self.width, height=self.height)
         
+        self.red_exp = self.settings.data.get("exp", 0)
+        self.black_exp = 0
+        self.exp_awarded = False
+        
+        self.state = "menu" # menu, game, shop, settings, game_over
         # Step-by-step visualization (for report mode)
         self.report_mode = False
         self.step_recorder = StepRecorder()
@@ -96,6 +124,7 @@ class GameController:
         self.ai_result = None
         self.ai_lock = threading.Lock()
         self.last_bot_move_time = 0
+        self.bot_paused = False
         
         # Animation state
         self.animation = None
@@ -158,6 +187,9 @@ class GameController:
         
         # Update shop layout
         self.shop.update_layout(self.width, self.height)
+        
+        # Update settings layout
+        self.settings.update_layout(self.width, self.height)
 
     def start_new_game(self):
         self.board = Board()
@@ -173,6 +205,9 @@ class GameController:
         self.animation = None
         self.last_bot_move_time = time.time()
         self.game_over_result = ""
+        self.bot_paused = False
+        self.exp_awarded = False
+        self.red_exp = self.settings.data.get("exp", 0)
         self.step_recorder.clear()
         self.step_controller = StepController()
 
@@ -245,9 +280,17 @@ class GameController:
                     elif res == "shop":
                         self.state = "shop"
                         self.shop_return_state = "menu"
+                    elif res == "settings":
+                        self.state = "settings"
+                        self.shop_return_state = "menu"
                         
                 elif self.state == "shop":
                     res = self.shop.handle_event(event, self)
+                    if res == "menu":
+                        self.state = self.shop_return_state
+                        
+                elif self.state == "settings":
+                    res = self.settings.handle_event(event, self)
                     if res == "menu":
                         self.state = self.shop_return_state
                         
@@ -261,10 +304,84 @@ class GameController:
                             play_synth_sound('move')
                             continue
                         elif self.btn_top_settings.collidepoint(event.pos):
-                            self.show_popup("Cài đặt hệ thống sẽ sớm ra mắt!")
+                            self.state = "settings"
+                            self.shop_return_state = "game"
                             play_synth_sound('move')
                             continue
                             
+                    # Sidebar click actions
+                    action = self.sidebar.handle_event(event, self.menu.game_mode)
+                    if action:
+                        if action.startswith("select_algo:") or action.startswith("select_algo_red:") or action.startswith("select_algo_black:"):
+                            new_algo = action.split(":")[-1]
+                            # Find the level category of the new algorithm
+                            level_cat = 0
+                            from gui.sidebar import ALGO_OPTIONS
+                            for opt_key, _, lvl in ALGO_OPTIONS:
+                                if opt_key == new_algo:
+                                    level_cat = lvl
+                                    break
+                                    
+                            if action.startswith("select_algo_red:"):
+                                self.menu.red_bot_algo = new_algo
+                                self.menu.red_bot_level = level_cat
+                            elif action.startswith("select_algo_black:"):
+                                self.menu.black_bot_algo = new_algo
+                                self.menu.black_bot_level = level_cat
+                            else: # select_algo:
+                                if self.menu.game_mode == "human_vs_bot":
+                                    self.menu.black_bot_algo = new_algo
+                                    self.menu.black_bot_level = level_cat
+                                else:
+                                    if self.board.turn == 'red':
+                                        self.menu.red_bot_algo = new_algo
+                                        self.menu.red_bot_level = level_cat
+                                    else:
+                                        self.menu.black_bot_algo = new_algo
+                                        self.menu.black_bot_level = level_cat
+                        elif action == "new_game":
+                            self.start_new_game()
+                        elif action == "surrender":
+                            win_exp = calculate_win_exp(self.board, 'black')
+                            self.game_over_result = f"Black wins! +{win_exp} EXP"
+                            self.state = "game_over"
+                            play_synth_sound('check')
+                            self.award_game_over_exp('black', win_exp)
+                        elif action == "return":
+                            if self.menu.game_mode == "bot_vs_bot":
+                                self.state = "menu"
+                                self.menu.state = "mode_select"
+                                self.menu.trigger_transition()
+                            else:
+                                if self.state == "game":
+                                    self.show_popup("Bạn phải đầu hàng trước khi quay lại!")
+                                else:
+                                    self.state = "menu"
+                                    self.menu.state = "mode_select"
+                                    self.menu.trigger_transition()
+                        elif action == "toggle_pause":
+                            self.bot_paused = not self.bot_paused
+                            play_synth_sound('move')
+                        elif action == "undo":
+                            if self.menu.game_mode == "human_vs_bot":
+                                if len(self.board.history) >= 2:
+                                    self.board.undo_move()
+                                    self.board.undo_move()
+                            else:
+                                if len(self.board.history) >= 1:
+                                    self.board.undo_move()
+                            self.selected_pos = None
+                            self.valid_moves = []
+                            self.hint_move = None
+                        elif action == "hint":
+                            self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
+                            play_synth_sound('move')
+                    
+                    # Board piece click — select or move pieces
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        board_pos = self.renderer.get_board_pos_from_screen(event.pos)
+                        if board_pos:
+                            self.handle_human_click(board_pos)
                     # Hotkey to toggle report mode
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                         self.report_mode = not self.report_mode
@@ -384,6 +501,8 @@ class GameController:
                 self.menu.draw(self.screen)
             elif self.state == "shop":
                 self.shop.draw(self.screen, self)
+            elif self.state == "settings":
+                self.settings.draw(self.screen)
             elif self.state in ["game", "game_over"]:
                 self.draw_game_screen()
                 if self.state == "game_over":
@@ -410,6 +529,9 @@ class GameController:
             self.valid_moves = []
 
     def handle_bot_turns(self):
+        if self.menu.game_mode == "bot_vs_bot" and self.bot_paused:
+            return
+            
         is_bot = False
         bot_algo = ""
         
@@ -531,16 +653,51 @@ class GameController:
             if is_no_cross_river_pieces(self.board):
                 self.game_over_result = "HÒA CỜ - Không còn quân qua sông!"
                 self.state = "game_over"
-            elif has_lost(self.board, self.board.turn):
-                winner = "Đỏ (RED)" if self.board.turn == 'black' else "Đen (BLACK)"
-                loser_color = self.board.turn
-                if is_checkmate(self.board, loser_color):
-                    self.game_over_result = f"CHIẾU BÍ - Quân {winner} thắng!"
-                elif is_stalemate(self.board, loser_color):
-                    self.game_over_result = f"VÔ TỬ (HẾT NƯỚC) - Quân {winner} thắng!"
+                if self.menu.game_mode == "human_vs_bot":
+                    self.record_match_history("Hòa", exp_gained=40)
+                    self.red_exp = self.settings.data.get("exp", 0)
                 else:
-                    self.game_over_result = f"KẾT THÚC - Quân {winner} thắng!"
+                    self.record_match_history("Hòa")
+            elif has_lost(self.board, self.board.turn):
+                winner_color = 'red' if self.board.turn == 'black' else 'black'
+                win_exp = calculate_win_exp(self.board, winner_color)
+                
+                if winner_color == 'red':
+                    self.game_over_result = f"Red wins! +{win_exp} EXP"
+                else:
+                    self.game_over_result = f"Black wins! +{win_exp} EXP"
+                    
                 self.state = "game_over"
+                self.award_game_over_exp(winner_color, win_exp)
+
+    def record_match_history(self, result, exp_gained=None):
+        mode = self.menu.game_mode
+        if mode == "human_vs_bot":
+            algo = self.menu.black_bot_algo
+        else:
+            algo = f"{self.menu.red_bot_algo} vs {self.menu.black_bot_algo}"
+        self.settings.add_match_record(mode, algo, result, exp_gained=exp_gained)
+
+    def award_game_over_exp(self, winner_color, win_exp):
+        if self.exp_awarded:
+            return
+            
+        if winner_color == 'red':
+            if self.menu.game_mode == "human_vs_bot":
+                self.record_match_history("Thắng", exp_gained=win_exp)
+                self.red_exp = self.settings.data.get("exp", 0)
+            else:
+                self.red_exp += win_exp
+                self.record_match_history("Đỏ thắng")
+        else:
+            self.black_exp += win_exp
+            if self.menu.game_mode == "human_vs_bot":
+                self.record_match_history("Thua", exp_gained=20)
+                self.red_exp = self.settings.data.get("exp", 0)
+            else:
+                self.record_match_history("Đen thắng")
+                
+        self.exp_awarded = True
 
     def draw_game_screen(self):
         # 1. Draw Board theme background & grid lines
@@ -591,6 +748,17 @@ class GameController:
         # 4. Draw Top Navigation Bar (Gold balance, Shop, Profile)
         self.draw_top_bar()
 
+        # 5. Draw Sidebar Panel
+        red_bot_lvl = self.menu.red_bot_level if self.menu.red_bot_level is not None else 0
+        black_bot_lvl = self.menu.black_bot_level if self.menu.black_bot_level is not None else 0
+        red_bot = f"L{red_bot_lvl + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
+        black_bot = f"L{black_bot_lvl + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
+        self.sidebar.draw(
+            self.screen, self.board, self.menu.game_mode,
+            red_bot, black_bot, hint_move=self.hint_move, move_history=self.board.move_log, pending_move=self.pending_move,
+            latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until,
+            bot_paused=self.bot_paused, red_exp=self.red_exp, black_exp=self.black_exp, is_game_over=(self.state == "game_over")
+        )
         # 5. Draw Sidebar Panel or Visualizer Panel (depending on report_mode)
         red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
         black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""

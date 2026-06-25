@@ -245,10 +245,9 @@ class StartMenu:
             elif btn_shop.collidepoint(pos):
                 return "shop"
             elif btn_settings.collidepoint(pos):
-                self.show_popup("Cài đặt hệ thống đang phát triển!")
                 from gui.sound import play_synth_sound
                 play_synth_sound('move')
-                return False
+                return "settings"
                 
         # --- STATE: level_red (RED selection grid) ---
         elif self.state == "level_red":
