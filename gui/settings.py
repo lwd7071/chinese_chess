@@ -163,7 +163,7 @@ class SettingsScreen:
         
         # Text input box positions centered horizontally
         center_x = self.width // 2
-        box_w = 320
+        box_w = 275
         box_h = 36
         
         self.input_name = pygame.Rect(center_x - 60, 240, box_w, box_h)

@@ -3,8 +3,14 @@
   "country": "Việt Nam",
   "birthday": "01/01/2000",
   "level": 3,
-  "exp": 82,
+  "exp": 102,
   "history": [
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 17:59"
+    },
     {
       "mode": "Người vs Bot",
       "algo": "Expectimax",
