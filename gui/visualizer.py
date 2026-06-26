@@ -125,12 +125,13 @@ class VisualizerPanel:
         # Navigation buttons
         btn_y = y + height - 60
         btn_w = 80
-        gap = 10
         center_x = x + width // 2
+        start_x = center_x - 172
         
-        self.btn_prev = pygame.Rect(center_x - btn_w * 1.5 - gap, btn_y, btn_w, 36)
-        self.btn_next = pygame.Rect(center_x - btn_w // 2, btn_y, btn_w, 36)
-        self.btn_auto = pygame.Rect(center_x + btn_w // 2 + gap, btn_y, btn_w, 36)
+        self.btn_prev = pygame.Rect(start_x, btn_y, btn_w, 36)
+        self.btn_next = pygame.Rect(start_x + 88, btn_y, btn_w, 36)
+        self.btn_auto = pygame.Rect(start_x + 176, btn_y, btn_w, 36)
+        self.btn_skip = pygame.Rect(start_x + 264, btn_y, btn_w, 36)
         
         # Scroll state for long lists
         self.scroll_offset = 0
@@ -144,15 +145,17 @@ class VisualizerPanel:
         
         btn_y = self.y + self.height - 60
         btn_w = 80
-        gap = 10
         center_x = self.x + self.width // 2
+        start_x = center_x - 172
         
-        self.btn_prev.x = center_x - btn_w * 1.5 - gap
+        self.btn_prev.x = start_x
         self.btn_prev.y = btn_y
-        self.btn_next.x = center_x - btn_w // 2
+        self.btn_next.x = start_x + 88
         self.btn_next.y = btn_y
-        self.btn_auto.x = center_x + btn_w // 2 + gap
+        self.btn_auto.x = start_x + 176
         self.btn_auto.y = btn_y
+        self.btn_skip.x = start_x + 264
+        self.btn_skip.y = btn_y
         
     def handle_event(self, event, controller, recorder):
         """Handle mouse clicks and scroll events"""
@@ -171,6 +174,10 @@ class VisualizerPanel:
             elif self.btn_auto.collidepoint(event.pos):
                 controller.toggle_auto()
                 return "auto"
+            elif self.btn_skip.collidepoint(event.pos):
+                recorder.reset_to_end()
+                controller.mode = "manual"
+                return "finish"
         
         elif event.type == pygame.MOUSEWHEEL:
             # Scroll content if needed
@@ -325,7 +332,8 @@ class VisualizerPanel:
             (self.btn_prev, "◀ PREV", COLOR_BLUE, recorder.current_index > 0),
             (self.btn_next, "NEXT ▶" if recorder.current_index < recorder.total_steps() - 1 else "FINISH ▶", COLOR_BLUE, True),
             (self.btn_auto, "▶▶ AUTO" if controller.mode == "manual" else "⏸ PAUSE", 
-             COLOR_JADE if controller.mode == "auto" else COLOR_ACCENT, True)
+             COLOR_JADE if controller.mode == "auto" else COLOR_ACCENT, True),
+            (self.btn_skip, "SKIP >|", COLOR_RED, True)
         ]
         
         for rect, label, color, enabled in buttons:
@@ -424,7 +432,26 @@ class VisualizerPanel:
                 if isinstance(item, dict):
                     node_id = item.get('id', '')
                     depth = item.get('depth', '')
-                    label = f"{node_id} d={depth}"
+                    move = item.get('move')
+                    
+                    # Extract moving piece name and map it to friendly Vietnamese name
+                    piece = item.get('piece', '')
+                    piece_prefix = ""
+                    if piece:
+                        vi_name = PIECE_NAME_VI.get(piece, piece)
+                        piece_prefix = vi_name + " "
+                        
+                    move_str = self._format_move_short(move) if move else ''
+                    if move_str and move_str != '—':
+                        if node_id:
+                            label = f"{node_id}: {piece_prefix}{move_str} (d={depth})"
+                        else:
+                            label = f"{piece_prefix}{move_str} (d={depth})"
+                    else:
+                        if node_id:
+                            label = f"{node_id} d={depth}"
+                        else:
+                            label = f"d={depth}"
                 else:
                     label = str(item)[:18]
                 txt = self.tiny_font.render(label, True, COLOR_TEXT)

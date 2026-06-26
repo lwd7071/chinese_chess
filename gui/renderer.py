@@ -266,6 +266,7 @@ class Renderer:
                 surface.blit(self.board_textures[theme], (0, 0))
             else:
                 surface.fill(theme_data["bg_base"])
+            self.draw_coordinate_labels(surface, theme)
             return
             
         # --- Classic wood: use procedural texture + grid lines ---
@@ -337,6 +338,54 @@ class Renderer:
         ]
         for r, c in cross_positions:
             self.draw_cross(surface, r, c, line_color)
+            
+        # Draw coordinates
+        self.draw_coordinate_labels(surface, theme)
+
+    def draw_coordinate_labels(self, surface, theme="classic_wood"):
+        theme_data = THEMES.get(theme, THEMES["classic_wood"])
+        
+        # Color matching each theme
+        if theme == "dark_glass":
+            color = (0, 165, 230)      # Neon Cyan
+        elif theme == "white_marble":
+            color = (130, 95, 25)      # Dark Gold
+        else:
+            color = theme_data["line_color"] # Dark wood
+            
+        # Draw Columns A-I (top & bottom)
+        for c in range(9):
+            col_char = chr(65 + c) # A to I
+            lbl = self.label_font.render(col_char, True, color)
+            
+            cx, _ = self.get_xy(0, c)
+            
+            # Top label (Black side): shifted up to avoid piece overlap
+            tx = cx - lbl.get_width() // 2
+            ty = self.offset_y - 38 - lbl.get_height()
+            surface.blit(lbl, (tx, ty))
+            
+            # Bottom label (Red side): shifted down to avoid piece overlap
+            bx = cx - lbl.get_width() // 2
+            by = self.offset_y + 9 * self.cell_size + 38
+            surface.blit(lbl, (bx, by))
+            
+        # Draw Rows 0-9 (left & right)
+        for r in range(10):
+            row_char = str(r)
+            lbl = self.label_font.render(row_char, True, color)
+            
+            _, cy = self.get_xy(r, 0)
+            
+            # Left label: shifted left to avoid piece overlap
+            lx = self.offset_x - 38 - lbl.get_width()
+            ly = cy - lbl.get_height() // 2
+            surface.blit(lbl, (lx, ly))
+            
+            # Right label: shifted right to avoid piece overlap
+            rx = self.offset_x + 8 * self.cell_size + 38
+            ry = cy - lbl.get_height() // 2
+            surface.blit(lbl, (rx, ry))
 
     def draw_dashed_line(self, surface, color, start_pos, end_pos, width=1, dash_length=4, space_length=4):
         x1, y1 = start_pos

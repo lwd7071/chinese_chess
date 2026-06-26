@@ -160,8 +160,8 @@ class GameController:
         self.btn_game_over_menu = pygame.Rect(self.width // 2 + 20, self.height // 2 + 30, 140, 40)
         
         # 4. Update board grid coordinates (cell_size, offset_x, offset_y)
-        max_grid_w = self.board_width - 80
-        max_grid_h = self.height - 72 - 80
+        max_grid_w = self.board_width - 110
+        max_grid_h = self.height - 72 - 100
         cell_size_w = max_grid_w / 8
         cell_size_h = max_grid_h / 9
         cell_size = int(min(cell_size_w, cell_size_h))
@@ -310,7 +310,8 @@ class GameController:
                             continue
                             
                     # Sidebar click actions
-                    action = self.sidebar.handle_event(event, self.menu.game_mode)
+                    is_visualizer_active = self.report_mode and (self.step_recorder.total_steps() > 0 or self.ai_thread is not None)
+                    action = None if is_visualizer_active else self.sidebar.handle_event(event, self.menu.game_mode)
                     if action:
                         if action.startswith("select_algo:") or action.startswith("select_algo_red:") or action.startswith("select_algo_black:"):
                             new_algo = action.split(":")[-1]
@@ -400,7 +401,7 @@ class GameController:
                             self.step_recorder.clear()
                             self.pending_ai_move = None
                             continue
-                    else:
+                    elif not is_visualizer_active:
                         action = self.sidebar.handle_event(event)
                         if action:
                             if action.startswith("select_algo:"):
@@ -513,6 +514,16 @@ class GameController:
         pygame.quit()
 
     def handle_human_click(self, pos):
+        # Prevent moves when it's not the human's turn or when the visualizer is active
+        if self.menu.game_mode != "human_vs_bot":
+            return
+            
+        is_visualizer_active = self.report_mode and (self.step_recorder.total_steps() > 0 or self.ai_thread is not None)
+        
+        if self.board.turn != 'red' or self.pending_ai_move or is_visualizer_active:
+            self.show_popup("Chưa đến lượt bạn!")
+            return
+            
         piece = self.board.get_piece(pos)
         
         # If we click on our own piece, select it
