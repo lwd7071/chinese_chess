@@ -86,19 +86,41 @@ class VisualizerPanel:
     Replaces Sidebar when report_mode=True.
     """
     
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, chinese_supported=False, font_name=None):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         
-        # Fonts
-        self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
-        self.header_font = pygame.font.SysFont(["Segoe UI", "Arial"], 16, bold=True)
-        self.body_font = pygame.font.SysFont(["Segoe UI", "Arial"], 14)
-        self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13)
-        self.small_font = pygame.font.SysFont(["Segoe UI", "Arial"], 12)
-        self.tiny_font = pygame.font.SysFont(["Segoe UI", "Arial"], 10)
+        # Load fonts. If custom font_name is provided, use it (assumed to be a file path for pygame.font.Font if it ends with .ttf)
+        # However, for UI we mainly use SysFont unless we really need chinese
+        font_list = ["Segoe UI", "Arial"]
+        if font_name and not font_name.endswith('.ttf'):
+            font_list.insert(0, font_name)
+            
+        try:
+            if font_name and font_name.endswith('.ttf'):
+                self.title_font = pygame.font.Font(font_name, 20)
+                self.header_font = pygame.font.Font(font_name, 16)
+                self.body_font = pygame.font.Font(font_name, 14)
+                self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13)
+                self.small_font = pygame.font.Font(font_name, 12)
+                self.tiny_font = pygame.font.Font(font_name, 10)
+            else:
+                self.title_font = pygame.font.SysFont(font_list, 20, bold=True)
+                self.header_font = pygame.font.SysFont(font_list, 16, bold=True)
+                self.body_font = pygame.font.SysFont(font_list, 14)
+                self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"] + font_list, 13)
+                self.small_font = pygame.font.SysFont(font_list, 12)
+                self.tiny_font = pygame.font.SysFont(font_list, 10)
+        except Exception:
+            # Fallback
+            self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+            self.header_font = pygame.font.SysFont(["Segoe UI", "Arial"], 16, bold=True)
+            self.body_font = pygame.font.SysFont(["Segoe UI", "Arial"], 14)
+            self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13)
+            self.small_font = pygame.font.SysFont(["Segoe UI", "Arial"], 12)
+            self.tiny_font = pygame.font.SysFont(["Segoe UI", "Arial"], 10)
         
         # Navigation buttons
         btn_y = y + height - 60
@@ -113,6 +135,24 @@ class VisualizerPanel:
         # Scroll state for long lists
         self.scroll_offset = 0
         self.max_scroll = 0
+        
+    def update_layout(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        
+        btn_y = self.y + self.height - 60
+        btn_w = 80
+        gap = 10
+        center_x = self.x + self.width // 2
+        
+        self.btn_prev.x = center_x - btn_w * 1.5 - gap
+        self.btn_prev.y = btn_y
+        self.btn_next.x = center_x - btn_w // 2
+        self.btn_next.y = btn_y
+        self.btn_auto.x = center_x + btn_w // 2 + gap
+        self.btn_auto.y = btn_y
         
     def handle_event(self, event, controller, recorder):
         """Handle mouse clicks and scroll events"""
@@ -198,7 +238,7 @@ class VisualizerPanel:
     # MAIN DRAW
     # ========================================================================
     
-    def draw(self, surface, step: BaseStep, controller, recorder):
+    def draw(self, surface, step: BaseStep, controller, recorder, is_computing=False):
         """Main render method"""
         # Background
         bg_rect = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -207,6 +247,9 @@ class VisualizerPanel:
         
         if step is None:
             self._render_empty(surface)
+            if is_computing:
+                text = self.title_font.render("AI Đang Tính Toán...", True, (255, 50, 50))
+                surface.blit(text, (self.x + self.width // 2 - text.get_width() // 2, self.y + self.height // 2 + 50))
             return
         
         # Header with step counter
@@ -241,6 +284,14 @@ class VisualizerPanel:
         
         # Navigation footer
         self._render_footer(surface, controller, recorder)
+        
+        if is_computing:
+            text = self.title_font.render("AI ĐANG TÍNH TOÁN...", True, (255, 50, 50))
+            overlay = pygame.Surface((self.width, 40))
+            overlay.set_alpha(200)
+            overlay.fill((30, 30, 40))
+            surface.blit(overlay, (self.x, self.y + 40))
+            surface.blit(text, (self.x + self.width // 2 - text.get_width() // 2, self.y + 48))
     
     def _render_empty(self, surface):
         """Shown when no steps available"""
