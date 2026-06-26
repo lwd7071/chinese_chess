@@ -129,11 +129,11 @@ class Renderer:
             self.piece_font = pygame.font.SysFont(self.font_name, int(cell_size * 0.48), bold=True)
             self.label_font = pygame.font.SysFont(self.font_name, int(cell_size * 0.38))
         else:
-            self.piece_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.5), bold=True)
-            self.label_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.3))
+            self.piece_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.5), bold=True)
+            self.label_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.3))
             
-        self.tooltip_header_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.28), bold=True)
-        self.tooltip_body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.24))
+        self.tooltip_header_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.28), bold=True)
+        self.tooltip_body_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.24))
 
         self.tooltip_cache = {}
         self.cache_tooltips()
@@ -159,11 +159,11 @@ class Renderer:
             self.piece_font = pygame.font.SysFont(self.font_name, int(cell_size * 0.48), bold=True)
             self.label_font = pygame.font.SysFont(self.font_name, int(cell_size * 0.38))
         else:
-            self.piece_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.5), bold=True)
-            self.label_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.38))
+            self.piece_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.5), bold=True)
+            self.label_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.38))
             
-        self.tooltip_header_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.28), bold=True)
-        self.tooltip_body_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], int(cell_size * 0.24))
+        self.tooltip_header_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.28), bold=True)
+        self.tooltip_body_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", int(cell_size * 0.24))
 
         self.tooltip_cache = {}
         self.cache_tooltips()
@@ -437,8 +437,13 @@ class Renderer:
             
         # Draw 1px character outline
         txt_outline = self.piece_font.render(char, True, outline_color)
-        ox = cx - txt_outline.get_width() // 2
-        oy = cy - txt_outline.get_height() // 2
+        rect = txt_outline.get_bounding_rect()
+        if rect.width > 0 and rect.height > 0:
+            ox = cx - (rect.x + rect.width // 2) - 2
+            oy = cy - (rect.y + rect.height // 2) - 2
+        else:
+            ox = cx - txt_outline.get_width() // 2 - 2
+            oy = cy - txt_outline.get_height() // 2 - 2
         
         surface.blit(txt_outline, (ox - 1, oy))
         surface.blit(txt_outline, (ox + 1, oy))
@@ -484,8 +489,8 @@ class Renderer:
                     board_center_x = self.offset_x + 4 * self.cell_size
                     text_y = self.offset_y - 42
                     
-                    check_text = "⚠️ CHIẾU TƯỚNG! ⚠️"
-                    check_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 20, bold=True)
+                    check_text = "!!! CHIẾU TƯỚNG! !!!"
+                    check_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 20, bold=True)
                     txt = check_font.render(check_text, True, (255, 60, 60))
                     
                     # Draw a solid wood-tinted dark border panel

@@ -2,6 +2,8 @@
 import random
 from ai.eval import evaluate_board, PIECE_VALUES
 from ai.level3 import get_perspective_score
+from ai.step_recorder import OnlineStep, AndOrStep, BeliefStep, MAX_VISUALIZATION_STEPS
+
 
 def online_search_move(board, recorder=None):
     """
@@ -41,7 +43,6 @@ def online_search_move(board, recorder=None):
     
     # Record initial state if recorder provided
     if recorder:
-        from ai.step_recorder import OnlineStep
         recorder.add_step(OnlineStep(
             step_num=1,
             algorithm="Online Search",
@@ -85,7 +86,6 @@ def online_search_move(board, recorder=None):
     # Record final selection
     if recorder:
         sorted_candidates = sorted(candidates, key=lambda x: x['score'], reverse=True)[:10]
-        from ai.step_recorder import OnlineStep
         recorder.add_step(OnlineStep(
             step_num=2,
             algorithm="Online Search",
@@ -153,7 +153,6 @@ def and_or_search_move(board, recorder=None):
         
         # Record step if recorder provided (limit to 10)
         if recorder and i < 10:
-            from ai.step_recorder import AndOrStep
             recorder.add_step(AndOrStep(
                 step_num=i + 1,
                 algorithm="AND-OR Search",
@@ -212,7 +211,6 @@ def belief_state_search_move(board, recorder=None):
     
     # Record detected style
     if recorder:
-        from ai.step_recorder import BeliefStep
         recorder.add_step(BeliefStep(
             step_num=1,
             algorithm="Belief State",
@@ -279,7 +277,6 @@ def belief_state_search_move(board, recorder=None):
         u_pos = get_strategy_score(board, "positional")
         board.undo_move(test_only=True)
         
-        from ai.step_recorder import BeliefStep
         recorder.add_step(BeliefStep(
             step_num=2,
             algorithm="Belief State",

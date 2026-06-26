@@ -2,6 +2,8 @@
 import random
 from ai.eval import PIECE_VALUES
 from ai.level3 import get_perspective_score
+from ai.step_recorder import BacktrackStep, MinConflictStep, AC3Step, MAX_VISUALIZATION_STEPS
+
 
 def get_threats_count(board, color):
     """Counts how many pieces of the given color are currently under direct threat from opponent"""
@@ -47,7 +49,6 @@ def backtracking_mrv_move(board, recorder=None):
     
     # Record all variables with domain sizes
     if recorder:
-        from ai.step_recorder import BacktrackStep
         variables_info = {str(pos): len(domain) for pos, domain in var_domains.items()}
         recorder.add_step(BacktrackStep(
             step_num=1,
@@ -77,7 +78,6 @@ def backtracking_mrv_move(board, recorder=None):
     
     # Record MRV selection
     if recorder:
-        from ai.step_recorder import BacktrackStep
         recorder.add_step(BacktrackStep(
             step_num=2,
             algorithm="Backtracking MRV",
@@ -138,7 +138,6 @@ def min_conflicts_move(board, recorder=None):
     # Record step
     if recorder:
         sorted_candidates = sorted(candidates, key=lambda x: (x['conflicts_after'], -x['score']))[:10]
-        from ai.step_recorder import MinConflictStep
         recorder.add_step(MinConflictStep(
             step_num=1,
             algorithm="Min-Conflicts",
@@ -226,7 +225,6 @@ def ac3_move(board, recorder=None):
     
     # Record step
     if recorder:
-        from ai.step_recorder import AC3Step
         recorder.add_step(AC3Step(
             step_num=1,
             algorithm="AC-3",

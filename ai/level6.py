@@ -2,6 +2,8 @@
 import time
 import random
 from ai.eval import evaluate_board, PIECE_VALUES
+from ai.step_recorder import MinimaxStep, AlphaBetaStep, ExpectimaxStep, MAX_VISUALIZATION_STEPS
+
 
 def sort_moves(board, moves):
     """Sorts moves to optimize Alpha-Beta pruning: captures first, then other moves"""
@@ -57,9 +59,8 @@ def minimax_move(board, depth=3, recorder=None):
                 max_val = max(max_val, val)
                 siblings.append({'move': m, 'value': val})
                 
-                # Record step (limit to 20)
-                if recorder and step_counter[0] < 20:
-                    from ai.step_recorder import MinimaxStep
+                # Record step (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
                     recorder.add_step(MinimaxStep(
                         step_num=step_counter[0] + 1,
                         algorithm="Minimax",
@@ -80,9 +81,8 @@ def minimax_move(board, depth=3, recorder=None):
                 min_val = min(min_val, val)
                 siblings.append({'move': m, 'value': val})
                 
-                # Record step (limit to 20)
-                if recorder and step_counter[0] < 20:
-                    from ai.step_recorder import MinimaxStep
+                # Record step (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
                     recorder.add_step(MinimaxStep(
                         step_num=step_counter[0] + 1,
                         algorithm="Minimax",
@@ -157,9 +157,8 @@ def alpha_beta_move(board, depth=4, recorder=None):
                 old_alpha = alpha
                 alpha = max(alpha, max_val)
                 
-                # Record step if recorder provided (limit to 30)
-                if recorder and step_counter[0] < 30:
-                    from ai.step_recorder import AlphaBetaStep
+                # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
                     is_pruned = (beta <= alpha)
                     recorder.add_step(AlphaBetaStep(
                         step_num=step_counter[0] + 1,
@@ -191,9 +190,8 @@ def alpha_beta_move(board, depth=4, recorder=None):
                 old_beta = beta
                 beta = min(beta, min_val)
                 
-                # Record step if recorder provided (limit to 30)
-                if recorder and step_counter[0] < 30:
-                    from ai.step_recorder import AlphaBetaStep
+                # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS)
+                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
                     is_pruned = (beta <= alpha)
                     recorder.add_step(AlphaBetaStep(
                         step_num=step_counter[0] + 1,
@@ -320,9 +318,8 @@ def expectimax_move(board, depth=3, recorder=None):
             
             expected_val = 0.7 * best_res + 0.3 * others_avg
             
-            # Record step (limit to 20)
-            if recorder and step_counter[0] < 20:
-                from ai.step_recorder import ExpectimaxStep
+            # Record step (limit to MAX_VISUALIZATION_STEPS)
+            if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
                 recorder.add_step(ExpectimaxStep(
                     step_num=step_counter[0] + 1,
                     algorithm="Expectimax",

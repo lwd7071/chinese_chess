@@ -1,0 +1,93 @@
+{
+  "name": "Kỳ Vương",
+  "country": "Việt Nam",
+  "birthday": "01/01/2000",
+  "level": 3,
+  "exp": 102,
+  "history": [
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 17:59"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 17:43"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 17:43"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 17:16"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 17:15"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thắng",
+      "time": "25/06/2026 16:58"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thắng",
+      "time": "25/06/2026 16:52"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thua",
+      "time": "25/06/2026 16:51"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thua",
+      "time": "25/06/2026 16:51"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thắng",
+      "time": "25/06/2026 16:50"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thắng",
+      "time": "25/06/2026 16:49"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thắng",
+      "time": "25/06/2026 16:47"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 16:38"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Expectimax",
+      "result": "Thua",
+      "time": "25/06/2026 16:38"
+    }
+  ]
+}

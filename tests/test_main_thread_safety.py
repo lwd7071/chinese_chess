@@ -8,6 +8,10 @@ import threading
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Mock pygame before importing GameController
+import sys
+if 'main' in sys.modules:
+    del sys.modules['main']
+
 with patch('pygame.init'), \
      patch('pygame.mixer.init'), \
      patch('pygame.display.set_mode'), \
@@ -16,8 +20,12 @@ with patch('pygame.init'), \
      patch('gui.renderer.Renderer'), \
      patch('gui.sidebar.Sidebar'), \
      patch('gui.menu.StartMenu'), \
-     patch('gui.shop.ShopScreen'):
+     patch('gui.shop.ShopScreen'), \
+     patch('gui.settings.SettingsScreen'), \
+     patch('gui.visualizer.VisualizerPanel'):
     from main import GameController
+
+
 
 class TestThreadSafety(unittest.TestCase):
     @patch('pygame.init')
@@ -29,6 +37,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.sidebar.Sidebar')
     @patch('gui.menu.StartMenu')
     @patch('gui.shop.ShopScreen')
+    @patch('gui.visualizer.VisualizerPanel')
     def test_controller_has_ai_lock(self, *mocks):
         """Verify that GameController has an ai_lock initialized."""
         controller = GameController()
@@ -44,6 +53,8 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.sidebar.Sidebar')
     @patch('gui.menu.StartMenu')
     @patch('gui.shop.ShopScreen')
+    @patch('gui.settings.SettingsScreen')
+    @patch('gui.visualizer.VisualizerPanel')
     def test_calculate_uses_lock(self, *mocks):
         """Verify that the background calculation thread acquires the lock when writing ai_result."""
         controller = GameController()
@@ -88,6 +99,8 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.sidebar.Sidebar')
     @patch('gui.menu.StartMenu')
     @patch('gui.shop.ShopScreen')
+    @patch('gui.settings.SettingsScreen')
+    @patch('gui.visualizer.VisualizerPanel')
     def test_get_result_uses_lock(self, *mocks):
         """Verify that the main thread acquires the lock when reading and clearing ai_result."""
         controller = GameController()

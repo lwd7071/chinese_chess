@@ -154,11 +154,11 @@ class Board:
                     break
             if match:
                 match_count += 1
-                if match_count >= 20:
+                if match_count >= 3:
                     break
                 
         self.undo_move(test_only=True)
-        return match_count >= 20
+        return match_count >= 3
 
     def make_move(self, from_pos, to_pos, test_only=False, log_move=True):
         """

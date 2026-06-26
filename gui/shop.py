@@ -20,12 +20,12 @@ class ShopScreen:
         self.height = height
         
         # Load premium fonts (falling back to Segoe UI/Tahoma)
-        self.title_font = pygame.font.SysFont(["Playfair Display", "Segoe UI", "Tahoma"], 38, bold=True)
-        self.section_font = pygame.font.SysFont(["Playfair Display", "Segoe UI", "Tahoma"], 20, bold=True)
-        self.item_name_font = pygame.font.SysFont(["Source Serif 4", "Segoe UI", "Tahoma"], 18, bold=True)
-        self.body_font = pygame.font.SysFont(["Source Serif 4", "Segoe UI", "Tahoma"], 13)
-        self.btn_font = pygame.font.SysFont(["Segoe UI", "Tahoma", "Arial"], 12, bold=True)
-        self.gold_font = pygame.font.SysFont(["Consolas", "Segoe UI"], 16, bold=True)
+        self.title_font = pygame.font.SysFont("Playfair Display, Segoe UI, Tahoma", 38, bold=True)
+        self.section_font = pygame.font.SysFont("Playfair Display, Segoe UI, Tahoma", 20, bold=True)
+        self.item_name_font = pygame.font.SysFont("Source Serif 4, Segoe UI, Tahoma", 18, bold=True)
+        self.body_font = pygame.font.SysFont("Source Serif 4, Segoe UI, Tahoma", 13)
+        self.btn_font = pygame.font.SysFont("Segoe UI, Tahoma, Arial", 12, bold=True)
+        self.gold_font = pygame.font.SysFont("Consolas, Segoe UI", 16, bold=True)
         
         # Background wood noise texture cached
         self.wood_texture = self.generate_wood_texture(width, height)
@@ -220,7 +220,7 @@ class ShopScreen:
         # Draw Gold Coin Icon
         pygame.draw.circle(surface, COLOR_GOLD, (gold_box.x + 20, gold_box.centery), 9)
         pygame.draw.circle(surface, (200, 150, 30), (gold_box.x + 20, gold_box.centery), 6)
-        c_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 10, bold=True)
+        c_font = pygame.font.SysFont("Segoe UI, Tahoma", 10, bold=True)
         c_txt = c_font.render("V", True, COLOR_GOLD)
         surface.blit(c_txt, (gold_box.x + 20 - c_txt.get_width() // 2, gold_box.centery - c_txt.get_height() // 2 + 1))
         
@@ -228,7 +228,7 @@ class ShopScreen:
         surface.blit(gold_val_txt, (gold_box.x + 38, gold_box.centery - gold_val_txt.get_height() // 2))
         
         # Title "CỬA TIỆM HOÀNG GIA"
-        brand_font = pygame.font.SysFont(["Playfair Display", "Segoe UI"], 18, bold=True)
+        brand_font = pygame.font.SysFont("Playfair Display, Segoe UI", 18, bold=True)
         brand_txt = brand_font.render("Hoàng Gia Tượng Kỳ", True, COLOR_GOLD)
         surface.blit(brand_txt, (self.width // 2 - brand_txt.get_width() // 2, 30))
         
@@ -355,19 +355,19 @@ class ShopScreen:
                 if item["id"] == "classic_wood_piece":
                     pygame.draw.circle(surface, (160, 110, 60), (px, py), r)
                     pygame.draw.circle(surface, (250, 240, 215), (px, py), r - 2)
-                    p_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 18, bold=True)
+                    p_font = pygame.font.SysFont("Segoe UI, Tahoma", 18, bold=True)
                     p_txt = p_font.render("將", True, (20, 20, 20))
                     surface.blit(p_txt, (px - p_txt.get_width() // 2, py - p_txt.get_height() // 2))
                 elif item["id"] == "royal_jade":
                     pygame.draw.circle(surface, (0, 90, 60), (px, py), r)
                     pygame.draw.circle(surface, (0, 140, 100), (px, py), r - 2)
-                    p_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 18, bold=True)
+                    p_font = pygame.font.SysFont("Segoe UI, Tahoma", 18, bold=True)
                     p_txt = p_font.render("將", True, COLOR_GOLD)
                     surface.blit(p_txt, (px - p_txt.get_width() // 2, py - p_txt.get_height() // 2))
                 elif item["id"] == "cyber_steel":
                     pygame.draw.circle(surface, (50, 50, 55), (px, py), r)
                     pygame.draw.circle(surface, (90, 90, 95), (px, py), r - 2)
-                    p_font = pygame.font.SysFont(["Segoe UI", "Tahoma"], 18, bold=True)
+                    p_font = pygame.font.SysFont("Segoe UI, Tahoma", 18, bold=True)
                     p_txt = p_font.render("將", True, (0, 220, 255))
                     surface.blit(p_txt, (px - p_txt.get_width() // 2, py - p_txt.get_height() // 2))
                 
