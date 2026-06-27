@@ -11,6 +11,14 @@ Tài liệu này ghi lại các thay đổi trong quá trình phát triển tín
 - **Cập nhật AI Logic (`ai/level1.py` đến `ai/level6.py`)**: Truyền đầy đủ các thông số giải thích trực quan, chi tiết từng bước theo chuẩn lý thuyết giáo khoa.
 - **Cập nhật GUI Visualizer (`gui/visualizer.py`)**: Đảm bảo hiển thị 3 cột chuẩn xác (`CURRENT MOVE`, `FRONTIER (PQ)`, `EVALUATED`, `BACKTRACK LOG`, v.v.) cùng lời giải thích rõ ràng ở đầu mỗi bước.
 
+### Sửa lỗi Phát sinh & Tối ưu hóa Giao diện Đa thiết bị (Hotfix)
+- **Sửa lỗi crash `TypeError` tại Level 6**:
+  - *Vấn đề*: Khi chạy tay (`report_mode=True`), thuật toán Alpha-Beta và Expectimax cố gắng truyền đối số `evaluated=...` vào `AlphaBetaStep` và `ExpectimaxStep` nhưng các trường này chưa được định nghĩa trong `ai/step_recorder.py`.
+  - *Khắc phục*: Thêm trường `evaluated` vào cả hai lớp trong `ai/step_recorder.py`, giúp chương trình chạy Visualizer mượt mà, không bị crash.
+- **Tương thích độ phân giải màn hình nhỏ & DPI Scaling**:
+  - *Vấn đề*: Trên các màn hình nhỏ (ví dụ độ phân giải 1366x768 hoặc màn hình bật scale 125%/150%), cửa sổ mặc định `1100x820` vượt quá chiều cao màn hình khả dụng, làm che mất các hàng nhãn tọa độ `A B C D` và `1 2 3` bên ngoài bàn cờ.
+  - *Khắc phục*: Cập nhật `main.py` tự động truy vấn thông tin màn hình qua `pygame.display.Info()`. Nếu chiều cao màn hình < 900px, game sẽ tự động thu nhỏ cửa sổ khởi tạo vừa với màn hình (giới hạn chiều cao tối thiểu còn `600px` và chiều rộng `900px` trong sự kiện `VIDEORESIZE` thay vì `1000x750` như trước). Đã thêm kiểm tra `pygame.display.get_init()` để tránh lỗi khi chạy unit test môi trường không có UI.
+
 ---
 
 ## 2026-06-25: Task 1 - Step Recorder Module ✅

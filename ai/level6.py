@@ -12,6 +12,17 @@ from ai.step_recorder import (
 )
 
 
+def safe_format(val):
+    if val == float("inf"):
+        return "∞"
+    if val == float("-inf"):
+        return "-∞"
+    try:
+        return f"{val:.0f}"
+    except Exception:
+        return str(val)
+
+
 def sort_moves(board, moves):
     """Sorts moves to optimize Alpha-Beta pruning: captures first, then other moves"""
 
@@ -199,7 +210,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                         AlphaBetaStep(
                             step_num=step_counter[0] + 1,
                             algorithm="Alpha-Beta",
-                            explanation=f"Alpha-Beta MAX node depth={d}, xét {move_to_label(m)}: α={old_alpha:.0f}→{alpha:.0f}, β={beta:.0f}"
+                            explanation=f"Alpha-Beta MAX node depth={d}, xét {move_to_label(m)}: α={safe_format(old_alpha)}→{safe_format(alpha)}, β={safe_format(beta)}"
                             + (" → Cắt tỉa!" if is_pruned else ""),
                             current_node={
                                 "move": m,
@@ -214,7 +225,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                             alpha=alpha,
                             beta=beta,
                             is_pruned=is_pruned,
-                            prune_reason=f"β({beta:.0f}) ≤ α({alpha:.0f}) → cắt nhánh"
+                            prune_reason=f"β({safe_format(beta)}) ≤ α({safe_format(alpha)}) → cắt nhánh"
                             if is_pruned
                             else "",
                             siblings_evaluated=siblings.copy(),
@@ -245,7 +256,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                         AlphaBetaStep(
                             step_num=step_counter[0] + 1,
                             algorithm="Alpha-Beta",
-                            explanation=f"Alpha-Beta MIN node depth={d}, xét {move_to_label(m)}: α={alpha:.0f}, β={old_beta:.0f}→{beta:.0f}"
+                            explanation=f"Alpha-Beta MIN node depth={d}, xét {move_to_label(m)}: α={safe_format(alpha)}, β={safe_format(old_beta)}→{safe_format(beta)}"
                             + (" → Cắt tỉa!" if is_pruned else ""),
                             current_node={
                                 "move": m,
@@ -260,7 +271,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                             alpha=alpha,
                             beta=beta,
                             is_pruned=is_pruned,
-                            prune_reason=f"β({beta:.0f}) ≤ α({alpha:.0f}) → cắt nhánh"
+                            prune_reason=f"β({safe_format(beta)}) ≤ α({safe_format(alpha)}) → cắt nhánh"
                             if is_pruned
                             else "",
                             siblings_evaluated=siblings.copy(),

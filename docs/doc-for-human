@@ -13,6 +13,9 @@ Hoàn tất chuẩn hóa toàn bộ 18 thuật toán trong hệ thống để kh
 1. **Cải tiến Dataclass (`ai/step_recorder.py`)**: Bổ sung các trường dữ liệu chi tiết (`evaluated`, `backtrack_log`, `candidates`, `random_value`, `decision`...) cùng tiện ích chuyển đổi tọa độ sang ký hiệu cờ chuẩn `move_to_label`, `pos_to_label`.
 2. **Nâng cấp AI Logic (`ai/level1.py` → `ai/level6.py`)**: Đưa chuỗi giải thích chi tiết, minh bạch vào đầu mỗi bước thực thi, hiển thị rõ ràng quá trình ra quyết định và tính toán chi phí/heuristic/xác suất.
 3. **Chuẩn hóa GUI (`gui/visualizer.py`)**: Cập nhật chính xác tên 3 cột hiển thị theo tiêu chuẩn học thuật (`CURRENT MOVE`, `FRONTIER (PQ)`, `EVALUATED`, `BACKTRACK LOG`, v.v.) giúp giao diện trực quan và dễ theo dõi.
+4. **Sửa lỗi phát sinh & Tối ưu hiển thị đa thiết bị (Hotfix)**:
+   - *Sửa lỗi crash `TypeError` tại Level 6*: Khắc phục triệt để lỗi khi chạy Visualizer thuật toán Alpha-Beta & Expectimax bị crash do thiếu trường `evaluated` trong dataclass tương ứng. Thêm trường này vào `ai/step_recorder.py` giúp chương trình chạy Visualizer trơn tru.
+   - *Fix lỗi che tọa độ (DPI Scaling / Màn hình nhỏ)*: Khắc phục lỗi che mất tọa độ cờ (`A B C D` và `1 2 3`) khi chơi trên màn hình nhỏ hoặc máy tính bật chế độ phóng to hệ thống (DPI Scaling). Tự động điều chỉnh kích thước cửa sổ khởi tạo phù hợp với chiều cao màn hình thực tế của người dùng thông qua `pygame.display.Info()`, đồng thời hạ giới hạn thu nhỏ tối thiểu từ `1000x750` xuống `900x600` ở sự kiện `VIDEORESIZE`.
 
 ---
 

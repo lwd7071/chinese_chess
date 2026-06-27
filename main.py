@@ -58,8 +58,27 @@ class GameController:
         except Exception:
             print("Warning: pygame.mixer.init() failed. Running without sound.")
 
+        # Detect display info to fit smaller monitors (DPI scaling or small screens)
+        screen_w = 0
+        screen_h = 0
+        if pygame.display.get_init():
+            try:
+                info = pygame.display.Info()
+                screen_w = info.current_w
+                screen_h = info.current_h
+            except Exception:
+                pass
+
+        # Default standard dimensions
         self.width = WIDTH
         self.height = HEIGHT
+
+        # If the monitor resolution is small, scale down the default dimensions
+        if screen_h > 0 and screen_h < 900:
+            # Reserve space for window decorations and taskbar (approx 100px)
+            self.height = max(600, screen_h - 100)
+            self.width = max(900, int(self.height * 1.34))
+
         self.screen = pygame.display.set_mode(
             (self.width, self.height), pygame.RESIZABLE
         )
@@ -282,8 +301,9 @@ class GameController:
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.VIDEORESIZE:
-                    w = max(1000, event.w)
-                    h = max(750, event.h)
+                    # Allow smaller minimum window sizes to support smaller monitors/resizing
+                    w = max(900, event.w)
+                    h = max(600, event.h)
                     self.width, self.height = w, h
                     self.screen = pygame.display.set_mode((w, h), pygame.RESIZABLE)
                     self.recalculate_layout()
@@ -833,6 +853,7 @@ class GameController:
                 self.step_controller,
                 self.step_recorder,
                 is_computing=(self.ai_thread is not None),
+                board=self.board,
             )
         else:
             # Show normal Sidebar

@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # Type alias cho dễ đọc
 Move = Tuple[Tuple[int, int], Tuple[int, int]]  # ((from_r, from_c), (to_r, to_c))
 
-MAX_VISUALIZATION_STEPS = 30
+MAX_VISUALIZATION_STEPS = 10000
 
 
 def pos_to_label(pos: Optional[Tuple[int, int]]) -> str:
@@ -346,6 +346,7 @@ class AlphaBetaStep(BaseStep):
     prune_reason: str = ""  # "β(200) ≤ α(350) → cắt nhánh"
     siblings_evaluated: List[Dict] = field(default_factory=list)
     evaluated_and_pruned: List[Dict[str, Any]] = field(default_factory=list)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -366,6 +367,7 @@ class ExpectimaxStep(BaseStep):
     node_type: str = "MAX"
     best_res: float = 0.0
     others_avg: float = 0.0
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================

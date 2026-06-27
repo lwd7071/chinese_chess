@@ -3,14 +3,7 @@ import random
 from collections import deque
 
 from ai.eval import PIECE_VALUES, evaluate_board
-from ai.step_recorder import (
-    MAX_VISUALIZATION_STEPS,
-    BFSStep,
-    DFSStep,
-    UCSStep,
-    move_to_label,
-    pos_to_label,
-)
+from ai.step_recorder import MAX_VISUALIZATION_STEPS, BFSStep, DFSStep, UCSStep
 
 
 class BFSNode:
@@ -79,13 +72,11 @@ def bfs_move(board, depth=2, recorder=None):
                 {"id": f"n{n.id}", "move": n.move, "depth": n.depth}
                 for n in list(queue)[:10]
             ]
-            next_moves_count = len(curr.board.get_all_legal_moves(curr.board.turn)) if curr.depth < depth else 0
-            move_str = move_to_label(curr.move) if curr.move else "Root"
             recorder.add_step(
                 BFSStep(
                     step_num=step_counter + 1,
                     algorithm="BFS",
-                    explanation=f"BFS duyệt n{curr.id}: {move_str} (depth={curr.depth}) → mở rộng {next_moves_count} nước → đưa vào hàng đợi",
+                    explanation=f"Duyệt node n{curr.id} ở depth={curr.depth}, mở rộng các nước đi tiếp theo",
                     current_node={
                         "id": f"n{curr.id}",
                         "move": curr.move,
@@ -94,8 +85,6 @@ def bfs_move(board, depth=2, recorder=None):
                     },
                     queue=queue_info,
                     explored=explored_nodes.copy(),
-                    evaluated=explored_nodes.copy(),
-                    current_depth=curr.depth,
                 )
             )
             step_counter += 1
@@ -180,37 +169,25 @@ def dfs_move(board, depth=2, recorder=None):
 
     step_counter = [0]  # Use list to allow mutation in nested function
     explored_nodes = []
-    backtrack_log = []
 
     def dfs_search_with_recording(board, remaining_depth, current_stack):
         if remaining_depth == 0:
-            val = evaluate_board(board)
-            if current_stack and recorder:
-                last_move = current_stack[-1]["move"]
-                backtrack_log.append({"move": last_move, "score": val, "action": "undo"})
-            return val
+            return evaluate_board(board)
 
         moves = board.get_all_legal_moves(board.turn)
         if not moves:
-            val = evaluate_board(board)
-            if current_stack and recorder:
-                last_move = current_stack[-1]["move"]
-                backtrack_log.append({"move": last_move, "score": val, "action": "undo"})
-            return val
+            return evaluate_board(board)
 
-        curr_move = current_stack[-1]["move"] if current_stack else None
         # Record step if recorder provided (limit to avoid explosion)
         if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
-            move_str = move_to_label(curr_move) if curr_move else "Root"
             recorder.add_step(
                 DFSStep(
                     step_num=step_counter[0] + 1,
                     algorithm="DFS",
-                    explanation=f"DFS đi sâu: {move_str} (depth={depth - remaining_depth}) → duyệt {len(moves)} nước → đẩy vào Stack",
-                    current_node={"depth": depth - remaining_depth, "score": None, "move": curr_move},
+                    explanation=f"DFS ở depth={depth - remaining_depth}, duyệt {len(moves)} nước đi",
+                    current_node={"depth": depth - remaining_depth, "score": None},
                     stack=current_stack.copy(),
                     explored=explored_nodes.copy(),
-                    backtrack_log=backtrack_log.copy(),
                     is_backtracking=False,
                 )
             )
@@ -220,48 +197,22 @@ def dfs_move(board, depth=2, recorder=None):
             max_val = float("-inf")
             for m in moves:
                 board.make_move(m[0], m[1], test_only=True)
-                explored_nodes.append({"move": m, "depth": depth - remaining_depth + 1})
-                new_stack = current_stack + [{"move": m, "depth": depth - remaining_depth + 1}]
+                new_stack = current_stack + [
+                    {"move": m, "depth": depth - remaining_depth + 1}
+                ]
                 val = dfs_search_with_recording(board, remaining_depth - 1, new_stack)
                 board.undo_move(test_only=True)
-                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS and remaining_depth < depth:
-                    recorder.add_step(
-                        DFSStep(
-                            step_num=step_counter[0] + 1,
-                            algorithm="DFS",
-                            explanation=f"DFS quay lui: {move_to_label(m)} → trả về điểm {val} → thử nhánh khác",
-                            current_node={"depth": depth - remaining_depth, "score": val, "move": m},
-                            stack=current_stack.copy(),
-                            explored=explored_nodes.copy(),
-                            backtrack_log=backtrack_log.copy(),
-                            is_backtracking=True,
-                        )
-                    )
-                    step_counter[0] += 1
                 max_val = max(max_val, val)
             return max_val
         else:
             min_val = float("inf")
             for m in moves:
                 board.make_move(m[0], m[1], test_only=True)
-                explored_nodes.append({"move": m, "depth": depth - remaining_depth + 1})
-                new_stack = current_stack + [{"move": m, "depth": depth - remaining_depth + 1}]
+                new_stack = current_stack + [
+                    {"move": m, "depth": depth - remaining_depth + 1}
+                ]
                 val = dfs_search_with_recording(board, remaining_depth - 1, new_stack)
                 board.undo_move(test_only=True)
-                if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS and remaining_depth < depth:
-                    recorder.add_step(
-                        DFSStep(
-                            step_num=step_counter[0] + 1,
-                            algorithm="DFS",
-                            explanation=f"DFS quay lui: {move_to_label(m)} → trả về điểm {val} → thử nhánh khác",
-                            current_node={"depth": depth - remaining_depth, "score": val, "move": m},
-                            stack=current_stack.copy(),
-                            explored=explored_nodes.copy(),
-                            backtrack_log=backtrack_log.copy(),
-                            is_backtracking=True,
-                        )
-                    )
-                    step_counter[0] += 1
                 min_val = min(min_val, val)
             return min_val
 
@@ -327,7 +278,18 @@ def ucs_move(board, recorder=None):
         # Calculate cost
         cap_val = PIECE_VALUES.get(target.name, 0) if target else 0
         cost = 1000 - cap_val
-        piece_name = PIECE_NAME_VI.get(target.name, "—") if target else "—"
+        
+        char_to_key = {
+            "G": "general",
+            "A": "advisor",
+            "E": "elephant",
+            "H": "horse",
+            "R": "rook",
+            "C": "cannon",
+            "P": "pawn",
+        }
+        key = char_to_key.get(target.name, target.name) if target else None
+        piece_name = PIECE_NAME_VI.get(key, "—") if key else "—"
 
         # Build node info for this move
         node_info = {
@@ -354,12 +316,11 @@ def ucs_move(board, recorder=None):
                 UCSStep(
                     step_num=i + 1,
                     algorithm="UCS",
-                    explanation=f"UCS xét nước: {move_to_label((from_pos, to_pos))} → ăn {piece_name} ({cap_val}) → cost = 1000 - {cap_val} = {cost}",
+                    explanation=f"Xét nước {from_pos}→{to_pos}: cost = 1000 - {cap_val}({piece_name}) = {cost}",
                     chosen_move=best_move,
                     current_node=node_info,
                     frontier=sorted_frontier.copy(),
                     explored=explored_list.copy(),
-                    evaluated=explored_list.copy(),
                 )
             )
 

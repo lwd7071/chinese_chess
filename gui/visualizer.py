@@ -105,6 +105,228 @@ class StepController:
         return None
 
 
+class EmojiSafeFont:
+    """Wrapper for pygame.font.Font that dynamically renders custom vector badges/icons
+    instead of displaying text-based emojis or bracket characters (like [OK], [X])."""
+    
+    CURRENT_BOARD = None
+    CURRENT_TURN = None
+
+    TAG_MAP = {
+        "✅": "check",
+        "[OK]": "check",
+        "❌": "cross",
+        "[X]": "cross",
+        "⚠️": "warn",
+        "[!]": "warn",
+        "✂️": "cut",
+        "[CUT]": "cut",
+        "🔙": "back",
+        "[BACK]": "back",
+        "⭐": "star",
+        "★": "star",
+        "[*]": "star",
+    }
+
+    def __init__(self, font_obj):
+        self._font = font_obj
+
+    def tokenize(self, text):
+        if not isinstance(text, str):
+            return [("text", text)]
+        
+        tokens = []
+        current_pos = 0
+        while current_pos < len(text):
+            found_tag = None
+            found_idx = -1
+            # Find the earliest tag occurrence
+            for tag in self.TAG_MAP:
+                idx = text.find(tag, current_pos)
+                if idx != -1:
+                    if found_idx == -1 or idx < found_idx:
+                        found_idx = idx
+                        found_tag = tag
+            
+            if found_idx == -1:
+                # No more tags
+                tokens.append(("text", text[current_pos:]))
+                break
+            else:
+                # Add preceding text token
+                if found_idx > current_pos:
+                    tokens.append(("text", text[current_pos:found_idx]))
+                # Add tag token
+                tokens.append((self.TAG_MAP[found_tag], ""))
+                current_pos = found_idx + len(found_tag)
+        return tokens
+
+    @staticmethod
+    def clean_coordinates(text):
+        if not isinstance(text, str):
+            return text
+        import re
+        
+        # Track the color of the first resolved piece in this text line/move
+        detected_color = [None]
+        
+        def repl(match):
+            try:
+                row = int(match.group(1))
+                col = int(match.group(2))
+                if 0 <= row <= 9 and 0 <= col <= 8:
+                    col_labels = "ABCDEFGHI"
+                    
+                    # Determine piece color contextually
+                    color = None
+                    if detected_color[0] is not None:
+                        color = detected_color[0]
+                    elif EmojiSafeFont.CURRENT_BOARD:
+                        piece = EmojiSafeFont.CURRENT_BOARD.get_piece((row, col))
+                        if piece:
+                            color = piece.color
+                            detected_color[0] = color
+                            
+                    if color is None:
+                        color = detected_color[0] or EmojiSafeFont.CURRENT_TURN or "red"
+                        
+                    if color == "black":
+                        col_char = col_labels[col]
+                        row_char = str(row)
+                    else:
+                        col_char = col_labels[8 - col]
+                        row_char = str(9 - row)
+                    return f"{col_char}{row_char}"
+            except Exception:
+                pass
+            return match.group(0)
+            
+        return re.sub(r'\((\d),\s*(\d)\)', repl, text)
+
+    def size(self, text):
+        if isinstance(text, str):
+            text = self.clean_coordinates(text)
+            
+        if not isinstance(text, str) or not text:
+            return self._font.size(text)
+            
+        tokens = self.tokenize(text)
+        if len(tokens) == 1 and tokens[0][0] == "text":
+            return self._font.size(text)
+            
+        total_w = 0
+        max_h = self._font.get_height()
+        
+        for t_type, content in tokens:
+            if t_type == "text":
+                w, h = self._font.size(content)
+                total_w += w
+                max_h = max(max_h, h)
+            else:
+                # Icon size is 12x12, with 4px right spacing
+                total_w += 12 + 4
+                max_h = max(max_h, 12)
+                
+        # Remove trailing spacing
+        if total_w > 0:
+            total_w -= 4
+            
+        return total_w, max_h
+
+    def get_height(self):
+        return self._font.get_height()
+
+    def render(self, text, antialias, color, background=None):
+        if isinstance(text, str):
+            text = self.clean_coordinates(text)
+            
+        if not isinstance(text, str) or not text:
+            return self._font.render(text, antialias, color, background)
+            
+        tokens = self.tokenize(text)
+        # If no icons found, render normally
+        if len(tokens) == 1 and tokens[0][0] == "text":
+            return self._font.render(text, antialias, color, background)
+            
+        # Compute combined surface size
+        width, height = self.size(text)
+        
+        # Create transparent surface
+        surf = pygame.Surface((width, height), pygame.SRCALPHA)
+        
+        x_offset = 0
+        icon_h = 12
+        icon_y = (height - icon_h) // 2
+        
+        for i, (t_type, content) in enumerate(tokens):
+            if t_type == "text":
+                text_surf = self._font.render(content, antialias, color, background)
+                text_y = (height - text_surf.get_height()) // 2
+                surf.blit(text_surf, (x_offset, text_y))
+                x_offset += text_surf.get_width()
+            else:
+                # Draw the custom vector icon at x_offset
+                if t_type == "check":
+                    # Green circular checkmark badge
+                    pygame.draw.circle(surf, (46, 204, 113), (x_offset + 6, icon_y + 6), 5)
+                    pygame.draw.line(surf, (255, 255, 255), (x_offset + 3, icon_y + 6), (x_offset + 5, icon_y + 8), 2)
+                    pygame.draw.line(surf, (255, 255, 255), (x_offset + 5, icon_y + 8), (x_offset + 9, icon_y + 4), 2)
+                elif t_type == "cross":
+                    # Red circular cross badge
+                    pygame.draw.circle(surf, (231, 76, 60), (x_offset + 6, icon_y + 6), 5)
+                    pygame.draw.line(surf, (255, 255, 255), (x_offset + 4, icon_y + 4), (x_offset + 8, icon_y + 8), 2)
+                    pygame.draw.line(surf, (255, 255, 255), (x_offset + 4, icon_y + 8), (x_offset + 8, icon_y + 4), 2)
+                elif t_type == "warn":
+                    # Orange warning triangle badge
+                    pygame.draw.polygon(
+                        surf,
+                        (241, 196, 15),
+                        [
+                            (x_offset + 6, icon_y + 1),
+                            (x_offset + 1, icon_y + 11),
+                            (x_offset + 11, icon_y + 11),
+                        ],
+                    )
+                    # Exclamation dot and line (black for contrast)
+                    pygame.draw.line(surf, (0, 0, 0), (x_offset + 6, icon_y + 4), (x_offset + 6, icon_y + 7), 2)
+                    pygame.draw.rect(surf, (0, 0, 0), (x_offset + 5, icon_y + 9, 2, 2))
+                elif t_type == "cut":
+                    # Scissor symbol in gray/silver
+                    pygame.draw.line(surf, (149, 165, 166), (x_offset + 2, icon_y + 2), (x_offset + 10, icon_y + 10), 2)
+                    pygame.draw.line(surf, (149, 165, 166), (x_offset + 2, icon_y + 10), (x_offset + 10, icon_y + 2), 2)
+                    pygame.draw.circle(surf, (149, 165, 166), (x_offset + 2, icon_y + 2), 2)
+                    pygame.draw.circle(surf, (149, 165, 166), (x_offset + 2, icon_y + 10), 2)
+                elif t_type == "back":
+                    # Red back arrow
+                    pygame.draw.line(surf, (231, 76, 60), (x_offset + 2, icon_y + 6), (x_offset + 10, icon_y + 6), 2)
+                    pygame.draw.line(surf, (231, 76, 60), (x_offset + 2, icon_y + 6), (x_offset + 5, icon_y + 3), 2)
+                    pygame.draw.line(surf, (231, 76, 60), (x_offset + 2, icon_y + 6), (x_offset + 5, icon_y + 9), 2)
+                elif t_type == "star":
+                    # Gold star symbol
+                    pygame.draw.polygon(
+                        surf,
+                        (242, 202, 80),
+                        [
+                            (x_offset + 6, icon_y + 1),
+                            (x_offset + 8, icon_y + 4),
+                            (x_offset + 11, icon_y + 4),
+                            (x_offset + 8, icon_y + 6),
+                            (x_offset + 9, icon_y + 10),
+                            (x_offset + 6, icon_y + 8),
+                            (x_offset + 3, icon_y + 10),
+                            (x_offset + 4, icon_y + 6),
+                            (x_offset + 1, icon_y + 4),
+                            (x_offset + 4, icon_y + 4),
+                        ],
+                    )
+                x_offset += 12 + 4
+                
+        return surf
+
+    def __getattr__(self, name):
+        return getattr(self._font, name)
+
+
 class VisualizerPanel:
     """
     Main visualization panel for step-by-step algorithm display.
@@ -154,17 +376,17 @@ class VisualizerPanel:
             # 4. Default pygame font (cuối cùng)
             return pygame.font.Font(None, size)
 
-        self.title_font = _load_font(20, bold=True)
-        self.header_font = _load_font(16, bold=True)
-        self.body_font = _load_font(14)
-        self.small_font = _load_font(12)
-        self.tiny_font = _load_font(10)
+        self.title_font = EmojiSafeFont(_load_font(20, bold=True))
+        self.header_font = EmojiSafeFont(_load_font(16, bold=True))
+        self.body_font = EmojiSafeFont(_load_font(14))
+        self.small_font = EmojiSafeFont(_load_font(12))
+        self.tiny_font = EmojiSafeFont(_load_font(10))
 
         # Mono font riêng — ưu tiên Consolas (luôn có trên Windows)
         try:
-            self.mono_font = pygame.font.SysFont("Consolas", 13)
+            self.mono_font = EmojiSafeFont(pygame.font.SysFont("Consolas", 13))
         except Exception:
-            self.mono_font = _load_font(13)
+            self.mono_font = EmojiSafeFont(_load_font(13))
 
         # Navigation buttons
         btn_y = y + height - 60
@@ -180,6 +402,7 @@ class VisualizerPanel:
         # Scroll state for long lists
         self.scroll_offset = 0
         self.max_scroll = 0
+        self.current_board = None
 
     def update_layout(self, x, y, width, height):
         self.x = x
@@ -242,10 +465,26 @@ class VisualizerPanel:
     COL_LABELS = "ABCDEFGHI"
 
     def _pos_to_label(self, pos):
-        """Convert (row, col) → 'A0'..'I9'"""
+        """Convert (row, col) → 'A0'..'I9' using current board context"""
+        color = "red"
+        if self.current_board:
+            piece = self.current_board.get_piece(pos)
+            if piece:
+                color = piece.color
+            else:
+                color = self.current_board.turn
+        return self._pos_to_label_with_color(pos, color)
+
+    def _pos_to_label_with_color(self, pos, color):
         row, col = pos
-        if 0 <= col < len(self.COL_LABELS):
-            return f"{self.COL_LABELS[col]}{row}"
+        if 0 <= col < len(self.COL_LABELS) and 0 <= row <= 9:
+            if color == "black":
+                col_char = self.COL_LABELS[col]
+                row_char = str(row)
+            else:
+                col_char = self.COL_LABELS[8 - col]
+                row_char = str(9 - row)
+            return f"{col_char}{row_char}"
         return f"({row},{col})"
 
     def _format_move_full(self, move_data):
@@ -283,8 +522,17 @@ class VisualizerPanel:
 
         if move_tuple and isinstance(move_tuple, tuple) and len(move_tuple) == 2:
             if isinstance(move_tuple[0], tuple):
-                from_label = self._pos_to_label(move_tuple[0])
-                to_label = self._pos_to_label(move_tuple[1])
+                # Determine piece color contextually
+                color = "red"
+                if self.current_board:
+                    piece = self.current_board.get_piece(move_tuple[0])
+                    if piece:
+                        color = piece.color
+                    else:
+                        color = self.current_board.turn
+                
+                from_label = self._pos_to_label_with_color(move_tuple[0], color)
+                to_label = self._pos_to_label_with_color(move_tuple[1], color)
                 return f"{piece_name}{from_label}→{to_label}{score_str}"
             else:
                 return f"{piece_name}{move_tuple}{score_str}"
@@ -319,8 +567,12 @@ class VisualizerPanel:
     # MAIN DRAW
     # ========================================================================
 
-    def draw(self, surface, step: BaseStep, controller, recorder, is_computing=False):
+    def draw(self, surface, step: BaseStep, controller, recorder, is_computing=False, board=None):
         """Main render method"""
+        self.current_board = board
+        EmojiSafeFont.CURRENT_BOARD = board
+        EmojiSafeFont.CURRENT_TURN = board.turn if board else None
+
         # Background
         bg_rect = pygame.Rect(self.x, self.y, self.width, self.height)
         pygame.draw.rect(surface, COLOR_BG, bg_rect)
@@ -365,7 +617,7 @@ class VisualizerPanel:
         elif isinstance(step, BeamStep):
             self._render_beam(surface, step, content_rect)
         elif isinstance(step, (OnlineStep, AndOrStep, BeliefStep)):
-            self._render_level4(surface, step, content_rect)
+            self._render_online_andor_belief(surface, step, content_rect)
         elif isinstance(step, (BacktrackStep, MinConflictStep, AC3Step)):
             self._render_csp(surface, step, content_rect)
         elif isinstance(step, AlphaBetaStep):
@@ -434,55 +686,197 @@ class VisualizerPanel:
             )
 
     def _render_footer(self, surface, controller, recorder):
-        """Render navigation buttons"""
+        """Render navigation buttons with premium styling and vector icons"""
         mouse_pos = pygame.mouse.get_pos()
 
         # Draw buttons
         buttons = [
-            (self.btn_prev, "◀ PREV", COLOR_BLUE, recorder.current_index > 0),
+            # (rect, label, icon_type, color, enabled, icon_left)
+            (
+                self.btn_prev,
+                "PREV",
+                "prev",
+                COLOR_BLUE,
+                recorder.current_index > 0,
+                True,
+            ),
             (
                 self.btn_next,
-                "NEXT ▶"
-                if recorder.current_index < recorder.total_steps() - 1
-                else "FINISH ▶",
+                "NEXT" if recorder.current_index < recorder.total_steps() - 1 else "FINISH",
+                "next",
                 COLOR_BLUE,
                 True,
+                False,
             ),
             (
                 self.btn_auto,
-                "▶▶ AUTO" if controller.mode == "manual" else "⏸ PAUSE",
+                "AUTO" if controller.mode == "manual" else "PAUSE",
+                "auto" if controller.mode == "manual" else "pause",
                 COLOR_JADE if controller.mode == "auto" else COLOR_ACCENT,
                 True,
+                True,
             ),
-            (self.btn_skip, "SKIP >|", COLOR_RED, True),
+            (
+                self.btn_skip,
+                "SKIP",
+                "skip",
+                COLOR_RED,
+                True,
+                False,
+            ),
         ]
 
-        for rect, label, color, enabled in buttons:
+        for rect, label, icon_type, color, enabled, icon_left in buttons:
             is_hover = rect.collidepoint(mouse_pos) and enabled
-            btn_color = color if enabled else COLOR_OUTLINE
+            is_pressed = is_hover and pygame.mouse.get_pressed()[0]
+
+            # Draw shadow/glow first
+            if enabled:
+                if is_hover:
+                    # Glowing aura effect on hover
+                    glow_rect = rect.inflate(4, 4)
+                    glow_surf = pygame.Surface((glow_rect.width, glow_rect.height), pygame.SRCALPHA)
+                    glow_color = (*color, 35) if not is_pressed else (*color, 20)
+                    pygame.draw.rect(glow_surf, glow_color, (0, 0, glow_rect.width, glow_rect.height), 0, 8)
+                    surface.blit(glow_surf, glow_rect.topleft)
+                else:
+                    # Soft drop shadow for 3D depth
+                    shadow_rect = rect.move(0, 2)
+                    shadow_surf = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+                    pygame.draw.rect(shadow_surf, (0, 0, 0, 50), (0, 0, rect.width, rect.height), 0, 6)
+                    surface.blit(shadow_surf, shadow_rect.topleft)
+
+            # Button active state offset
+            draw_rect = rect.move(0, 1) if is_pressed else rect
 
             # Button background
+            btn_bg_color = color if enabled else (44, 32, 28)
+            if enabled and is_hover:
+                btn_bg_color = self._brighten(color) if not is_pressed else tuple(max(0, c - 20) for c in color)
+
             pygame.draw.rect(
                 surface,
-                btn_color if not is_hover else self._brighten(btn_color),
-                rect,
+                btn_bg_color,
+                draw_rect,
                 0,
                 6,
             )
+
+            # Glassmorphic top reflection overlay
+            if enabled:
+                highlight_rect = pygame.Rect(draw_rect.x + 1, draw_rect.y + 1, draw_rect.width - 2, draw_rect.height // 2)
+                highlight_surf = pygame.Surface((highlight_rect.width, highlight_rect.height), pygame.SRCALPHA)
+                for y_offset in range(highlight_rect.height):
+                    alpha = int(45 * (1.0 - y_offset / highlight_rect.height))
+                    highlight_surf.fill((255, 255, 255, alpha), (0, y_offset, highlight_rect.width, 1))
+                surface.blit(highlight_surf, (highlight_rect.x, highlight_rect.y))
+
+            # Border drawing
+            border_color = COLOR_OUTLINE
+            border_width = 1
+            if enabled:
+                if is_hover:
+                    border_color = (255, 255, 255)  # White border highlight on hover
+                    border_width = 2
+                else:
+                    border_color = tuple(min(255, c + 40) for c in color)  # Harmonious color border
+
             pygame.draw.rect(
-                surface, COLOR_ACCENT if enabled else COLOR_OUTLINE, rect, 1, 6
+                surface,
+                border_color,
+                draw_rect,
+                border_width,
+                6,
             )
 
-            # Button text
+            # Button text and vector icon layout
             txt_color = COLOR_TEXT if enabled else COLOR_TEXT_MUTED
             txt = self.small_font.render(label, True, txt_color)
-            surface.blit(
-                txt,
-                (
-                    rect.centerx - txt.get_width() // 2,
-                    rect.centery - txt.get_height() // 2,
-                ),
-            )
+
+            icon_w = 8
+            if icon_type == "auto":
+                icon_w = 12
+            elif icon_type == "skip":
+                icon_w = 10
+
+            icon_h = 10
+            spacing = 5
+            total_w = icon_w + spacing + txt.get_width()
+
+            start_x = draw_rect.centerx - total_w // 2
+
+            if icon_left:
+                icon_x = start_x
+                text_x = start_x + icon_w + spacing
+            else:
+                text_x = start_x
+                icon_x = start_x + txt.get_width() + spacing
+
+            text_y = draw_rect.centery - txt.get_height() // 2
+            icon_y = draw_rect.centery - icon_h // 2
+
+            if is_pressed:
+                text_y += 1
+                icon_y += 1
+
+            # Draw text
+            surface.blit(txt, (text_x, text_y))
+
+            # Draw vector icon
+            icon_color = txt_color
+            if icon_type == "prev":
+                pygame.draw.polygon(
+                    surface,
+                    icon_color,
+                    [
+                        (icon_x + icon_w, icon_y),
+                        (icon_x, icon_y + icon_h // 2),
+                        (icon_x + icon_w, icon_y + icon_h),
+                    ],
+                )
+            elif icon_type == "next":
+                pygame.draw.polygon(
+                    surface,
+                    icon_color,
+                    [
+                        (icon_x, icon_y),
+                        (icon_x + icon_w, icon_y + icon_h // 2),
+                        (icon_x, icon_y + icon_h),
+                    ],
+                )
+            elif icon_type == "auto":
+                pygame.draw.polygon(
+                    surface,
+                    icon_color,
+                    [
+                        (icon_x, icon_y),
+                        (icon_x + 6, icon_y + icon_h // 2),
+                        (icon_x, icon_y + icon_h),
+                    ],
+                )
+                pygame.draw.polygon(
+                    surface,
+                    icon_color,
+                    [
+                        (icon_x + 6, icon_y),
+                        (icon_x + 12, icon_y + icon_h // 2),
+                        (icon_x + 6, icon_y + icon_h),
+                    ],
+                )
+            elif icon_type == "pause":
+                pygame.draw.rect(surface, icon_color, (icon_x, icon_y, 2, icon_h))
+                pygame.draw.rect(surface, icon_color, (icon_x + 5, icon_y, 2, icon_h))
+            elif icon_type == "skip":
+                pygame.draw.polygon(
+                    surface,
+                    icon_color,
+                    [
+                        (icon_x, icon_y),
+                        (icon_x + 6, icon_y + icon_h // 2),
+                        (icon_x, icon_y + icon_h),
+                    ],
+                )
+                pygame.draw.rect(surface, icon_color, (icon_x + 8, icon_y, 2, icon_h))
 
     def _brighten(self, color):
         """Brighten color for hover effect"""
@@ -535,13 +929,7 @@ class VisualizerPanel:
     # ========================================================================
 
     def _render_bfs_dfs(self, surface, step, rect):
-        """Render BFS/DFS with Queue/Stack + Current + Evaluated columns
-        
-        Improvements:
-        - BFS: EXPLORED → EVALUATED (các node đã chấm điểm)
-        - DFS: EXPLORED → BACKTRACK LOG (các node đã undo)
-        - Hiển thị depth rõ ràng
-        """
+        """Render BFS/DFS with Queue/Stack + Current + Explored columns"""
         bottom = self._draw_explanation_box(surface, step, rect)
 
         # 3 columns
@@ -549,21 +937,18 @@ class VisualizerPanel:
         col_h = rect.bottom - col_y - 10
         col_w = (rect.width - 20) // 3
 
-        # Column names per algorithm
         if isinstance(step, BFSStep):
-            ds_name = "QUEUE (FIFO)"
-            col3_name = "EVALUATED"
-        else:  # DFS
-            ds_name = "STACK"
-            col3_name = "BACKTRACK LOG"
-        
-        ds_items = step.queue if isinstance(step, BFSStep) else step.stack
-
-        columns = [
-            ("CURRENT NODE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
-            (ds_name, ds_items[:8], COLOR_JADE),
-            (col3_name, step.explored[:8], COLOR_TEXT_MUTED),
-        ]
+            columns = [
+                ("CURRENT NODE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+                ("QUEUE (FIFO)", step.queue[:8], COLOR_JADE),
+                ("EVALUATED", getattr(step, "evaluated", step.explored)[:8], COLOR_TEXT_MUTED),
+            ]
+        else:
+            columns = [
+                ("CURRENT PATH", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+                ("STACK", step.stack[:8], COLOR_JADE),
+                ("BACKTRACK LOG", getattr(step, "backtrack_log", step.explored)[:8], COLOR_TEXT_MUTED),
+            ]
 
         for i, (title, items, color) in enumerate(columns):
             col_x = rect.x + i * (col_w + 10)
@@ -621,37 +1006,17 @@ class VisualizerPanel:
     # ========================================================================
 
     def _render_search_3col(self, surface, step, rect):
-        """Render 3-column layout for UCS/A*
-        
-        Improvements:
-        - EXPLORED → EVALUATED (tránh hiểu nhầm "đã đi rồi")
-        - UCS: Hiển thị cost = 1000 - captured_value
-        - A*: Hiển thị breakdown g + h = f
-        """
+        """Render 3-column layout for UCS/A*"""
         bottom = self._draw_explanation_box(surface, step, rect)
 
         col_y = bottom + 10
         col_h = rect.bottom - col_y - (70 if isinstance(step, AStarStep) else 10)
         col_w = (rect.width - 20) // 3
 
-        # Column names following improvement plan
-        if isinstance(step, UCSStep):
-            col1_name = "CURRENT MOVE"
-            col2_name = "FRONTIER (PQ)"
-            col3_name = "EVALUATED"
-        elif isinstance(step, AStarStep):
-            col1_name = "CURRENT MOVE"
-            col2_name = "FRONTIER (PQ)"
-            col3_name = "EVALUATED"
-        else:
-            col1_name = "CURRENT"
-            col2_name = "FRONTIER"
-            col3_name = "EVALUATED"
-
         columns = [
-            (col1_name, [step.current_node], COLOR_ACCENT),
-            (col2_name, getattr(step, "frontier", [])[:8], COLOR_JADE),
-            (col3_name, getattr(step, "explored", [])[:8], COLOR_TEXT_MUTED),
+            ("CURRENT MOVE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+            ("FRONTIER (PQ)", getattr(step, "frontier", [])[:8], COLOR_JADE),
+            ("EVALUATED", getattr(step, "evaluated", getattr(step, "explored", []))[:8], COLOR_TEXT_MUTED),
         ]
 
         for i, (title, items, color) in enumerate(columns):
@@ -675,36 +1040,18 @@ class VisualizerPanel:
                 if isinstance(step, UCSStep):
                     move_str = self._format_move_full(item)
                     cost = item.get("g_cost", 0) if isinstance(item, dict) else 0
-                    # Show cost prominently for UCS
                     label = f"{move_str} cost:{cost}"
-                    # Highlight best move (lowest cost)
-                    if title == col1_name:  # Current column
-                        txt = self.tiny_font.render(label, True, COLOR_ACCENT)
-                    else:
-                        txt = self.tiny_font.render(label, True, COLOR_TEXT)
-                    
                 elif isinstance(step, AStarStep):
                     move_str = self._format_move_full(item)
-                    if isinstance(item, dict):
-                        g = item.get("g", 0)
-                        h = item.get("h", 0)
-                        f_val = item.get("f", g + h)
-                        try:
-                            # Show breakdown: g+h=f for A*
-                            label = f"{move_str} f={f_val:.0f}"
-                        except (TypeError, ValueError):
-                            label = f"{move_str} f={f_val}"
-                    else:
-                        label = str(item)[:25]
-                    
-                    if title == col1_name:  # Current column
-                        txt = self.tiny_font.render(label, True, COLOR_ACCENT)
-                    else:
-                        txt = self.tiny_font.render(label, True, COLOR_TEXT)
+                    f_val = item.get("f", 0) if isinstance(item, dict) else 0
+                    try:
+                        label = f"{move_str} f:{f_val:.0f}"
+                    except (TypeError, ValueError):
+                        label = f"{move_str} f:{f_val}"
                 else:
                     label = str(item)[:20]
-                    txt = self.tiny_font.render(label, True, COLOR_TEXT)
 
+                txt = self.tiny_font.render(label, True, COLOR_TEXT)
                 surface.blit(txt, (col_rect.x + 6, iy))
 
         # A* score breakdown
@@ -781,57 +1128,67 @@ class VisualizerPanel:
     # ========================================================================
 
     def _render_candidates_list(self, surface, step, rect):
-        """Render candidate/neighbor list for Greedy and Hill Climbing"""
+        """Render candidate/neighbor list in 3 columns for Greedy and Hill Climbing"""
         bottom = self._draw_explanation_box(surface, step, rect)
 
-        # Current state card
+        col_y = bottom + 10
+        col_h = rect.bottom - col_y - (40 if (isinstance(step, HillClimbStep) and step.is_plateau) else 10)
+        col_w = (rect.width - 20) // 3
+
         if isinstance(step, HillClimbStep):
-            curr_str = self._format_move_full(step.current_move)
-            items = step.neighbors
-            label = "NEIGHBORS"
+            c1_title = "CURRENT STATE"
+            c2_title = "NEIGHBORS"
+            c3_title = "EVALUATED"
+            c1_items = [step.current_move] if step.current_move else []
+            c2_items = step.neighbors[:8]
+            c3_items = getattr(step, "evaluated", [])[:8]
         else:  # GreedyStep
-            curr_str = self._format_move_full(step.current_node)
-            items = step.candidates
-            label = "CANDIDATES"
+            c1_title = "CURRENT MOVE"
+            c2_title = "CANDIDATES"
+            c3_title = "EVALUATED"
+            c1_items = [step.current_node] if step.current_node else []
+            c2_items = step.candidates[:8]
+            c3_items = getattr(step, "evaluated", [])[:8]
 
-        curr_rect = self._draw_card(surface, rect.x, bottom + 10, rect.width, 35)
-        curr_txt = self.body_font.render(f"Hiện tại: {curr_str}", True, COLOR_JADE)
-        surface.blit(curr_txt, (curr_rect.x + 15, curr_rect.y + 8))
+        columns = [
+            (c1_title, c1_items, COLOR_ACCENT),
+            (c2_title, c2_items, COLOR_JADE),
+            (c3_title, c3_items, COLOR_TEXT_MUTED),
+        ]
 
-        # Candidates/neighbors list
-        list_y = curr_rect.bottom + 10
-        list_h = rect.bottom - list_y - 10
-        if isinstance(step, HillClimbStep) and step.is_plateau:
-            list_h -= 30  # Room for plateau badge
+        for i, (title, items, color) in enumerate(columns):
+            col_x = rect.x + i * (col_w + 10)
+            col_rect = self._draw_card(surface, col_x, col_y, col_w - 10, col_h)
 
-        list_rect = self._draw_card(surface, rect.x, list_y, rect.width, list_h)
+            hdr = self.small_font.render(title, True, color)
+            surface.blit(hdr, (col_rect.centerx - hdr.get_width() // 2, col_rect.y + 8))
+            pygame.draw.line(
+                surface,
+                COLOR_OUTLINE,
+                (col_rect.x + 5, col_rect.y + 28),
+                (col_rect.right - 5, col_rect.y + 28),
+            )
 
-        lbl_txt = self.small_font.render(
-            f"{label} (sorted by score):", True, COLOR_TEXT_MUTED
-        )
-        surface.blit(lbl_txt, (list_rect.x + 10, list_rect.y + 8))
-        pygame.draw.line(
-            surface,
-            COLOR_OUTLINE,
-            (list_rect.x + 5, list_rect.y + 28),
-            (list_rect.right - 5, list_rect.y + 28),
-        )
+            for idx, item in enumerate(items):
+                if idx > 8:
+                    break
+                iy = col_rect.y + 35 + idx * 20
 
-        for i, item in enumerate(items[:10]):
-            iy = list_rect.y + 35 + i * 18
-            if iy > list_rect.bottom - 15:
-                break
-            item_str = self._format_move_full(item)
-            is_first = i == 0
-            prefix = "✅ " if is_first else "   "
-            suffix = " ← BEST" if is_first else ""
-            color = COLOR_JADE if is_first else COLOR_TEXT
-            txt = self.tiny_font.render(f"{prefix}{item_str}{suffix}", True, color)
-            surface.blit(txt, (list_rect.x + 8, iy))
+                if isinstance(step, HillClimbStep):
+                    move_str = self._format_move_full(item)
+                    score = item.get("score", 0) if isinstance(item, dict) else 0
+                    label = f"{move_str} s={score:.0f}"
+                else:  # GreedyStep
+                    move_str = self._format_move_full(item)
+                    h_val = item.get("h", 0) if isinstance(item, dict) else 0
+                    label = f"{move_str} h={h_val}"
+
+                txt = self.tiny_font.render(label, True, COLOR_TEXT)
+                surface.blit(txt, (col_rect.x + 6, iy))
 
         # Plateau warning for Hill Climbing
         if isinstance(step, HillClimbStep) and step.is_plateau:
-            plat_y = list_rect.bottom + 5
+            plat_y = rect.bottom - 30
             plat_txt = self.small_font.render(
                 "⚠️ PLATEAU: best ≤ current", True, COLOR_RED
             )
@@ -979,7 +1336,7 @@ class VisualizerPanel:
     # RENDERER: Level 4 — Online / AND-OR / Belief (Nhóm E)
     # ========================================================================
 
-    def _render_level4(self, surface, step, rect):
+    def _render_online_andor_belief(self, surface, step, rect):
         """Dispatch to specific Level 4 renderer"""
         if isinstance(step, OnlineStep):
             self._render_online(surface, step, rect)
@@ -1379,8 +1736,20 @@ class VisualizerPanel:
         ab_y = path_y + 80
         ab_rect = self._draw_card(surface, rect.x, ab_y, rect.width, 50)
 
-        alpha_txt = self.header_font.render(f"α = {step.alpha:.0f}", True, COLOR_JADE)
-        beta_txt = self.header_font.render(f"β = {step.beta:.0f}", True, COLOR_RED)
+        def format_inf(val):
+            if val == float("inf"):
+                return "∞"
+            elif val == float("-inf"):
+                return "-∞"
+            try:
+                return f"{val:.0f}"
+            except Exception:
+                return str(val)
+
+        alpha_str = format_inf(step.alpha)
+        beta_str = format_inf(step.beta)
+        alpha_txt = self.header_font.render(f"α = {alpha_str}", True, COLOR_JADE)
+        beta_txt = self.header_font.render(f"β = {beta_str}", True, COLOR_RED)
 
         surface.blit(
             alpha_txt, (ab_rect.x + 30, ab_rect.centery - alpha_txt.get_height() // 2)

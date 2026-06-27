@@ -3,13 +3,7 @@ import random
 
 from ai.eval import PIECE_VALUES
 from ai.level3 import get_perspective_score
-from ai.step_recorder import (
-    AC3Step,
-    BacktrackStep,
-    MinConflictStep,
-    move_to_label,
-    pos_to_label,
-)
+from ai.step_recorder import AC3Step, BacktrackStep, MinConflictStep
 
 PIECE_NAME_VI = {
     "general": "Tướng",
@@ -27,7 +21,19 @@ def _get_piece_name(board, pos):
     if not pos:
         return "—"
     piece = board.get_piece(pos)
-    return PIECE_NAME_VI.get(piece.name, "—") if piece else "—"
+    if not piece:
+        return "—"
+    char_to_key = {
+        "G": "general",
+        "A": "advisor",
+        "E": "elephant",
+        "H": "horse",
+        "R": "rook",
+        "C": "cannon",
+        "P": "pawn",
+    }
+    key = char_to_key.get(piece.name, piece.name)
+    return PIECE_NAME_VI.get(key, "—")
 
 
 def get_threats_count(board, color):
@@ -75,17 +81,13 @@ def backtracking_mrv_move(board, recorder=None):
 
     # Record all variables with domain sizes
     if recorder:
-        variables_info = {pos_to_label(pos): len(domain) for pos, domain in var_domains.items()}
+        variables_info = {str(pos): len(domain) for pos, domain in var_domains.items()}
         recorder.add_step(
             BacktrackStep(
                 step_num=1,
                 algorithm="Backtracking MRV",
-                explanation=f"Backtracking MRV: Tính domain size cho {len(var_domains)} biến (quân cờ có thể di chuyển)",
+                explanation=f"Tính domain size cho {len(var_domains)} biến (quân cờ)",
                 variables=variables_info,
-                chosen_variable="",
-                domain=[],
-                best_assignment={},
-                evaluated=[],
             )
         )
 
@@ -115,15 +117,14 @@ def backtracking_mrv_move(board, recorder=None):
             BacktrackStep(
                 step_num=2,
                 algorithm="Backtracking MRV",
-                explanation=f"Backtracking MRV chọn biến {pos_to_label(chosen_var)} (domain={len(var_domains[chosen_var])} - nhỏ nhất), nước đi {move_to_label((chosen_var, best_to))}",
+                explanation=f"MRV chọn biến {chosen_var} (domain={len(var_domains[chosen_var])} - nhỏ nhất), score={best_score:.0f}",
                 chosen_move=(chosen_var, best_to),
                 variables={
-                    pos_to_label(pos): len(domain) for pos, domain in var_domains.items()
+                    str(pos): len(domain) for pos, domain in var_domains.items()
                 },
-                chosen_variable=pos_to_label(chosen_var),
+                chosen_variable=str(chosen_var),
                 domain=domain_list,
                 best_assignment={"move": (chosen_var, best_to), "score": best_score, "piece": piece_name},
-                evaluated=domain_list.copy(),
             )
         )
 
@@ -187,7 +188,7 @@ def min_conflicts_move(board, recorder=None):
             MinConflictStep(
                 step_num=1,
                 algorithm="Min-Conflicts",
-                explanation=f"Min-Conflicts chọn {move_to_label(best_move)}: Conflicts trước={current_conflicts}, sau={min_conflicts} (giảm {current_conflicts - min_conflicts})",
+                explanation=f"Conflicts trước={current_conflicts}, sau={min_conflicts} (giảm {current_conflicts - min_conflicts})",
                 chosen_move=best_move,
                 current_conflicts=current_conflicts,
                 candidates=sorted_candidates,
@@ -197,7 +198,6 @@ def min_conflicts_move(board, recorder=None):
                     "score": best_score,
                     "piece": best_piece_name,
                 },
-                evaluated=candidates.copy(),
             )
         )
 
@@ -271,13 +271,11 @@ def ac3_move(board, recorder=None):
     random.shuffle(candidates)
     best_move = candidates[0]
     best_score = float("-inf")
-    safe_list_scores = []
 
     for from_pos, to_pos in candidates:
         board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
-        safe_list_scores.append({"move": (from_pos, to_pos), "score": score, "piece": _get_piece_name(board, from_pos)})
         if score > best_score:
             best_score = score
             best_move = (from_pos, to_pos)
@@ -288,13 +286,15 @@ def ac3_move(board, recorder=None):
             AC3Step(
                 step_num=1,
                 algorithm="AC-3",
-                explanation=f"AC-3: Lọc {len(pruned_moves)}/{len(legal_moves)} nước không an toàn, chọn {move_to_label(best_move)} từ {len(candidates)} nước an toàn",
+                explanation=f"Lọc {len(pruned_moves)}/{len(legal_moves)} nước không an toàn, còn {len(safe_moves)} nước an toàn",
                 chosen_move=best_move,
                 all_moves=len(legal_moves),
-                safe_moves=safe_list_scores[:10],
+                safe_moves=[
+                    {"move": m, "score": best_score if m == best_move else 0, "piece": _get_piece_name(board, m[0])}
+                    for m in safe_moves[:10]
+                ],
                 pruned_moves=pruned_moves[:10],
                 chosen_from_safe={"move": best_move, "score": best_score, "piece": _get_piece_name(board, best_move[0])},
-                evaluated=safe_list_scores.copy(),
             )
         )
 
