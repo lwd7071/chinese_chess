@@ -10,6 +10,7 @@ Date: 2026-06-25
 
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Optional, Tuple
+import threading
 
 # Type alias cho dễ đọc
 Move = Tuple[Tuple[int, int], Tuple[int, int]]  # ((from_r, from_c), (to_r, to_c))
@@ -238,45 +239,54 @@ class StepRecorder:
     def __init__(self):
         self.steps: List[BaseStep] = []
         self.current_index: int = 0
+        self.lock = threading.Lock()
 
     def add_step(self, step: BaseStep):
         """Thêm 1 bước thực thi vào danh sách"""
-        self.steps.append(step)
+        with self.lock:
+            self.steps.append(step)
 
     def clear(self):
         """Xóa tất cả steps và reset index về 0"""
-        self.steps.clear()
-        self.current_index = 0
+        with self.lock:
+            self.steps.clear()
+            self.current_index = 0
 
     def total_steps(self) -> int:
         """Trả về tổng số bước đã ghi"""
-        return len(self.steps)
+        with self.lock:
+            return len(self.steps)
 
     def get_current_step(self) -> Optional[BaseStep]:
         """Trả về step hiện tại dựa trên current_index"""
-        if 0 <= self.current_index < len(self.steps):
-            return self.steps[self.current_index]
-        return None
+        with self.lock:
+            if 0 <= self.current_index < len(self.steps):
+                return self.steps[self.current_index]
+            return None
 
     def next(self) -> bool:
         """Di chuyển tới step tiếp theo. Return True nếu thành công."""
-        if self.current_index < len(self.steps) - 1:
-            self.current_index += 1
-            return True
-        return False
+        with self.lock:
+            if self.current_index < len(self.steps) - 1:
+                self.current_index += 1
+                return True
+            return False
 
     def prev(self) -> bool:
         """Di chuyển về step trước đó. Return True nếu thành công."""
-        if self.current_index > 0:
-            self.current_index -= 1
-            return True
-        return False
+        with self.lock:
+            if self.current_index > 0:
+                self.current_index -= 1
+                return True
+            return False
 
     def reset_to_start(self):
         """Reset index về bước đầu tiên"""
-        self.current_index = 0
+        with self.lock:
+            self.current_index = 0
 
     def reset_to_end(self):
         """Nhảy tới bước cuối cùng"""
-        if self.steps:
-            self.current_index = len(self.steps) - 1
+        with self.lock:
+            if self.steps:
+                self.current_index = len(self.steps) - 1

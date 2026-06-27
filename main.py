@@ -309,79 +309,6 @@ class GameController:
                             play_synth_sound('move')
                             continue
                             
-                    # Sidebar click actions
-                    action = self.sidebar.handle_event(event, self.menu.game_mode)
-                    if action:
-                        if action.startswith("select_algo:") or action.startswith("select_algo_red:") or action.startswith("select_algo_black:"):
-                            new_algo = action.split(":")[-1]
-                            # Find the level category of the new algorithm
-                            level_cat = 0
-                            from gui.sidebar import ALGO_OPTIONS
-                            for opt_key, _, lvl in ALGO_OPTIONS:
-                                if opt_key == new_algo:
-                                    level_cat = lvl
-                                    break
-                                    
-                            if action.startswith("select_algo_red:"):
-                                self.menu.red_bot_algo = new_algo
-                                self.menu.red_bot_level = level_cat
-                            elif action.startswith("select_algo_black:"):
-                                self.menu.black_bot_algo = new_algo
-                                self.menu.black_bot_level = level_cat
-                            else: # select_algo:
-                                if self.menu.game_mode == "human_vs_bot":
-                                    self.menu.black_bot_algo = new_algo
-                                    self.menu.black_bot_level = level_cat
-                                else:
-                                    if self.board.turn == 'red':
-                                        self.menu.red_bot_algo = new_algo
-                                        self.menu.red_bot_level = level_cat
-                                    else:
-                                        self.menu.black_bot_algo = new_algo
-                                        self.menu.black_bot_level = level_cat
-                        elif action == "new_game":
-                            self.start_new_game()
-                        elif action == "surrender":
-                            win_exp = calculate_win_exp(self.board, 'black')
-                            self.game_over_result = f"Black wins! +{win_exp} EXP"
-                            self.state = "game_over"
-                            play_synth_sound('check')
-                            self.award_game_over_exp('black', win_exp)
-                        elif action == "return":
-                            if self.menu.game_mode == "bot_vs_bot":
-                                self.state = "menu"
-                                self.menu.state = "mode_select"
-                                self.menu.trigger_transition()
-                            else:
-                                if self.state == "game":
-                                    self.show_popup("Bạn phải đầu hàng trước khi quay lại!")
-                                else:
-                                    self.state = "menu"
-                                    self.menu.state = "mode_select"
-                                    self.menu.trigger_transition()
-                        elif action == "toggle_pause":
-                            self.bot_paused = not self.bot_paused
-                            play_synth_sound('move')
-                        elif action == "undo":
-                            if self.menu.game_mode == "human_vs_bot":
-                                if len(self.board.history) >= 2:
-                                    self.board.undo_move()
-                                    self.board.undo_move()
-                            else:
-                                if len(self.board.history) >= 1:
-                                    self.board.undo_move()
-                            self.selected_pos = None
-                            self.valid_moves = []
-                            self.hint_move = None
-                        elif action == "hint":
-                            self.hint_move = AI_REGISTRY["Alpha-Beta"](self.board)
-                            play_synth_sound('move')
-                    
-                    # Board piece click — select or move pieces
-                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                        board_pos = self.renderer.get_board_pos_from_screen(event.pos)
-                        if board_pos:
-                            self.handle_human_click(board_pos)
                     # Hotkey to toggle report mode
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                         self.report_mode = not self.report_mode
@@ -392,7 +319,7 @@ class GameController:
                         play_synth_sound('move')
                         continue
 
-                    # Sidebar / Visualizer click actions
+                    # Sidebar / Visualizer / Board click actions
                     if self.report_mode and self.step_recorder.total_steps() > 0 and self.ai_thread is None:
                         vis_action = self.visualizer.handle_event(event, self.step_controller, self.step_recorder)
                         if vis_action == "finish" and getattr(self, 'pending_ai_move', None):
@@ -401,23 +328,59 @@ class GameController:
                             self.pending_ai_move = None
                             continue
                     else:
-                        action = self.sidebar.handle_event(event)
+                        # Sidebar click actions
+                        action = self.sidebar.handle_event(event, self.menu.game_mode)
                         if action:
-                            if action.startswith("select_algo:"):
+                            if action.startswith("select_algo:") or action.startswith("select_algo_red:") or action.startswith("select_algo_black:"):
                                 new_algo = action.split(":")[-1]
-                                if self.menu.game_mode == "human_vs_bot":
+                                # Find the level category of the new algorithm
+                                level_cat = 0
+                                from gui.sidebar import ALGO_OPTIONS
+                                for opt_key, _, lvl in ALGO_OPTIONS:
+                                    if opt_key == new_algo:
+                                        level_cat = lvl
+                                        break
+                                        
+                                if action.startswith("select_algo_red:"):
+                                    self.menu.red_bot_algo = new_algo
+                                    self.menu.red_bot_level = level_cat
+                                elif action.startswith("select_algo_black:"):
                                     self.menu.black_bot_algo = new_algo
-                                else:
-                                    if self.board.turn == 'red':
-                                        self.menu.red_bot_algo = new_algo
-                                    else:
+                                    self.menu.black_bot_level = level_cat
+                                else: # select_algo:
+                                    if self.menu.game_mode == "human_vs_bot":
                                         self.menu.black_bot_algo = new_algo
+                                        self.menu.black_bot_level = level_cat
+                                    else:
+                                        if self.board.turn == 'red':
+                                            self.menu.red_bot_algo = new_algo
+                                            self.menu.red_bot_level = level_cat
+                                        else:
+                                            self.menu.black_bot_algo = new_algo
+                                            self.menu.black_bot_level = level_cat
                             elif action == "new_game":
                                 self.start_new_game()
-                            elif action == "menu":
-                                self.state = "menu"
-                                self.menu.state = "mode_select"
-                                self.menu.trigger_transition()
+                            elif action == "surrender":
+                                win_exp = calculate_win_exp(self.board, 'black')
+                                self.game_over_result = f"Black wins! +{win_exp} EXP"
+                                self.state = "game_over"
+                                play_synth_sound('check')
+                                self.award_game_over_exp('black', win_exp)
+                            elif action == "return":
+                                if self.menu.game_mode == "bot_vs_bot":
+                                    self.state = "menu"
+                                    self.menu.state = "mode_select"
+                                    self.menu.trigger_transition()
+                                else:
+                                    if self.state == "game":
+                                        self.show_popup("Bạn phải đầu hàng trước khi quay lại!")
+                                    else:
+                                        self.state = "menu"
+                                        self.menu.state = "mode_select"
+                                        self.menu.trigger_transition()
+                            elif action == "toggle_pause":
+                                self.bot_paused = not self.bot_paused
+                                play_synth_sound('move')
                             elif action == "undo":
                                 if self.menu.game_mode == "human_vs_bot":
                                     if len(self.board.history) >= 2:
@@ -748,20 +711,11 @@ class GameController:
         # 4. Draw Top Navigation Bar (Gold balance, Shop, Profile)
         self.draw_top_bar()
 
-        # 5. Draw Sidebar Panel
+        # 5. Draw Sidebar Panel or Visualizer Panel (depending on report_mode)
         red_bot_lvl = self.menu.red_bot_level if self.menu.red_bot_level is not None else 0
         black_bot_lvl = self.menu.black_bot_level if self.menu.black_bot_level is not None else 0
         red_bot = f"L{red_bot_lvl + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
         black_bot = f"L{black_bot_lvl + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
-        self.sidebar.draw(
-            self.screen, self.board, self.menu.game_mode,
-            red_bot, black_bot, hint_move=self.hint_move, move_history=self.board.move_log, pending_move=self.pending_move,
-            latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until,
-            bot_paused=self.bot_paused, red_exp=self.red_exp, black_exp=self.black_exp, is_game_over=(self.state == "game_over")
-        )
-        # 5. Draw Sidebar Panel or Visualizer Panel (depending on report_mode)
-        red_bot = f"L{self.menu.red_bot_level + 1}: {self.menu.red_bot_algo}" if self.menu.red_bot_algo and self.menu.red_bot_algo != "Human" else "Human"
-        black_bot = f"L{self.menu.black_bot_level + 1}: {self.menu.black_bot_algo}" if self.menu.black_bot_algo else ""
         
         if self.report_mode and (self.step_recorder.total_steps() > 0 or self.ai_thread is not None):
             # Show Visualizer Panel
@@ -772,7 +726,8 @@ class GameController:
             self.sidebar.draw(
                 self.screen, self.board, self.menu.game_mode,
                 red_bot, black_bot, hint_move=self.hint_move, move_history=self.board.move_log, pending_move=self.pending_move,
-                latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until
+                latest_move_index=self.latest_move_index, latest_move_flash_until=self.latest_move_flash_until,
+                bot_paused=self.bot_paused, red_exp=self.red_exp, black_exp=self.black_exp, is_game_over=(self.state == "game_over")
             )
         
         # 6. Draw capture burst particles
