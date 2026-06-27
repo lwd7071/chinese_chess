@@ -7,27 +7,29 @@ import threading
 # Adjust path to find modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Mock pygame before importing GameController
-import sys
-if 'main' in sys.modules:
-    del sys.modules['main']
-
-with patch('pygame.init'), \
-     patch('pygame.mixer.init'), \
-     patch('pygame.display.set_mode'), \
-     patch('pygame.display.set_caption'), \
-     patch('pygame.time.Clock'), \
-     patch('gui.renderer.Renderer'), \
-     patch('gui.sidebar.Sidebar'), \
-     patch('gui.menu.StartMenu'), \
-     patch('gui.shop.ShopScreen'), \
-     patch('gui.settings.SettingsScreen'), \
-     patch('gui.visualizer.VisualizerPanel'):
-    from main import GameController
-
-
+def get_clean_controller_class():
+    import sys
+    if 'main' in sys.modules:
+        del sys.modules['main']
+    with patch('pygame.init'), \
+         patch('pygame.mixer.init'), \
+         patch('pygame.display.set_mode'), \
+         patch('pygame.display.set_caption'), \
+         patch('pygame.time.Clock'), \
+         patch('gui.renderer.Renderer'), \
+         patch('gui.sidebar.Sidebar'), \
+         patch('gui.menu.StartMenu'), \
+         patch('gui.shop.ShopScreen'), \
+         patch('gui.settings.SettingsScreen'), \
+         patch('gui.visualizer.VisualizerPanel'):
+        from main import GameController
+        return GameController
 
 class TestThreadSafety(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.GameController = get_clean_controller_class()
+
     @patch('pygame.init')
     @patch('pygame.mixer.init')
     @patch('pygame.display.set_mode')
@@ -40,7 +42,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.visualizer.VisualizerPanel')
     def test_controller_has_ai_lock(self, *mocks):
         """Verify that GameController has an ai_lock initialized."""
-        controller = GameController()
+        controller = self.GameController()
         self.assertTrue(hasattr(controller, 'ai_lock'), "GameController should have an ai_lock attribute")
         self.assertIsInstance(controller.ai_lock, type(threading.Lock()))
 
@@ -57,7 +59,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.visualizer.VisualizerPanel')
     def test_calculate_uses_lock(self, *mocks):
         """Verify that the background calculation thread acquires the lock when writing ai_result."""
-        controller = GameController()
+        controller = self.GameController()
         
         # Initialize lock attribute if it exists
         mock_lock = MagicMock()
@@ -103,7 +105,7 @@ class TestThreadSafety(unittest.TestCase):
     @patch('gui.visualizer.VisualizerPanel')
     def test_get_result_uses_lock(self, *mocks):
         """Verify that the main thread acquires the lock when reading and clearing ai_result."""
-        controller = GameController()
+        controller = self.GameController()
         
         controller.board = MagicMock()
         controller.board.turn = 'black'
