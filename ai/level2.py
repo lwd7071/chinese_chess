@@ -2,7 +2,14 @@
 import random
 
 from ai.eval import PIECE_VALUES
-from ai.step_recorder import MAX_VISUALIZATION_STEPS, AStarStep, GreedyStep, IDAStarStep
+from ai.step_recorder import (
+    MAX_VISUALIZATION_STEPS,
+    AStarStep,
+    GreedyStep,
+    IDAStarStep,
+    move_to_label,
+    pos_to_label,
+)
 
 
 def get_opponent_material(board, color):
@@ -45,6 +52,7 @@ def greedy_move(board, recorder=None):
 
     # For visualization
     candidates = []
+    evaluated_list = []
 
     for i, (from_pos, to_pos) in enumerate(legal_moves):
         target = board.get_piece(to_pos)
@@ -71,12 +79,15 @@ def greedy_move(board, recorder=None):
                 GreedyStep(
                     step_num=i + 1,
                     algorithm="Greedy",
-                    explanation=f"Xét nước {from_pos}→{to_pos}: h={val} ({piece_name}), chọn h LỚN NHẤT",
+                    explanation=f"Greedy xét nước {move_to_label((from_pos, to_pos))}: h={val} ({piece_name}) → chọn h LỚN NHẤT",
                     chosen_move=best_move,
                     current_node=candidate_info,
                     candidates=sorted_candidates.copy(),
+                    evaluated=evaluated_list.copy(),
                 )
             )
+
+        evaluated_list.append(candidate_info)
 
     return best_move
 
@@ -157,11 +168,12 @@ def a_star_move(board, recorder=None):
                 AStarStep(
                     step_num=i + 1,
                     algorithm="A*",
-                    explanation=f"Xét nước {from_pos}→{to_pos}: g={g} (1000-{cap_val}), h={h} (vật chất đối thủ), f={f}",
+                    explanation=f"A* xét nước {move_to_label((from_pos, to_pos))}: g={g} (1000-{cap_val}), h={h} (vật chất đối thủ) → f=g+h={f}",
                     chosen_move=best_move,
                     current_node=node_info,
                     frontier=sorted_frontier.copy(),
                     explored=explored_list.copy(),
+                    evaluated=explored_list.copy(),
                 )
             )
 
@@ -188,13 +200,15 @@ def ida_star_move(board, recorder=None):
     random.shuffle(legal_moves)
     step_counter = [0]  # For recording
 
-    def search(from_pos, to_pos, g, depth, threshold):
+    def search(from_pos, to_pos, g, depth, threshold, curr_iter):
         # Simulate move
         board.make_move(from_pos, to_pos, test_only=True)
 
         # Heuristic h(n)
         h = get_opponent_material(board, board.turn)
         f = g + h
+        is_cutoff = (f > threshold)
+        status = "CẮT (f > threshold)" if is_cutoff else "PASS (f ≤ threshold)"
 
         # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS steps)
         if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
@@ -202,12 +216,13 @@ def ida_star_move(board, recorder=None):
                 IDAStarStep(
                     step_num=step_counter[0] + 1,
                     algorithm="IDA*",
-                    explanation=f"IDA* node {from_pos}→{to_pos}: f={f}, threshold={threshold}, depth={depth}",
+                    explanation=f"IDA* (Iter {curr_iter}) xét {move_to_label((from_pos, to_pos))}: f={f} (g={g}+h={h}), threshold={threshold} → {status}",
                     current_node={"move": (from_pos, to_pos), "g": g, "h": h, "f": f},
                     threshold=threshold,
-                    iteration=0,  # Will be updated in outer loop
+                    iteration=curr_iter,
                     exceeded_f=f if f > threshold else None,
-                    is_cutoff=(f > threshold),
+                    is_cutoff=is_cutoff,
+                    status=status,
                 )
             )
             step_counter[0] += 1
@@ -233,7 +248,7 @@ def ida_star_move(board, recorder=None):
             # g cost from our perspective increases if opponent captures our pieces
             next_g = g + ocap_val
 
-            t, sol = search(ofrom, oto, next_g, depth - 1, threshold)
+            t, sol = search(ofrom, oto, next_g, depth - 1, threshold, curr_iter)
             if sol is not None:
                 board.undo_move(test_only=True)
                 return t, (from_pos, to_pos)
@@ -248,14 +263,16 @@ def ida_star_move(board, recorder=None):
     legal_moves[0]
 
     for iteration in range(3):  # Max 3 iterations to prevent slow down
+        curr_iter = iteration + 1
         if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
             recorder.add_step(
                 IDAStarStep(
                     step_num=step_counter[0] + 1,
                     algorithm="IDA*",
-                    explanation=f"IDA* Iteration {iteration + 1}: threshold={threshold}",
-                    iteration=iteration + 1,
+                    explanation=f"IDA* Iteration {curr_iter}: Khởi tạo threshold={threshold}",
+                    iteration=curr_iter,
                     threshold=threshold,
+                    status="START ITERATION",
                 )
             )
             step_counter[0] += 1
@@ -266,7 +283,7 @@ def ida_star_move(board, recorder=None):
             cap_val = PIECE_VALUES.get(target.name, 0) if target else 0
             g = 1000 - cap_val
 
-            t, sol = search(from_pos, to_pos, g, 1, threshold)  # depth 1
+            t, sol = search(from_pos, to_pos, g, 1, threshold, curr_iter)  # depth 1
             if sol is not None:
                 return (from_pos, to_pos)
             if t < min_exceeded:
@@ -276,3 +293,4 @@ def ida_star_move(board, recorder=None):
         threshold = min_exceeded
 
     return greedy_move(board)  # Fallback to greedy if limit exceeded
+

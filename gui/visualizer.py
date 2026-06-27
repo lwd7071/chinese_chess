@@ -535,7 +535,13 @@ class VisualizerPanel:
     # ========================================================================
 
     def _render_bfs_dfs(self, surface, step, rect):
-        """Render BFS/DFS with Queue/Stack + Current + Explored columns"""
+        """Render BFS/DFS with Queue/Stack + Current + Evaluated columns
+        
+        Improvements:
+        - BFS: EXPLORED → EVALUATED (các node đã chấm điểm)
+        - DFS: EXPLORED → BACKTRACK LOG (các node đã undo)
+        - Hiển thị depth rõ ràng
+        """
         bottom = self._draw_explanation_box(surface, step, rect)
 
         # 3 columns
@@ -543,13 +549,20 @@ class VisualizerPanel:
         col_h = rect.bottom - col_y - 10
         col_w = (rect.width - 20) // 3
 
-        ds_name = "QUEUE" if isinstance(step, BFSStep) else "STACK"
+        # Column names per algorithm
+        if isinstance(step, BFSStep):
+            ds_name = "QUEUE (FIFO)"
+            col3_name = "EVALUATED"
+        else:  # DFS
+            ds_name = "STACK"
+            col3_name = "BACKTRACK LOG"
+        
         ds_items = step.queue if isinstance(step, BFSStep) else step.stack
 
         columns = [
-            ("CURRENT", [step.current_node] if step.current_node else [], COLOR_ACCENT),
+            ("CURRENT NODE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
             (ds_name, ds_items[:8], COLOR_JADE),
-            ("EXPLORED", step.explored[:8], COLOR_TEXT_MUTED),
+            (col3_name, step.explored[:8], COLOR_TEXT_MUTED),
         ]
 
         for i, (title, items, color) in enumerate(columns):
@@ -608,17 +621,37 @@ class VisualizerPanel:
     # ========================================================================
 
     def _render_search_3col(self, surface, step, rect):
-        """Render 3-column layout for UCS/A*"""
+        """Render 3-column layout for UCS/A*
+        
+        Improvements:
+        - EXPLORED → EVALUATED (tránh hiểu nhầm "đã đi rồi")
+        - UCS: Hiển thị cost = 1000 - captured_value
+        - A*: Hiển thị breakdown g + h = f
+        """
         bottom = self._draw_explanation_box(surface, step, rect)
 
         col_y = bottom + 10
         col_h = rect.bottom - col_y - (70 if isinstance(step, AStarStep) else 10)
         col_w = (rect.width - 20) // 3
 
+        # Column names following improvement plan
+        if isinstance(step, UCSStep):
+            col1_name = "CURRENT MOVE"
+            col2_name = "FRONTIER (PQ)"
+            col3_name = "EVALUATED"
+        elif isinstance(step, AStarStep):
+            col1_name = "CURRENT MOVE"
+            col2_name = "FRONTIER (PQ)"
+            col3_name = "EVALUATED"
+        else:
+            col1_name = "CURRENT"
+            col2_name = "FRONTIER"
+            col3_name = "EVALUATED"
+
         columns = [
-            ("CURRENT", [step.current_node], COLOR_ACCENT),
-            ("FRONTIER", getattr(step, "frontier", [])[:8], COLOR_JADE),
-            ("EXPLORED", getattr(step, "explored", [])[:8], COLOR_TEXT_MUTED),
+            (col1_name, [step.current_node], COLOR_ACCENT),
+            (col2_name, getattr(step, "frontier", [])[:8], COLOR_JADE),
+            (col3_name, getattr(step, "explored", [])[:8], COLOR_TEXT_MUTED),
         ]
 
         for i, (title, items, color) in enumerate(columns):
@@ -642,18 +675,36 @@ class VisualizerPanel:
                 if isinstance(step, UCSStep):
                     move_str = self._format_move_full(item)
                     cost = item.get("g_cost", 0) if isinstance(item, dict) else 0
-                    label = f"{move_str} c={cost}"
+                    # Show cost prominently for UCS
+                    label = f"{move_str} cost:{cost}"
+                    # Highlight best move (lowest cost)
+                    if title == col1_name:  # Current column
+                        txt = self.tiny_font.render(label, True, COLOR_ACCENT)
+                    else:
+                        txt = self.tiny_font.render(label, True, COLOR_TEXT)
+                    
                 elif isinstance(step, AStarStep):
                     move_str = self._format_move_full(item)
-                    f_val = item.get("f", 0) if isinstance(item, dict) else 0
-                    try:
-                        label = f"{move_str} f={f_val:.0f}"
-                    except (TypeError, ValueError):
-                        label = f"{move_str} f={f_val}"
+                    if isinstance(item, dict):
+                        g = item.get("g", 0)
+                        h = item.get("h", 0)
+                        f_val = item.get("f", g + h)
+                        try:
+                            # Show breakdown: g+h=f for A*
+                            label = f"{move_str} f={f_val:.0f}"
+                        except (TypeError, ValueError):
+                            label = f"{move_str} f={f_val}"
+                    else:
+                        label = str(item)[:25]
+                    
+                    if title == col1_name:  # Current column
+                        txt = self.tiny_font.render(label, True, COLOR_ACCENT)
+                    else:
+                        txt = self.tiny_font.render(label, True, COLOR_TEXT)
                 else:
                     label = str(item)[:20]
+                    txt = self.tiny_font.render(label, True, COLOR_TEXT)
 
-                txt = self.tiny_font.render(label, True, COLOR_TEXT)
                 surface.blit(txt, (col_rect.x + 6, iy))
 
         # A* score breakdown

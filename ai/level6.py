@@ -7,6 +7,8 @@ from ai.step_recorder import (
     AlphaBetaStep,
     ExpectimaxStep,
     MinimaxStep,
+    move_to_label,
+    pos_to_label,
 )
 
 
@@ -73,7 +75,7 @@ def minimax_move(board, depth=3, recorder=None):
                         MinimaxStep(
                             step_num=step_counter[0] + 1,
                             algorithm="Minimax",
-                            explanation=f"MAX node depth={d}, value={val:.0f}",
+                            explanation=f"Minimax MAX node depth={d}, xét {move_to_label(m)}: value={val:.0f}",
                             current_node={
                                 "move": m,
                                 "depth": d,
@@ -86,6 +88,7 @@ def minimax_move(board, depth=3, recorder=None):
                             ],
                             siblings_evaluated=siblings.copy(),
                             best_so_far={"move": m, "value": max_val},
+                            evaluated=siblings.copy(),
                         )
                     )
                     step_counter[0] += 1
@@ -105,7 +108,7 @@ def minimax_move(board, depth=3, recorder=None):
                         MinimaxStep(
                             step_num=step_counter[0] + 1,
                             algorithm="Minimax",
-                            explanation=f"MIN node depth={d}, value={val:.0f}",
+                            explanation=f"Minimax MIN node depth={d}, xét {move_to_label(m)}: value={val:.0f}",
                             current_node={
                                 "move": m,
                                 "depth": d,
@@ -118,6 +121,7 @@ def minimax_move(board, depth=3, recorder=None):
                             ],
                             siblings_evaluated=siblings.copy(),
                             best_so_far={"move": m, "value": min_val},
+                            evaluated=siblings.copy(),
                         )
                     )
                     step_counter[0] += 1
@@ -195,7 +199,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                         AlphaBetaStep(
                             step_num=step_counter[0] + 1,
                             algorithm="Alpha-Beta",
-                            explanation=f"MAX node depth={d}, α={old_alpha:.0f}→{alpha:.0f}, β={beta:.0f}"
+                            explanation=f"Alpha-Beta MAX node depth={d}, xét {move_to_label(m)}: α={old_alpha:.0f}→{alpha:.0f}, β={beta:.0f}"
                             + (" → Cắt tỉa!" if is_pruned else ""),
                             current_node={
                                 "move": m,
@@ -214,6 +218,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                             if is_pruned
                             else "",
                             siblings_evaluated=siblings.copy(),
+                            evaluated=siblings.copy(),
                         )
                     )
                     step_counter[0] += 1
@@ -240,7 +245,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                         AlphaBetaStep(
                             step_num=step_counter[0] + 1,
                             algorithm="Alpha-Beta",
-                            explanation=f"MIN node depth={d}, α={alpha:.0f}, β={old_beta:.0f}→{beta:.0f}"
+                            explanation=f"Alpha-Beta MIN node depth={d}, xét {move_to_label(m)}: α={alpha:.0f}, β={old_beta:.0f}→{beta:.0f}"
                             + (" → Cắt tỉa!" if is_pruned else ""),
                             current_node={
                                 "move": m,
@@ -259,6 +264,7 @@ def alpha_beta_move(board, depth=4, recorder=None):
                             if is_pruned
                             else "",
                             siblings_evaluated=siblings.copy(),
+                            evaluated=siblings.copy(),
                         )
                     )
                     step_counter[0] += 1
@@ -376,16 +382,18 @@ def expectimax_move(board, depth=3, recorder=None):
 
             # Record step (limit to MAX_VISUALIZATION_STEPS)
             if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
+                eval_list = [{"move": m, "value": v} for m, v in zip(ordered, results)]
                 recorder.add_step(
                     ExpectimaxStep(
                         step_num=step_counter[0] + 1,
                         algorithm="Expectimax",
-                        explanation=f"CHANCE node depth={d}, E[V]={expected_val:.0f} (70% best + 30% avg)",
+                        explanation=f"Expectimax CHANCE node depth={d}: E[V]={expected_val:.0f} (70% best + 30% avg)",
                         current_node={"depth": d, "is_ai_turn": is_ai_turn},
                         is_chance_node=True,
                         child_values=[{"value": v} for v in results],
                         best_value=best_res,
                         expected_value=expected_val,
+                        evaluated=eval_list,
                     )
                 )
                 step_counter[0] += 1

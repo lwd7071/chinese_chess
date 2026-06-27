@@ -2,7 +2,13 @@
 import random
 
 from ai.level3 import get_perspective_score
-from ai.step_recorder import AndOrStep, BeliefStep, OnlineStep
+from ai.step_recorder import (
+    AndOrStep,
+    BeliefStep,
+    OnlineStep,
+    move_to_label,
+    pos_to_label,
+)
 
 PIECE_NAME_VI = {
     "general": "Tướng",
@@ -75,6 +81,7 @@ def online_search_move(board, recorder=None):
                 weights_before=weights_before,
                 weights_after=weights_after,
                 candidates=[],
+                evaluated=[],
             )
         )
 
@@ -121,18 +128,20 @@ def online_search_move(board, recorder=None):
             OnlineStep(
                 step_num=2,
                 algorithm="Online Search",
-                explanation=f"Chọn nước tốt nhất với trọng số mới: score={best_score:.0f}",
+                explanation=f"Online Search: Chọn nước tốt nhất {move_to_label(best_move)} với trọng số mới (score={best_score:.0f})",
                 chosen_move=best_move,
                 in_check=in_check,
                 weights_before=weights_before,
                 weights_after=weights_after,
                 candidates=sorted_candidates,
+                evaluated=candidates.copy(),
             )
         )
 
     # Restore original values
     eval_mod.PIECE_VALUES.update(original_values)
     return best_move
+
 
 
 def and_or_search_move(board, recorder=None):
@@ -157,6 +166,7 @@ def and_or_search_move(board, recorder=None):
     random.shuffle(legal_moves)
     best_move = legal_moves[0]
     best_guaranteed_score = float("-inf")
+    evaluated_list = []
 
     # We examine up to 10 moves for speed
     for i, (from_pos, to_pos) in enumerate(legal_moves[:10]):
@@ -190,6 +200,8 @@ def and_or_search_move(board, recorder=None):
                     worst_case_piece = opp_piece
 
         board.undo_move(test_only=True)
+        node_info = {"move": (from_pos, to_pos), "score": worst_case_score, "piece": or_piece_name}
+        evaluated_list.append(node_info)
 
         # Record step if recorder provided (limit to 10)
         if recorder and i < 10:
@@ -197,7 +209,7 @@ def and_or_search_move(board, recorder=None):
                 AndOrStep(
                     step_num=i + 1,
                     algorithm="AND-OR Search",
-                    explanation=f"OR node: {from_pos}→{to_pos}, worst-case score={worst_case_score:.0f}",
+                    explanation=f"AND-OR xét OR node {move_to_label((from_pos, to_pos))}: worst-case score={worst_case_score:.0f}",
                     chosen_move=best_move
                     if worst_case_score > best_guaranteed_score
                     else None,
@@ -211,6 +223,7 @@ def and_or_search_move(board, recorder=None):
                     if worst_case_move
                     else {},
                     guaranteed_score=worst_case_score,
+                    evaluated=evaluated_list.copy(),
                 )
             )
 
@@ -266,7 +279,7 @@ def belief_state_search_move(board, recorder=None):
             BeliefStep(
                 step_num=1,
                 algorithm="Belief State",
-                explanation=f"Phát hiện phong cách đối thủ: {opp_style.upper()}",
+                explanation=f"Belief State: Phát hiện phong cách đối thủ: {opp_style.upper()}",
                 opponent_style=opp_style,
                 belief_probs={
                     "aggressive": p_agg,
@@ -275,6 +288,10 @@ def belief_state_search_move(board, recorder=None):
                 },
                 utility_per_style={},
                 expected_utility=0.0,
+                u_agg=0.0,
+                u_def=0.0,
+                u_pos=0.0,
+                evaluated=[],
             )
         )
 
@@ -310,6 +327,7 @@ def belief_state_search_move(board, recorder=None):
 
     best_move = legal_moves[0]
     best_expected_utility = float("-inf")
+    evaluated_list = []
 
     for from_pos, to_pos in legal_moves[:12]:
         board.make_move(from_pos, to_pos, test_only=True)
@@ -321,6 +339,7 @@ def belief_state_search_move(board, recorder=None):
 
         expected_utility = p_agg * u_agg + p_def * u_def + p_pos * u_pos
         board.undo_move(test_only=True)
+        evaluated_list.append({"move": (from_pos, to_pos), "score": expected_utility, "piece": _get_piece_name(board, from_pos)})
 
         if expected_utility > best_expected_utility:
             best_expected_utility = expected_utility
@@ -338,7 +357,7 @@ def belief_state_search_move(board, recorder=None):
             BeliefStep(
                 step_num=2,
                 algorithm="Belief State",
-                explanation=f"E[U]={best_expected_utility:.0f} = {p_agg:.1f}*{u_agg:.0f} + {p_def:.1f}*{u_def:.0f} + {p_pos:.1f}*{u_pos:.0f}",
+                explanation=f"Belief State chọn {move_to_label(best_move)}: E[U]={best_expected_utility:.0f} ({p_agg:.1f}*{u_agg:.0f} + {p_def:.1f}*{u_def:.0f} + {p_pos:.1f}*{u_pos:.0f})",
                 chosen_move=best_move,
                 opponent_style=opp_style,
                 belief_probs={
@@ -352,6 +371,10 @@ def belief_state_search_move(board, recorder=None):
                     "positional": u_pos,
                 },
                 expected_utility=best_expected_utility,
+                u_agg=u_agg,
+                u_def=u_def,
+                u_pos=u_pos,
+                evaluated=evaluated_list.copy(),
             )
         )
 

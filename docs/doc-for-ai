@@ -4,6 +4,15 @@ Tài liệu này ghi lại các thay đổi trong quá trình phát triển tín
 
 ---
 
+## 2026-06-28: Hoàn thiện Cải Tiến Giao Diện Chạy Tay (Visualization Panel) ✅
+
+### Mục tiêu & Thực hiện
+- **Chuẩn hóa Dataclass (`ai/step_recorder.py`)**: Bổ sung `evaluated`, `backtrack_log`, `candidates`, `random_value`, `decision` và các hàm format tọa độ `move_to_label`, `pos_to_label`.
+- **Cập nhật AI Logic (`ai/level1.py` đến `ai/level6.py`)**: Truyền đầy đủ các thông số giải thích trực quan, chi tiết từng bước theo chuẩn lý thuyết giáo khoa.
+- **Cập nhật GUI Visualizer (`gui/visualizer.py`)**: Đảm bảo hiển thị 3 cột chuẩn xác (`CURRENT MOVE`, `FRONTIER (PQ)`, `EVALUATED`, `BACKTRACK LOG`, v.v.) cùng lời giải thích rõ ràng ở đầu mỗi bước.
+
+---
+
 ## 2026-06-25: Task 1 - Step Recorder Module ✅
 
 ### Mục tiêu
@@ -292,3 +301,69 @@ Hoàn thành tích hợp recorder vào TẤT CẢ 18 thuật toán AI (Level 1-6
 **All imports verified:** ✅
 
 ---
+
+
+---
+
+## 2026-06-28: UI Improvement Phase - Column Names Standardization ✅
+
+### Mục tiêu
+Cải thiện giao diện visualizer theo đề xuất từ `improve_chaytay.md`:
+- Tên cột rõ ràng hơn, đúng thuật ngữ giáo khoa
+- EXPLORED → EVALUATED (tránh hiểu nhầm "đã đi rồi")
+- Thêm giải thích cho mỗi cột
+
+### Thực hiện
+
+#### 1. UCS/A* Renderer (`_render_search_3col`)
+**Thay đổi tên cột:**
+- `CURRENT` → `CURRENT MOVE` (nước đang xét)
+- `FRONTIER` → `FRONTIER (PQ)` (hàng đợi ưu tiên)
+- `EXPLORED` → `EVALUATED` (đã tính điểm xong)
+
+**Cải thiện hiển thị:**
+- UCS: Hiển thị `cost:` thay vì `c=` (rõ nghĩa hơn)
+- A*: Chuẩn bị hiển thị breakdown `g+h=f` (chưa hoàn thiện)
+- Highlight current column với COLOR_ACCENT
+
+#### 2. BFS/DFS Renderer (`_render_bfs_dfs`)
+**Thay đổi tên cột:**
+- BFS: `CURRENT` → `CURRENT NODE`, `QUEUE` → `QUEUE (FIFO)`, `EXPLORED` → `EVALUATED`
+- DFS: `CURRENT` → `CURRENT NODE`, `EXPLORED` → `BACKTRACK LOG`
+
+**Giải thích:**
+- BFS EVALUATED: các node đã chấm điểm bottom-up
+- DFS BACKTRACK LOG: các node đã undo + điểm trả về
+
+### Files Modified
+- `gui/visualizer.py`: 
+  - Lines 537-607: `_render_bfs_dfs()` 
+  - Lines 610-690: `_render_search_3col()`
+
+### Next Steps
+- Greedy/Hill Climbing: Thêm cột EVALUATED
+- IDA*: Thêm cột CUTOFF / PASS
+- Alpha-Beta/Minimax: Chuyển PATH sang dạng chữ
+- Tất cả: Thêm dòng mô tả bằng lời ở đầu mỗi bước
+
+---
+
+## 2026-06-28: Thực thi Bước 1 - Cập nhật Dataclass trong `ai/step_recorder.py` ✅
+
+### Thực hiện
+- **File sửa:** `ai/step_recorder.py`
+- **Các bổ sung chính:**
+  - Bổ sung trường `evaluated` cho toàn bộ các step (song song với `explored` để đảm bảo tương thích ngược).
+  - `BFSStep`: Thêm `current_depth`.
+  - `DFSStep`: Thêm `backtrack_log`.
+  - `IDAStarStep`: Thêm `status`.
+  - `SAStep`: Thêm `random_value`, `decision`.
+  - `BeliefStep`: Thêm `u_agg`, `u_def`, `u_pos`.
+  - `MinimaxStep`, `AlphaBetaStep`, `ExpectimaxStep`: Thêm `node_type`, `evaluated_and_pruned`, `best_res`, `others_avg`.
+
+### Verification
+- Đã chạy `python -c "from ai.step_recorder import *"` thành công, không lỗi cú pháp.
+
+### Next Step
+- **Bước 2:** Cập nhật lời ghi bước trong các file AI (`level1.py` → `level6.py`).
+
