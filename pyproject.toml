@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+]
+ignore = [
+    "E501", # ignore line length limits
+    "S310", # ignore urlopen security warning
+    "S110", # ignore try-except-pass warning
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S311"] # allow asserts and standard pseudo-random generators in test files
+"ai/*" = ["S311"]             # allow standard pseudo-random generators in AI search/gameplay files
+"gui/*" = ["S311"]            # allow standard pseudo-random generators in GUI animations/simulation

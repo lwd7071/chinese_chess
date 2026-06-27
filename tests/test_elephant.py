@@ -1,6 +1,8 @@
 import unittest
+
 from game.board import Board
 from game.pieces import Piece
+
 
 class TestElephant(unittest.TestCase):
     def test_elephant_empty_board(self):
@@ -9,16 +11,18 @@ class TestElephant(unittest.TestCase):
         Should have exactly 4 valid diagonal moves.
         """
         board = Board(setup=False)
-        elephant = Piece('E', 'red', (7, 4), '相')
+        elephant = Piece("E", "red", (7, 4), "相")
         board.matrix[7][4] = elephant
-        
+
         raw_moves = elephant.get_raw_moves(board.matrix)
-        
+
         expected_moves = {
-            (9, 2), (9, 6),  # bottom-left, bottom-right
-            (5, 2), (5, 6)   # top-left, top-right (at river edge)
+            (9, 2),
+            (9, 6),  # bottom-left, bottom-right
+            (5, 2),
+            (5, 6),  # top-left, top-right (at river edge)
         }
-        
+
         self.assertEqual(len(raw_moves), 4)
         self.assertEqual(set(raw_moves), expected_moves)
 
@@ -28,20 +32,21 @@ class TestElephant(unittest.TestCase):
         Should only be able to move to (9, 6), (5, 2), (5, 6).
         """
         board = Board(setup=False)
-        elephant = Piece('E', 'red', (7, 4), '相')
+        elephant = Piece("E", "red", (7, 4), "相")
         board.matrix[7][4] = elephant
-        
+
         # Friendly piece blocking the bottom-left eye at (8, 3)
-        friendly = Piece('A', 'red', (8, 3), '仕')
+        friendly = Piece("A", "red", (8, 3), "仕")
         board.matrix[8][3] = friendly
-        
+
         raw_moves = elephant.get_raw_moves(board.matrix)
-        
+
         expected_moves = {
             (9, 6),  # bottom-right
-            (5, 2), (5, 6)   # top-left, top-right (at river edge)
+            (5, 2),
+            (5, 6),  # top-left, top-right (at river edge)
         }
-        
+
         self.assertEqual(len(raw_moves), 3)
         self.assertEqual(set(raw_moves), expected_moves)
 
@@ -52,15 +57,16 @@ class TestElephant(unittest.TestCase):
         Only diagonal moves back to Red territory (7, 0) and (7, 4) should be valid.
         """
         board = Board(setup=False)
-        elephant = Piece('E', 'red', (5, 2), '相')
+        elephant = Piece("E", "red", (5, 2), "相")
         board.matrix[5][2] = elephant
-        
+
         raw_moves = elephant.get_raw_moves(board.matrix)
-        
+
         expected_moves = {
-            (7, 0), (7, 4)  # back to own territory
+            (7, 0),
+            (7, 4),  # back to own territory
         }
-        
+
         # Moves (3, 0) and (3, 4) cross the river (row 4 and 3) so they must be blocked
         self.assertEqual(len(raw_moves), 2)
         self.assertEqual(set(raw_moves), expected_moves)
@@ -71,25 +77,25 @@ class TestElephant(unittest.TestCase):
         All 4 diagonal moves should be valid, including (9, 2) for capture.
         """
         board = Board(setup=False)
-        elephant = Piece('E', 'red', (7, 4), '相')
+        elephant = Piece("E", "red", (7, 4), "相")
         board.matrix[7][4] = elephant
-        
+
         # Opponent piece at target position (9, 2)
-        opponent = Piece('A', 'black', (9, 2), '士')
+        opponent = Piece("A", "black", (9, 2), "士")
         board.matrix[9][2] = opponent
-        
+
         raw_moves = elephant.get_raw_moves(board.matrix)
-        
+
         expected_moves = {
-            (9, 2), (9, 6),  # bottom-left (capture), bottom-right
-            (5, 2), (5, 6)   # top-left, top-right
+            (9, 2),
+            (9, 6),  # bottom-left (capture), bottom-right
+            (5, 2),
+            (5, 6),  # top-left, top-right
         }
-        
+
         self.assertEqual(len(raw_moves), 4)
         self.assertEqual(set(raw_moves), expected_moves)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
-
-
-

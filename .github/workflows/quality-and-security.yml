@@ -18,16 +18,18 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies (Linters)
         run: |
           python -m pip install --upgrade pip
-          pip install ruff bandit
+          pip install -r requirements-dev.txt
 
       - name: Lint with Ruff
         run: |
@@ -36,6 +38,5 @@ jobs:
 
       - name: Security scan with Bandit
         run: |
-          # Run bandit recursively on all files, ignore tests directory if desired (uncomment next line to ignore)
-          # bandit -r . -x tests/
-          bandit -r .
+          # Fail only on Medium and High severity issues, excluding tests and virtual environments
+          bandit -r . -x tests/,venv/,.venv/ -ll

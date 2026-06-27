@@ -1,52 +1,53 @@
 # Board model representing the 9x10 grid and game state
 from game.pieces import Piece
 
+
 class Board:
     def __init__(self, setup=True):
         self.matrix = [[None for _ in range(9)] for _ in range(10)]
-        self.turn = 'red' # Red goes first
-        self.history = [] # Stack of (from_pos, to_pos, captured_piece, old_turn)
-        self.move_log = [] # UI log with richer move metadata for both sides
+        self.turn = "red"  # Red goes first
+        self.history = []  # Stack of (from_pos, to_pos, captured_piece, old_turn)
+        self.move_log = []  # UI log with richer move metadata for both sides
         self.matrix_history = []
         self.moved_pieces_stack = []
-        
+
         if setup:
             self.setup_pieces()
 
     def setup_pieces(self):
         # 1. Setup Black pieces (top rows: 0, 2, 3)
-        self.matrix[0][0] = Piece('R', 'black', (0, 0), '車')
-        self.matrix[0][1] = Piece('H', 'black', (0, 1), '馬')
-        self.matrix[0][2] = Piece('E', 'black', (0, 2), '象')
-        self.matrix[0][3] = Piece('A', 'black', (0, 3), '士')
-        self.matrix[0][4] = Piece('G', 'black', (0, 4), '將')
-        self.matrix[0][5] = Piece('A', 'black', (0, 5), '士')
-        self.matrix[0][6] = Piece('E', 'black', (0, 6), '象')
-        self.matrix[0][7] = Piece('H', 'black', (0, 7), '馬')
-        self.matrix[0][8] = Piece('R', 'black', (0, 8), '車')
-        
-        self.matrix[2][1] = Piece('C', 'black', (2, 1), '砲')
-        self.matrix[2][7] = Piece('C', 'black', (2, 7), '砲')
-        
+        self.matrix[0][0] = Piece("R", "black", (0, 0), "車")
+        self.matrix[0][1] = Piece("H", "black", (0, 1), "馬")
+        self.matrix[0][2] = Piece("E", "black", (0, 2), "象")
+        self.matrix[0][3] = Piece("A", "black", (0, 3), "士")
+        self.matrix[0][4] = Piece("G", "black", (0, 4), "將")
+        self.matrix[0][5] = Piece("A", "black", (0, 5), "士")
+        self.matrix[0][6] = Piece("E", "black", (0, 6), "象")
+        self.matrix[0][7] = Piece("H", "black", (0, 7), "馬")
+        self.matrix[0][8] = Piece("R", "black", (0, 8), "車")
+
+        self.matrix[2][1] = Piece("C", "black", (2, 1), "砲")
+        self.matrix[2][7] = Piece("C", "black", (2, 7), "砲")
+
         for c in [0, 2, 4, 6, 8]:
-            self.matrix[3][c] = Piece('P', 'black', (3, c), '卒')
+            self.matrix[3][c] = Piece("P", "black", (3, c), "卒")
 
         # 2. Setup Red pieces (bottom rows: 9, 7, 6)
-        self.matrix[9][0] = Piece('R', 'red', (9, 0), '俥')
-        self.matrix[9][1] = Piece('H', 'red', (9, 1), '傌')
-        self.matrix[9][2] = Piece('E', 'red', (9, 2), '相')
-        self.matrix[9][3] = Piece('A', 'red', (9, 3), '仕')
-        self.matrix[9][4] = Piece('G', 'red', (9, 4), '帥')
-        self.matrix[9][5] = Piece('A', 'red', (9, 5), '仕')
-        self.matrix[9][6] = Piece('E', 'red', (9, 6), '相')
-        self.matrix[9][7] = Piece('H', 'red', (9, 7), '傌')
-        self.matrix[9][8] = Piece('R', 'red', (9, 8), '俥')
-        
-        self.matrix[7][1] = Piece('C', 'red', (7, 1), '炮')
-        self.matrix[7][7] = Piece('C', 'red', (7, 7), '炮')
-        
+        self.matrix[9][0] = Piece("R", "red", (9, 0), "俥")
+        self.matrix[9][1] = Piece("H", "red", (9, 1), "傌")
+        self.matrix[9][2] = Piece("E", "red", (9, 2), "相")
+        self.matrix[9][3] = Piece("A", "red", (9, 3), "仕")
+        self.matrix[9][4] = Piece("G", "red", (9, 4), "帥")
+        self.matrix[9][5] = Piece("A", "red", (9, 5), "仕")
+        self.matrix[9][6] = Piece("E", "red", (9, 6), "相")
+        self.matrix[9][7] = Piece("H", "red", (9, 7), "傌")
+        self.matrix[9][8] = Piece("R", "red", (9, 8), "俥")
+
+        self.matrix[7][1] = Piece("C", "red", (7, 1), "炮")
+        self.matrix[7][7] = Piece("C", "red", (7, 7), "炮")
+
         for c in [0, 2, 4, 6, 8]:
-            self.matrix[6][c] = Piece('P', 'red', (6, c), '兵')
+            self.matrix[6][c] = Piece("P", "red", (6, c), "兵")
 
     def get_piece(self, pos):
         r, c = pos
@@ -58,7 +59,7 @@ class Board:
         for r in range(10):
             for c in range(9):
                 p = self.matrix[r][c]
-                if p and p.name == 'G' and p.color == color:
+                if p and p.name == "G" and p.color == color:
                     return (r, c)
         return None
 
@@ -67,9 +68,9 @@ class Board:
         g_pos = self.get_general_pos(color)
         if g_pos is None:
             return False
-            
-        opp_color = 'black' if color == 'red' else 'red'
-        
+
+        opp_color = "black" if color == "red" else "red"
+
         # Check if any opponent piece can capture the general
         for r in range(10):
             for c in range(9):
@@ -77,12 +78,12 @@ class Board:
                 if p and p.color == opp_color:
                     if g_pos in p.get_raw_moves(self.matrix):
                         return True
-                        
+
         # Check General Face-Off Rule ("Lộ mặt tướng")
         # If both generals are on the same column with no pieces in between, it is invalid
         # This counts as check / threat
-        red_g = self.get_general_pos('red')
-        black_g = self.get_general_pos('black')
+        red_g = self.get_general_pos("red")
+        black_g = self.get_general_pos("black")
         if red_g and black_g and red_g[1] == black_g[1]:
             col = red_g[1]
             blocked = False
@@ -97,7 +98,7 @@ class Board:
                 # If they face off, the side whose turn it is cannot make a move that keeps them facing off
                 # To enforce this: facing off counts as a threat/check!
                 return True
-                
+
         return False
 
     def get_all_legal_moves(self, color, avoid_repetition=True):
@@ -115,26 +116,28 @@ class Board:
                         # Test move
                         from_pos = (r, c)
                         to_pos = (tr, tc)
-                        
-                        captured = self.make_move(from_pos, to_pos, test_only=True)
+
+                        self.make_move(from_pos, to_pos, test_only=True)
                         if not self.is_in_check(color):
                             legal_moves.append((from_pos, to_pos))
                         self.undo_move(test_only=True)
-                        
+
         if avoid_repetition and len(self.matrix_history) >= 4:
             # Strictly filter out moves that lead to repetition
-            non_repeating = [m for m in legal_moves if not self.is_repetition_move(m[0], m[1])]
+            non_repeating = [
+                m for m in legal_moves if not self.is_repetition_move(m[0], m[1])
+            ]
             return non_repeating
-            
+
         return legal_moves
 
     def is_repetition_move(self, from_pos, to_pos):
         if not self.matrix_history:
             return False
-            
+
         # Simulate the move
         self.make_move(from_pos, to_pos, test_only=True)
-        
+
         # Count how many times the proposed state has appeared in the entire history
         match_count = 0
         for prev_matrix in self.matrix_history:
@@ -156,7 +159,7 @@ class Board:
                 match_count += 1
                 if match_count >= 3:
                     break
-                
+
         self.undo_move(test_only=True)
         return match_count >= 3
 
@@ -167,7 +170,7 @@ class Board:
         """
         fr, fc = from_pos
         tr, tc = to_pos
-        
+
         piece = self.matrix[fr][fc]
         captured = self.matrix[tr][tc]
 
@@ -180,7 +183,7 @@ class Board:
             "captured_name": captured.name if captured else None,
             "captured_char": captured.char if captured else None,
         }
-        
+
         if not test_only:
             # Save a copy of the matrix before making the move
             matrix_copy = [[None for _ in range(9)] for _ in range(10)]
@@ -190,41 +193,41 @@ class Board:
                     if p:
                         matrix_copy[r][c] = p.copy()
             self.matrix_history.append(matrix_copy)
-            
+
         # Record history
         self.history.append((from_pos, to_pos, captured, self.turn))
         if not test_only and log_move:
             self.move_log.append(move_record)
         self.moved_pieces_stack.append(piece)
-        
+
         # Copy-on-Write: clone the piece to avoid mutating shared piece pos in other board copies
         if piece:
             piece = piece.copy()
             piece.pos = to_pos
-            
+
         # Move piece in matrix
         self.matrix[tr][tc] = piece
         self.matrix[fr][fc] = None
-        
+
         # Switch turn
-        self.turn = 'black' if self.turn == 'red' else 'red'
+        self.turn = "black" if self.turn == "red" else "red"
         return captured
 
     def undo_move(self, test_only=False):
         if not self.history:
             return
-            
+
         from_pos, to_pos, captured, old_turn = self.history.pop()
         original_piece = self.moved_pieces_stack.pop()
         fr, fc = from_pos
         tr, tc = to_pos
-        
+
         self.matrix[fr][fc] = original_piece
         self.matrix[tr][tc] = captured
-        
+
         if not test_only and self.matrix_history:
             self.matrix_history.pop()
-            
+
         self.turn = old_turn
 
     def copy(self):

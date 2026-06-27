@@ -1,5 +1,6 @@
 # Pieces model for Chinese Chess
 
+
 class Piece:
     def __init__(self, name, color, pos, char):
         """
@@ -20,38 +21,38 @@ class Piece:
         """
         r, c = self.pos
         moves = []
-        
-        if self.name == 'G': # General (Tướng)
+
+        if self.name == "G":  # General (Tướng)
             # 1 step orthogonal, within Palace
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-            palace_rows = range(7, 10) if self.color == 'red' else range(0, 3)
+            palace_rows = range(7, 10) if self.color == "red" else range(0, 3)
             palace_cols = range(3, 6)
-            
+
             for dr, dc in directions:
                 nr, nc = r + dr, c + dc
                 if nr in palace_rows and nc in palace_cols:
                     dest = board_matrix[nr][nc]
                     if dest is None or dest.color != self.color:
                         moves.append((nr, nc))
-                        
-        elif self.name == 'A': # Advisor (Sĩ)
+
+        elif self.name == "A":  # Advisor (Sĩ)
             # 1 step diagonal, within Palace
             directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-            palace_rows = range(7, 10) if self.color == 'red' else range(0, 3)
+            palace_rows = range(7, 10) if self.color == "red" else range(0, 3)
             palace_cols = range(3, 6)
-            
+
             for dr, dc in directions:
                 nr, nc = r + dr, c + dc
                 if nr in palace_rows and nc in palace_cols:
                     dest = board_matrix[nr][nc]
                     if dest is None or dest.color != self.color:
                         moves.append((nr, nc))
-                        
-        elif self.name == 'E': # Elephant (Tượng)
+
+        elif self.name == "E":  # Elephant (Tượng)
             # 2 steps diagonal, cannot cross river, blocked at center eye
             directions = [(-2, -2), (-2, 2), (2, -2), (2, 2)]
-            valid_rows = range(5, 10) if self.color == 'red' else range(0, 5)
-            
+            valid_rows = range(5, 10) if self.color == "red" else range(0, 5)
+
             for dr, dc in directions:
                 nr, nc = r + dr, c + dc
                 if nr in valid_rows and 0 <= nc < 9:
@@ -61,8 +62,8 @@ class Piece:
                         dest = board_matrix[nr][nc]
                         if dest is None or dest.color != self.color:
                             moves.append((nr, nc))
-                            
-        elif self.name == 'R': # Rook (Xe)
+
+        elif self.name == "R":  # Rook (Xe)
             # Slide orthogonally
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
             for dr, dc in directions:
@@ -73,13 +74,13 @@ class Piece:
                         moves.append((nr, nc))
                     elif dest.color != self.color:
                         moves.append((nr, nc))
-                        break # Stop after capturing opponent
+                        break  # Stop after capturing opponent
                     else:
-                        break # Blocked by own piece
+                        break  # Blocked by own piece
                     nr += dr
                     nc += dc
-                    
-        elif self.name == 'C': # Cannon (Pháo)
+
+        elif self.name == "C":  # Cannon (Pháo)
             # Slide orthogonally. Eat by jumping over exactly 1 piece.
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
             for dr, dc in directions:
@@ -91,27 +92,31 @@ class Piece:
                         if dest is None:
                             moves.append((nr, nc))
                         else:
-                            jumped = True # Hit first piece (screen/ngòi)
+                            jumped = True  # Hit first piece (screen/ngòi)
                     else:
                         if dest is not None:
                             if dest.color != self.color:
-                                moves.append((nr, nc)) # Capture
-                            break # Blocked after first jump
+                                moves.append((nr, nc))  # Capture
+                            break  # Blocked after first jump
                     nr += dr
                     nc += dc
-                    
-        elif self.name == 'H': # Horse (Mã)
+
+        elif self.name == "H":  # Horse (Mã)
             # L-shape: 2 steps in 1 dir + 1 step in perp dir.
             # Blocked at leg (1 step in 2-step dir)
             potential_moves = [
                 # vertical moves (dr=2, leg is dr=1)
-                (-2, -1, -1, 0), (-2, 1, -1, 0),
-                (2, -1, 1, 0), (2, 1, 1, 0),
+                (-2, -1, -1, 0),
+                (-2, 1, -1, 0),
+                (2, -1, 1, 0),
+                (2, 1, 1, 0),
                 # horizontal moves (dc=2, leg is dc=1)
-                (-1, -2, 0, -1), (1, -2, 0, -1),
-                (-1, 2, 0, 1), (1, 2, 0, 1)
+                (-1, -2, 0, -1),
+                (1, -2, 0, -1),
+                (-1, 2, 0, 1),
+                (1, 2, 0, 1),
             ]
-            
+
             for dr, dc, leg_r, leg_c in potential_moves:
                 nr, nc = r + dr, c + dc
                 if 0 <= nr < 10 and 0 <= nc < 9:
@@ -120,10 +125,10 @@ class Piece:
                         dest = board_matrix[nr][nc]
                         if dest is None or dest.color != self.color:
                             moves.append((nr, nc))
-                            
-        elif self.name == 'P': # Pawn (Tốt)
+
+        elif self.name == "P":  # Pawn (Tốt)
             # 1 step forward. After river, also 1 step sideways.
-            if self.color == 'red':
+            if self.color == "red":
                 # Move up
                 if r - 1 >= 0:
                     dest = board_matrix[r - 1][c]
@@ -137,7 +142,7 @@ class Piece:
                             dest = board_matrix[r][nc]
                             if dest is None or dest.color != self.color:
                                 moves.append((r, nc))
-            else: # Black
+            else:  # Black
                 # Move down
                 if r + 1 < 10:
                     dest = board_matrix[r + 1][c]
@@ -151,7 +156,7 @@ class Piece:
                             dest = board_matrix[r][nc]
                             if dest is None or dest.color != self.color:
                                 moves.append((r, nc))
-                                
+
         return moves
 
     def copy(self):

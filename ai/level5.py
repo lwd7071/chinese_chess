@@ -1,15 +1,16 @@
 # Level 5 AI: Backtracking CSP (MRV), Min-Conflicts, AC-3
 import random
+
 from ai.eval import PIECE_VALUES
 from ai.level3 import get_perspective_score
-from ai.step_recorder import BacktrackStep, MinConflictStep, AC3Step, MAX_VISUALIZATION_STEPS
+from ai.step_recorder import AC3Step, BacktrackStep, MinConflictStep
 
 
 def get_threats_count(board, color):
     """Counts how many pieces of the given color are currently under direct threat from opponent"""
-    opp = 'black' if color == 'red' else 'red'
+    opp = "black" if color == "red" else "red"
     threatened = set()
-    
+
     # Generate all opponent raw attacks
     for r in range(10):
         for c in range(9):
@@ -20,15 +21,16 @@ def get_threats_count(board, color):
                     targ = board.matrix[tr][tc]
                     if targ and targ.color == color:
                         threatened.add(targ.pos)
-                        
+
     return len(threatened)
+
 
 def backtracking_mrv_move(board, recorder=None):
     """
     Backtracking with MRV (Minimum Remaining Values):
     We select the piece (Variable) that has the FEWEST legal destination moves (Domain).
     We move it to the square that yields the highest evaluation score.
-    
+
     Args:
         board: Current board state
         recorder: Optional StepRecorder for visualization
@@ -36,9 +38,9 @@ def backtracking_mrv_move(board, recorder=None):
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
         return None
-        
+
     color = board.turn
-    
+
     # Variables: pieces that have at least 1 legal move
     # Map from_pos -> list of target positions
     var_domains = {}
@@ -46,57 +48,64 @@ def backtracking_mrv_move(board, recorder=None):
         if from_pos not in var_domains:
             var_domains[from_pos] = []
         var_domains[from_pos].append(to_pos)
-    
+
     # Record all variables with domain sizes
     if recorder:
         variables_info = {str(pos): len(domain) for pos, domain in var_domains.items()}
-        recorder.add_step(BacktrackStep(
-            step_num=1,
-            algorithm="Backtracking MRV",
-            explanation=f"Tính domain size cho {len(var_domains)} biến (quân cờ)",
-            variables=variables_info
-        ))
-    
+        recorder.add_step(
+            BacktrackStep(
+                step_num=1,
+                algorithm="Backtracking MRV",
+                explanation=f"Tính domain size cho {len(var_domains)} biến (quân cờ)",
+                variables=variables_info,
+            )
+        )
+
     # MRV: Choose the variable (from_pos) with the smallest domain (fewest moves)
     chosen_var = min(var_domains.keys(), key=lambda x: len(var_domains[x]))
     domain_list = []
-    
+
     # Find the best value (to_pos) for the chosen variable
     best_to = var_domains[chosen_var][0]
-    best_score = float('-inf')
-    
+    best_score = float("-inf")
+
     for to_pos in var_domains[chosen_var]:
         board.make_move(chosen_var, to_pos, test_only=True)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
-        
-        domain_list.append({'move': (chosen_var, to_pos), 'score': score})
-        
+
+        domain_list.append({"move": (chosen_var, to_pos), "score": score})
+
         if score > best_score:
             best_score = score
             best_to = to_pos
-    
+
     # Record MRV selection
     if recorder:
-        recorder.add_step(BacktrackStep(
-            step_num=2,
-            algorithm="Backtracking MRV",
-            explanation=f"MRV chọn biến {chosen_var} (domain={len(var_domains[chosen_var])} - nhỏ nhất), score={best_score:.0f}",
-            chosen_move=(chosen_var, best_to),
-            variables={str(pos): len(domain) for pos, domain in var_domains.items()},
-            chosen_variable=str(chosen_var),
-            domain=domain_list,
-            best_assignment={'move': (chosen_var, best_to), 'score': best_score}
-        ))
-    
+        recorder.add_step(
+            BacktrackStep(
+                step_num=2,
+                algorithm="Backtracking MRV",
+                explanation=f"MRV chọn biến {chosen_var} (domain={len(var_domains[chosen_var])} - nhỏ nhất), score={best_score:.0f}",
+                chosen_move=(chosen_var, best_to),
+                variables={
+                    str(pos): len(domain) for pos, domain in var_domains.items()
+                },
+                chosen_variable=str(chosen_var),
+                domain=domain_list,
+                best_assignment={"move": (chosen_var, best_to), "score": best_score},
+            )
+        )
+
     return (chosen_var, best_to)
+
 
 def min_conflicts_move(board, recorder=None):
     """
     Min-Conflicts:
     Conflicts = Number of our pieces under attack.
     We choose the move that minimizes the number of our pieces under threat.
-    
+
     Args:
         board: Current board state
         recorder: Optional StepRecorder for visualization
@@ -104,28 +113,30 @@ def min_conflicts_move(board, recorder=None):
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
         return None
-        
+
     color = board.turn
     random.shuffle(legal_moves)
-    
+
     # Current conflicts before any move
     current_conflicts = get_threats_count(board, color)
-    
+
     best_move = legal_moves[0]
-    min_conflicts = float('inf')
-    
+    min_conflicts = float("inf")
+
     # We want to break ties with the evaluation function
-    best_score = float('-inf')
+    best_score = float("-inf")
     candidates = []
-    
+
     for from_pos, to_pos in legal_moves:
         board.make_move(from_pos, to_pos, test_only=True)
         conflicts = get_threats_count(board, color)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
-        
-        candidates.append({'move': (from_pos, to_pos), 'conflicts_after': conflicts, 'score': score})
-        
+
+        candidates.append(
+            {"move": (from_pos, to_pos), "conflicts_after": conflicts, "score": score}
+        )
+
         if conflicts < min_conflicts:
             min_conflicts = conflicts
             best_move = (from_pos, to_pos)
@@ -134,21 +145,30 @@ def min_conflicts_move(board, recorder=None):
             if score > best_score:
                 best_score = score
                 best_move = (from_pos, to_pos)
-    
+
     # Record step
     if recorder:
-        sorted_candidates = sorted(candidates, key=lambda x: (x['conflicts_after'], -x['score']))[:10]
-        recorder.add_step(MinConflictStep(
-            step_num=1,
-            algorithm="Min-Conflicts",
-            explanation=f"Conflicts trước={current_conflicts}, sau={min_conflicts} (giảm {current_conflicts - min_conflicts})",
-            chosen_move=best_move,
-            current_conflicts=current_conflicts,
-            candidates=sorted_candidates,
-            best_candidate={'move': best_move, 'conflicts_after': min_conflicts, 'score': best_score}
-        ))
-    
+        sorted_candidates = sorted(
+            candidates, key=lambda x: (x["conflicts_after"], -x["score"])
+        )[:10]
+        recorder.add_step(
+            MinConflictStep(
+                step_num=1,
+                algorithm="Min-Conflicts",
+                explanation=f"Conflicts trước={current_conflicts}, sau={min_conflicts} (giảm {current_conflicts - min_conflicts})",
+                chosen_move=best_move,
+                current_conflicts=current_conflicts,
+                candidates=sorted_candidates,
+                best_candidate={
+                    "move": best_move,
+                    "conflicts_after": min_conflicts,
+                    "score": best_score,
+                },
+            )
+        )
+
     return best_move
+
 
 def ac3_move(board, recorder=None):
     """
@@ -157,7 +177,7 @@ def ac3_move(board, recorder=None):
     For example, a Rook moving to a cell guarded by a Pawn will be pruned.
     If some moves remain, we pick the best one using evaluation.
     If all moves are pruned, we select the best move from the original list (fallback).
-    
+
     Args:
         board: Current board state
         recorder: Optional StepRecorder for visualization
@@ -165,21 +185,21 @@ def ac3_move(board, recorder=None):
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
         return None
-        
+
     color = board.turn
-    opp = 'black' if color == 'red' else 'red'
-    
+    opp = "black" if color == "red" else "red"
+
     # Prune unsafe moves (AC-3 check)
     safe_moves = []
     pruned_moves = []
-    
+
     for from_pos, to_pos in legal_moves:
         piece = board.get_piece(from_pos)
         p_val = PIECE_VALUES.get(piece.name, 0)
-        
+
         # Test move
         board.make_move(from_pos, to_pos, test_only=True)
-        
+
         # Check if the target position is under attack by a cheaper opponent piece
         is_unsafe = False
         attacker_name = None
@@ -197,24 +217,26 @@ def ac3_move(board, recorder=None):
                             break
             if is_unsafe:
                 break
-                
+
         board.undo_move(test_only=True)
-        
+
         if not is_unsafe:
             safe_moves.append((from_pos, to_pos))
         else:
-            pruned_moves.append({
-                'move': (from_pos, to_pos),
-                'reason': f'{piece.name}({p_val}) bị {attacker_name}({PIECE_VALUES.get(attacker_name, 0)}) ăn'
-            })
-    
+            pruned_moves.append(
+                {
+                    "move": (from_pos, to_pos),
+                    "reason": f"{piece.name}({p_val}) bị {attacker_name}({PIECE_VALUES.get(attacker_name, 0)}) ăn",
+                }
+            )
+
     # Select from safe moves if available, otherwise fallback to all legal moves
     candidates = safe_moves if safe_moves else legal_moves
-    
+
     random.shuffle(candidates)
     best_move = candidates[0]
-    best_score = float('-inf')
-    
+    best_score = float("-inf")
+
     for from_pos, to_pos in candidates:
         board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
@@ -222,18 +244,23 @@ def ac3_move(board, recorder=None):
         if score > best_score:
             best_score = score
             best_move = (from_pos, to_pos)
-    
+
     # Record step
     if recorder:
-        recorder.add_step(AC3Step(
-            step_num=1,
-            algorithm="AC-3",
-            explanation=f"Lọc {len(pruned_moves)}/{len(legal_moves)} nước không an toàn, còn {len(safe_moves)} nước an toàn",
-            chosen_move=best_move,
-            all_moves=len(legal_moves),
-            safe_moves=[{'move': m, 'score': best_score if m == best_move else 0} for m in safe_moves[:10]],
-            pruned_moves=pruned_moves[:10],
-            chosen_from_safe={'move': best_move, 'score': best_score}
-        ))
-    
+        recorder.add_step(
+            AC3Step(
+                step_num=1,
+                algorithm="AC-3",
+                explanation=f"Lọc {len(pruned_moves)}/{len(legal_moves)} nước không an toàn, còn {len(safe_moves)} nước an toàn",
+                chosen_move=best_move,
+                all_moves=len(legal_moves),
+                safe_moves=[
+                    {"move": m, "score": best_score if m == best_move else 0}
+                    for m in safe_moves[:10]
+                ],
+                pruned_moves=pruned_moves[:10],
+                chosen_from_safe={"move": best_move, "score": best_score},
+            )
+        )
+
     return best_move

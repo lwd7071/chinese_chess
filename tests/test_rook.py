@@ -1,6 +1,8 @@
 import unittest
+
 from game.board import Board
 from game.pieces import Piece
+
 
 class TestRook(unittest.TestCase):
     def test_rook_empty_board(self):
@@ -9,18 +11,18 @@ class TestRook(unittest.TestCase):
         to all 17 orthogonal squares on the 9x10 grid (9 in column 4, 8 in row 4).
         """
         board = Board(setup=False)
-        rook = Piece('R', 'red', (4, 4), '俥')
+        rook = Piece("R", "red", (4, 4), "俥")
         board.matrix[4][4] = rook
-        
+
         raw_moves = rook.get_raw_moves(board.matrix)
-        
+
         # Expected moves along row 4 (excluding (4, 4))
         expected_row_moves = [(4, c) for c in range(9) if c != 4]
         # Expected moves along col 4 (excluding (4, 4))
         expected_col_moves = [(r, 4) for r in range(10) if r != 4]
-        
+
         expected_moves = set(expected_row_moves + expected_col_moves)
-        
+
         self.assertEqual(len(raw_moves), 17)
         self.assertEqual(set(raw_moves), expected_moves)
 
@@ -30,17 +32,17 @@ class TestRook(unittest.TestCase):
         Rook can only move to (8, 0) vertically, and (9, 1)..(9, 8) horizontally.
         """
         board = Board(setup=False)
-        rook = Piece('R', 'red', (9, 0), '俥')
+        rook = Piece("R", "red", (9, 0), "俥")
         board.matrix[9][0] = rook
-        
+
         # Friendly piece at (7, 0)
-        friendly = Piece('A', 'red', (7, 0), '仕')
+        friendly = Piece("A", "red", (7, 0), "仕")
         board.matrix[7][0] = friendly
-        
+
         raw_moves = rook.get_raw_moves(board.matrix)
-        
+
         expected_moves = set([(8, 0)] + [(9, c) for c in range(1, 9)])
-        
+
         self.assertEqual(len(raw_moves), 9)
         self.assertEqual(set(raw_moves), expected_moves)
 
@@ -50,17 +52,17 @@ class TestRook(unittest.TestCase):
         Rook can move to (8, 0) and (7, 0) vertically, and (9, 1)..(9, 8) horizontally.
         """
         board = Board(setup=False)
-        rook = Piece('R', 'red', (9, 0), '俥')
+        rook = Piece("R", "red", (9, 0), "俥")
         board.matrix[9][0] = rook
-        
+
         # Opponent piece at (7, 0)
-        opponent = Piece('A', 'black', (7, 0), '士')
+        opponent = Piece("A", "black", (7, 0), "士")
         board.matrix[7][0] = opponent
-        
+
         raw_moves = rook.get_raw_moves(board.matrix)
-        
+
         expected_moves = set([(8, 0), (7, 0)] + [(9, c) for c in range(1, 9)])
-        
+
         self.assertEqual(len(raw_moves), 10)
         self.assertEqual(set(raw_moves), expected_moves)
 
@@ -73,28 +75,26 @@ class TestRook(unittest.TestCase):
         Total expected moves: 9 + 1 + 3 = 13 moves.
         """
         board = Board(setup=False)
-        rook = Piece('R', 'red', (4, 4), '俥')
+        rook = Piece("R", "red", (4, 4), "俥")
         board.matrix[4][4] = rook
-        
+
         # Friendly piece at (4, 2)
-        friendly = Piece('A', 'red', (4, 2), '仕')
+        friendly = Piece("A", "red", (4, 2), "仕")
         board.matrix[4][2] = friendly
-        
+
         # Opponent piece at (4, 7)
-        opponent = Piece('A', 'black', (4, 7), '士')
+        opponent = Piece("A", "black", (4, 7), "士")
         board.matrix[4][7] = opponent
-        
+
         raw_moves = rook.get_raw_moves(board.matrix)
-        
+
         expected_vertical = [(r, 4) for r in range(10) if r != 4]
         expected_horizontal = [(4, 3), (4, 5), (4, 6), (4, 7)]
         expected_moves = set(expected_vertical + expected_horizontal)
-        
+
         self.assertEqual(len(raw_moves), 13)
         self.assertEqual(set(raw_moves), expected_moves)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
-
-
-
