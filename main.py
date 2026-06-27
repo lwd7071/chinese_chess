@@ -113,6 +113,8 @@ class GameController:
         self.selected_pos = None
         self.valid_moves = []
         self.hint_move = None
+        self.game_start_time = None
+        self.game_end_time = None
         self.pending_move = None
         self.pending_ai_move = None
         self.latest_move_index = None
@@ -226,6 +228,8 @@ class GameController:
         self.red_exp = self.settings.data.get("exp", 0)
         self.step_recorder.clear()
         self.step_controller = StepController()
+        self.game_start_time = time.time()
+        self.game_end_time = None
 
     def show_popup(self, message):
         self.popup_message = message
@@ -397,6 +401,7 @@ class GameController:
                                 win_exp = calculate_win_exp(self.board, "black")
                                 self.game_over_result = f"Black wins! +{win_exp} EXP"
                                 self.state = "game_over"
+                                self.game_end_time = time.time()
                                 play_synth_sound("check")
                                 self.award_game_over_exp("black", win_exp)
                             elif action == "return":
@@ -679,6 +684,7 @@ class GameController:
             if is_no_cross_river_pieces(self.board):
                 self.game_over_result = "HÒA CỜ - Không còn quân qua sông!"
                 self.state = "game_over"
+                self.game_end_time = time.time()
                 if self.menu.game_mode == "human_vs_bot":
                     self.record_match_history("Hòa", exp_gained=40)
                     self.red_exp = self.settings.data.get("exp", 0)
@@ -694,6 +700,7 @@ class GameController:
                     self.game_over_result = f"Black wins! +{win_exp} EXP"
 
                 self.state = "game_over"
+                self.game_end_time = time.time()
                 self.award_game_over_exp(winner_color, win_exp)
 
     def record_match_history(self, result, exp_gained=None):
@@ -836,6 +843,13 @@ class GameController:
             )
         else:
             # Show normal Sidebar
+            elapsed = 0.0
+            if self.game_start_time is not None:
+                if self.game_end_time is not None:
+                    elapsed = self.game_end_time - self.game_start_time
+                else:
+                    elapsed = time.time() - self.game_start_time
+
             self.sidebar.draw(
                 self.screen,
                 self.board,
@@ -851,6 +865,7 @@ class GameController:
                 red_exp=self.red_exp,
                 black_exp=self.black_exp,
                 is_game_over=(self.state == "game_over"),
+                elapsed_time=elapsed,
             )
 
         # 6. Draw capture burst particles

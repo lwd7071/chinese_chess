@@ -345,6 +345,7 @@ class Sidebar:
         red_exp=0,
         black_exp=0,
         is_game_over=False,
+        elapsed_time=0.0,
     ):
         # 1. Fill sidebar background
         sidebar_rect = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -429,7 +430,11 @@ class Sidebar:
             1,
         )
 
-        timer_txt = self.mono_font.render("05:24", True, COLOR_ACCENT)
+        # Format elapsed_time to MM:SS
+        minutes = int(elapsed_time // 60)
+        seconds = int(elapsed_time % 60)
+        time_str = f"{minutes:02d}:{seconds:02d}"
+        timer_txt = self.mono_font.render(time_str, True, COLOR_ACCENT)
         surface.blit(
             timer_txt, (turn_box.x + 28, turn_box.centery - timer_txt.get_height() // 2)
         )
