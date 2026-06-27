@@ -1,10 +1,34 @@
 {
-  "name": "Kỳ Vương",
+  "name": "cubu",
   "country": "Việt Nam",
   "birthday": "01/01/2000",
   "level": 3,
-  "exp": 102,
+  "exp": 372,
   "history": [
+    {
+      "mode": "Người vs Bot",
+      "algo": "Minimax",
+      "result": "Thua",
+      "time": "27/06/2026 14:20"
+    },
+    {
+      "mode": "Bot vs Bot",
+      "algo": "BFS vs DFS",
+      "result": "Đỏ thắng",
+      "time": "27/06/2026 14:13"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "BFS",
+      "result": "Thắng",
+      "time": "27/06/2026 13:57"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thua",
+      "time": "27/06/2026 13:53"
+    },
     {
       "mode": "Người vs Bot",
       "algo": "Expectimax",

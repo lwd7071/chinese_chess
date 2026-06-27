@@ -117,37 +117,54 @@ class VisualizerPanel:
         self.width = width
         self.height = height
 
-        # Load fonts. If custom font_name is provided, use it (assumed to be a file path for pygame.font.Font if it ends with .ttf)
-        # However, for UI we mainly use SysFont unless we really need chinese
-        font_list = ["Segoe UI", "Arial"]
-        if font_name and not font_name.endswith(".ttf"):
-            font_list.insert(0, font_name)
+        # Load fonts with Vietnamese support fallback chain
+        import os
 
+        def _load_font(size, bold=False):
+            """Thử load font theo thứ tự ưu tiên, hỗ trợ tiếng Việt."""
+            # 1. Thử file TTF bundled
+            ttf_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "assets", "fonts", "Roboto-Regular.ttf",
+            )
+            if os.path.exists(ttf_path):
+                try:
+                    f = pygame.font.Font(ttf_path, size)
+                    if bold:
+                        f.set_bold(True)
+                    return f
+                except Exception:
+                    pass
+            # 2. Thử custom font_name nếu là file .ttf
+            if font_name and font_name.endswith(".ttf") and os.path.exists(font_name):
+                try:
+                    f = pygame.font.Font(font_name, size)
+                    if bold:
+                        f.set_bold(True)
+                    return f
+                except Exception:
+                    pass
+            # 3. SysFont fallback — Arial và Segoe UI hỗ trợ tiếng Việt trên Windows
+            for sys_name in ["Arial", "segoeui", "Tahoma"]:
+                try:
+                    f = pygame.font.SysFont(sys_name, size, bold=bold)
+                    return f
+                except Exception:
+                    continue
+            # 4. Default pygame font (cuối cùng)
+            return pygame.font.Font(None, size)
+
+        self.title_font = _load_font(20, bold=True)
+        self.header_font = _load_font(16, bold=True)
+        self.body_font = _load_font(14)
+        self.small_font = _load_font(12)
+        self.tiny_font = _load_font(10)
+
+        # Mono font riêng — ưu tiên Consolas (luôn có trên Windows)
         try:
-            if font_name and font_name.endswith(".ttf"):
-                self.title_font = pygame.font.Font(font_name, 20)
-                self.header_font = pygame.font.Font(font_name, 16)
-                self.body_font = pygame.font.Font(font_name, 14)
-                self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13)
-                self.small_font = pygame.font.Font(font_name, 12)
-                self.tiny_font = pygame.font.Font(font_name, 10)
-            else:
-                self.title_font = pygame.font.SysFont(font_list, 20, bold=True)
-                self.header_font = pygame.font.SysFont(font_list, 16, bold=True)
-                self.body_font = pygame.font.SysFont(font_list, 14)
-                self.mono_font = pygame.font.SysFont(
-                    ["Consolas", "Courier New"] + font_list, 13
-                )
-                self.small_font = pygame.font.SysFont(font_list, 12)
-                self.tiny_font = pygame.font.SysFont(font_list, 10)
+            self.mono_font = pygame.font.SysFont("Consolas", 13)
         except Exception:
-            # Fallback
-            self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
-            self.header_font = pygame.font.SysFont(["Segoe UI", "Arial"], 16, bold=True)
-            self.body_font = pygame.font.SysFont(["Segoe UI", "Arial"], 14)
-            self.mono_font = pygame.font.SysFont(["Consolas", "Courier New"], 13)
-            self.small_font = pygame.font.SysFont(["Segoe UI", "Arial"], 12)
-            self.tiny_font = pygame.font.SysFont(["Segoe UI", "Arial"], 10)
+            self.mono_font = _load_font(13)
 
         # Navigation buttons
         btn_y = y + height - 60
@@ -218,56 +235,85 @@ class VisualizerPanel:
     # ========================================================================
 
     def _format_move(self, move_data):
-        """Format move tuple/dict thành chuỗi dễ đọc cho hiển thị."""
+        """Alias for compatibility"""
+        return self._format_move_full(move_data)
+
+    # Column labels for coordinate display
+    COL_LABELS = "ABCDEFGHI"
+
+    def _pos_to_label(self, pos):
+        """Convert (row, col) → 'A0'..'I9'"""
+        row, col = pos
+        if 0 <= col < len(self.COL_LABELS):
+            return f"{self.COL_LABELS[col]}{row}"
+        return f"({row},{col})"
+
+    def _format_move_full(self, move_data):
+        """
+        Format move data thành chuỗi dễ đọc với label tọa độ.
+        Input: tuple ((r1,c1),(r2,c2)) hoặc dict {"move":..., "score":..., "piece":...}
+        Output: "Mã B2→C4 [280]"
+        """
         if move_data is None:
             return "—"
 
-        if isinstance(move_data, tuple) and len(move_data) == 2:
-            if isinstance(move_data[0], tuple):
-                return f"{move_data[0]}→{move_data[1]}"
-            return str(move_data)
+        piece_name = ""
+        score_str = ""
+        move_tuple = None
 
         if isinstance(move_data, dict):
-            parts = []
-            # Tên quân nếu có
-            piece = move_data.get("piece_captured") or move_data.get("piece")
+            move_tuple = move_data.get("move")
+            piece = (
+                move_data.get("piece")
+                or move_data.get("piece_name")
+                or move_data.get("piece_captured")
+            )
             if piece and piece != "—":
                 vi_name = PIECE_NAME_VI.get(piece, piece)
-                parts.append(vi_name)
-
-            # Tọa độ nước đi
-            move = move_data.get("move")
-            if move and isinstance(move, tuple) and len(move) == 2:
-                if isinstance(move[0], tuple):
-                    parts.append(f"{move[0]}→{move[1]}")
-                else:
-                    parts.append(str(move))
-
-            # Score nếu có
+                piece_name = vi_name + " "
             score = move_data.get("score")
             if score is not None:
                 try:
-                    parts.append(f"[{score:.0f}]")
+                    score_str = f" [{score:.0f}]"
                 except (TypeError, ValueError):
-                    parts.append(f"[{score}]")
-
-            return " ".join(parts) if parts else str(move_data)[:25]
-
-        return str(move_data)[:25]
-
-    def _format_move_short(self, move_data):
-        """Format ngắn gọn — chỉ tọa độ, không score."""
-        if move_data is None:
-            return "—"
-        if isinstance(move_data, tuple) and len(move_data) == 2:
+                    score_str = f" [{score}]"
+        elif isinstance(move_data, tuple) and len(move_data) == 2:
             if isinstance(move_data[0], tuple):
-                return f"{move_data[0]}→{move_data[1]}"
-            return str(move_data)
-        if isinstance(move_data, dict):
-            move = move_data.get("move")
-            if move:
-                return self._format_move_short(move)
-        return str(move_data)[:20]
+                move_tuple = move_data
+
+        if move_tuple and isinstance(move_tuple, tuple) and len(move_tuple) == 2:
+            if isinstance(move_tuple[0], tuple):
+                from_label = self._pos_to_label(move_tuple[0])
+                to_label = self._pos_to_label(move_tuple[1])
+                return f"{piece_name}{from_label}→{to_label}{score_str}"
+            else:
+                return f"{piece_name}{move_tuple}{score_str}"
+
+        return str(move_data)[:30]
+
+    def _get_step_subtitle(self, step, total):
+        """Trả về subtitle giải thích ý nghĩa tổng số bước."""
+        if isinstance(step, (BFSStep, DFSStep)):
+            return f"({total} nodes đã mở rộng)"
+        elif isinstance(step, (UCSStep, AStarStep)):
+            return f"({total} nước đi đang xét)"
+        elif isinstance(step, IDAStarStep):
+            return f"({total} nodes đã duyệt)"
+        elif isinstance(step, (GreedyStep, HillClimbStep)):
+            return f"({total} neighbors đã đánh giá)"
+        elif isinstance(step, SAStep):
+            return f"({total} vòng lặp nhiệt độ)"
+        elif isinstance(step, BeamStep):
+            return "(2 giai đoạn: chọn beam + worst-case)"
+        elif isinstance(step, (OnlineStep, AndOrStep, BeliefStep)):
+            return f"({total} bước phân tích)"
+        elif isinstance(step, (BacktrackStep, MinConflictStep, AC3Step)):
+            return f"({total} bước phân tích CSP)"
+        elif isinstance(step, (MinimaxStep, AlphaBetaStep)):
+            return f"({total} nodes cây game đã duyệt)"
+        elif isinstance(step, ExpectimaxStep):
+            return f"({total} nodes đã duyệt)"
+        return ""
 
     # ========================================================================
     # MAIN DRAW
@@ -377,6 +423,16 @@ class VisualizerPanel:
             (header_rect.right - step_txt.get_width() - 15, header_rect.y + 12),
         )
 
+        # Subtitle giải thích
+        total = recorder.total_steps()
+        subtitle = self._get_step_subtitle(step, total)
+        if subtitle:
+            sub_txt = self.tiny_font.render(subtitle, True, COLOR_TEXT_MUTED)
+            surface.blit(
+                sub_txt,
+                (header_rect.right - sub_txt.get_width() - 15, header_rect.y + 32),
+            )
+
     def _render_footer(self, surface, controller, recorder):
         """Render navigation buttons"""
         mouse_pos = pygame.mouse.get_pos()
@@ -464,7 +520,7 @@ class VisualizerPanel:
                 break
             item_y = y + i * 18
 
-            label = formatter(item) if formatter else self._format_move(item)
+            label = formatter(item) if formatter else self._format_move_full(item)
             is_best = (item == best_item) if best_item is not None else (i == 0)
             prefix = "✅ " if is_best else "   "
             color = COLOR_JADE if is_best else COLOR_TEXT
@@ -525,7 +581,7 @@ class VisualizerPanel:
                         vi_name = PIECE_NAME_VI.get(piece, piece)
                         piece_prefix = vi_name + " "
 
-                    move_str = self._format_move_short(move) if move else ""
+                    move_str = self._format_move_full(move) if move else ""
                     if move_str and move_str != "—":
                         if node_id:
                             label = f"{node_id}: {piece_prefix}{move_str} (d={depth})"
@@ -584,11 +640,11 @@ class VisualizerPanel:
                 iy = col_rect.y + 35 + idx * 20
 
                 if isinstance(step, UCSStep):
-                    move_str = self._format_move_short(item)
+                    move_str = self._format_move_full(item)
                     cost = item.get("g_cost", 0) if isinstance(item, dict) else 0
                     label = f"{move_str} c={cost}"
                 elif isinstance(step, AStarStep):
-                    move_str = self._format_move_short(item)
+                    move_str = self._format_move_full(item)
                     f_val = item.get("f", 0) if isinstance(item, dict) else 0
                     try:
                         label = f"{move_str} f={f_val:.0f}"
@@ -628,7 +684,7 @@ class VisualizerPanel:
             node_rect = self._draw_card(
                 surface, rect.x, info_rect.bottom + 10, rect.width, 60
             )
-            move_str = self._format_move_short(step.current_node)
+            move_str = self._format_move_full(step.current_node)
             g = step.current_node.get("g", 0)
             h = step.current_node.get("h", 0)
             f = step.current_node.get("f", 0)
@@ -679,11 +735,11 @@ class VisualizerPanel:
 
         # Current state card
         if isinstance(step, HillClimbStep):
-            curr_str = self._format_move(step.current_move)
+            curr_str = self._format_move_full(step.current_move)
             items = step.neighbors
             label = "NEIGHBORS"
         else:  # GreedyStep
-            curr_str = self._format_move(step.current_node)
+            curr_str = self._format_move_full(step.current_node)
             items = step.candidates
             label = "CANDIDATES"
 
@@ -714,7 +770,7 @@ class VisualizerPanel:
             iy = list_rect.y + 35 + i * 18
             if iy > list_rect.bottom - 15:
                 break
-            item_str = self._format_move(item)
+            item_str = self._format_move_full(item)
             is_first = i == 0
             prefix = "✅ " if is_first else "   "
             suffix = " ← BEST" if is_first else ""
@@ -753,8 +809,8 @@ class VisualizerPanel:
         comp_y = rect.y + 80
         comp_rect = self._draw_card(surface, rect.x, comp_y, rect.width, 80)
 
-        curr_str = self._format_move(step.current_move)
-        cand_str = self._format_move(step.candidate_move)
+        curr_str = self._format_move_full(step.current_move)
+        cand_str = self._format_move_full(step.candidate_move)
 
         curr_txt = self.body_font.render(f"Current: {curr_str}", True, COLOR_JADE)
         cand_txt = self.body_font.render(
@@ -825,7 +881,7 @@ class VisualizerPanel:
             if iy > kept_rect.bottom - 15:
                 break
             txt = self.tiny_font.render(
-                f"✅ {self._format_move(item)}", True, COLOR_JADE
+                f"✅ {self._format_move_full(item)}", True, COLOR_JADE
             )
             surface.blit(txt, (kept_rect.x + 6, iy))
 
@@ -846,7 +902,7 @@ class VisualizerPanel:
             if iy > elim_rect.bottom - 15:
                 break
             txt = self.tiny_font.render(
-                f"❌ {self._format_move(item)}", True, COLOR_RED
+                f"❌ {self._format_move_full(item)}", True, COLOR_RED
             )
             surface.blit(txt, (elim_rect.x + 6, iy))
 
@@ -862,7 +918,7 @@ class VisualizerPanel:
 
             wc_parts = []
             for wc in step.worst_case_scores[:3]:
-                ms = self._format_move_short(wc)
+                ms = self._format_move_full(wc)
                 ws = wc.get("worst_score", wc.get("score", "?"))
                 wc_parts.append(f"{ms}: {ws}")
             wc_txt = self.tiny_font.render("  |  ".join(wc_parts), True, COLOR_TEXT)
@@ -946,7 +1002,7 @@ class VisualizerPanel:
                 is_best = i == 0
                 prefix = "✅ " if is_best else "   "
                 txt = self.tiny_font.render(
-                    f"{prefix}{self._format_move(item)}",
+                    f"{prefix}{self._format_move_full(item)}",
                     True,
                     COLOR_JADE if is_best else COLOR_TEXT,
                 )
@@ -958,7 +1014,7 @@ class VisualizerPanel:
 
         # OR node (our move)
         or_rect = self._draw_card(surface, rect.x, bottom + 10, rect.width, 35)
-        or_move = self._format_move(step.or_node)
+        or_move = self._format_move_full(step.or_node)
         or_txt = self.body_font.render(f"OR NODE (ta): {or_move}", True, COLOR_ACCENT)
         surface.blit(or_txt, (or_rect.x + 15, or_rect.y + 8))
 
@@ -981,7 +1037,7 @@ class VisualizerPanel:
             iy = and_rect.y + 35 + i * 18
             if iy > and_rect.bottom - 12:
                 break
-            resp_str = self._format_move(resp)
+            resp_str = self._format_move_full(resp)
             is_worst = (resp == step.and_responses[-1]) if step.and_responses else False
             suffix = " ← WORST" if is_worst else ""
             color = COLOR_RED if is_worst else COLOR_TEXT
@@ -1107,7 +1163,7 @@ class VisualizerPanel:
                 suffix = " ← BEST" if is_best else ""
                 color = COLOR_JADE if is_best else COLOR_TEXT
                 txt = self.tiny_font.render(
-                    f"{prefix}{self._format_move(item)}{suffix}", True, color
+                    f"{prefix}{self._format_move_full(item)}{suffix}", True, color
                 )
                 surface.blit(txt, (dom_rect.x + 8, iy))
 
@@ -1150,7 +1206,7 @@ class VisualizerPanel:
             iy = cand_rect.y + 35 + i * 18
             if iy > cand_rect.bottom - 12:
                 break
-            move_str = self._format_move_short(item)
+            move_str = self._format_move_full(item)
             conflicts = (
                 item.get("conflicts_after", "?") if isinstance(item, dict) else "?"
             )
@@ -1188,7 +1244,7 @@ class VisualizerPanel:
             if iy > safe_rect.bottom - 12:
                 break
             txt = self.tiny_font.render(
-                f"  {self._format_move(item)}", True, COLOR_TEXT
+                f"  {self._format_move_full(item)}", True, COLOR_TEXT
             )
             surface.blit(txt, (safe_rect.x + 6, iy))
 
@@ -1212,7 +1268,7 @@ class VisualizerPanel:
             if iy > pruned_rect.bottom - 12:
                 break
             reason = item.get("reason", "") if isinstance(item, dict) else ""
-            move_str = self._format_move_short(item)
+            move_str = self._format_move_full(item)
             label = f"{move_str}: {reason}" if reason else move_str
             txt = self.tiny_font.render(f"  {label[:30]}", True, COLOR_RED)
             surface.blit(txt, (pruned_rect.x + 6, iy))
@@ -1221,7 +1277,7 @@ class VisualizerPanel:
         chosen_rect = self._draw_card(
             surface, rect.x, col_y + col_h + 5, rect.width, 35
         )
-        chosen_str = self._format_move(step.chosen_from_safe)
+        chosen_str = self._format_move_full(step.chosen_from_safe)
         chosen_txt = self.body_font.render(f"✅ CHOSEN: {chosen_str}", True, COLOR_JADE)
         surface.blit(chosen_txt, (chosen_rect.x + 15, chosen_rect.y + 8))
 
@@ -1305,7 +1361,7 @@ class VisualizerPanel:
                 if y > sib_rect.bottom - 12:
                     break
                 val = sib.get("value", 0)
-                move_str = self._format_move_short(sib.get("move"))
+                move_str = self._format_move_full(sib)
                 try:
                     txt = self.tiny_font.render(
                         f"  {move_str} val:{val:.0f}", True, COLOR_TEXT
@@ -1390,7 +1446,7 @@ class VisualizerPanel:
             if iy > sib_rect.bottom - 12:
                 break
             val = sib.get("value", 0)
-            move_str = self._format_move_short(sib.get("move"))
+            move_str = self._format_move_full(sib)
             try:
                 txt = self.tiny_font.render(
                     f"  {move_str} val:{val:.0f}", True, COLOR_TEXT
@@ -1401,7 +1457,7 @@ class VisualizerPanel:
 
         # Best so far
         if step.best_so_far:
-            best_str = self._format_move(step.best_so_far)
+            best_str = self._format_move_full(step.best_so_far)
             best_txt = self.small_font.render(
                 f"Best so far: {best_str}", True, COLOR_JADE
             )

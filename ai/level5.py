@@ -5,6 +5,24 @@ from ai.eval import PIECE_VALUES
 from ai.level3 import get_perspective_score
 from ai.step_recorder import AC3Step, BacktrackStep, MinConflictStep
 
+PIECE_NAME_VI = {
+    "general": "Tướng",
+    "advisor": "Sĩ",
+    "elephant": "Tượng",
+    "horse": "Mã",
+    "rook": "Xe",
+    "cannon": "Pháo",
+    "pawn": "Tốt",
+}
+
+
+def _get_piece_name(board, pos):
+    """Lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ."""
+    if not pos:
+        return "—"
+    piece = board.get_piece(pos)
+    return PIECE_NAME_VI.get(piece.name, "—") if piece else "—"
+
 
 def get_threats_count(board, color):
     """Counts how many pieces of the given color are currently under direct threat from opponent"""
@@ -69,12 +87,13 @@ def backtracking_mrv_move(board, recorder=None):
     best_to = var_domains[chosen_var][0]
     best_score = float("-inf")
 
+    piece_name = _get_piece_name(board, chosen_var)
     for to_pos in var_domains[chosen_var]:
         board.make_move(chosen_var, to_pos, test_only=True)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
 
-        domain_list.append({"move": (chosen_var, to_pos), "score": score})
+        domain_list.append({"move": (chosen_var, to_pos), "score": score, "piece": piece_name})
 
         if score > best_score:
             best_score = score
@@ -93,7 +112,7 @@ def backtracking_mrv_move(board, recorder=None):
                 },
                 chosen_variable=str(chosen_var),
                 domain=domain_list,
-                best_assignment={"move": (chosen_var, best_to), "score": best_score},
+                best_assignment={"move": (chosen_var, best_to), "score": best_score, "piece": piece_name},
             )
         )
 
@@ -128,13 +147,14 @@ def min_conflicts_move(board, recorder=None):
     candidates = []
 
     for from_pos, to_pos in legal_moves:
+        piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
         conflicts = get_threats_count(board, color)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
 
         candidates.append(
-            {"move": (from_pos, to_pos), "conflicts_after": conflicts, "score": score}
+            {"move": (from_pos, to_pos), "conflicts_after": conflicts, "score": score, "piece": piece_name}
         )
 
         if conflicts < min_conflicts:
@@ -151,6 +171,7 @@ def min_conflicts_move(board, recorder=None):
         sorted_candidates = sorted(
             candidates, key=lambda x: (x["conflicts_after"], -x["score"])
         )[:10]
+        best_piece_name = _get_piece_name(board, best_move[0])
         recorder.add_step(
             MinConflictStep(
                 step_num=1,
@@ -163,6 +184,7 @@ def min_conflicts_move(board, recorder=None):
                     "move": best_move,
                     "conflicts_after": min_conflicts,
                     "score": best_score,
+                    "piece": best_piece_name,
                 },
             )
         )
@@ -226,7 +248,8 @@ def ac3_move(board, recorder=None):
             pruned_moves.append(
                 {
                     "move": (from_pos, to_pos),
-                    "reason": f"{piece.name}({p_val}) bị {attacker_name}({PIECE_VALUES.get(attacker_name, 0)}) ăn",
+                    "reason": f"{PIECE_NAME_VI.get(piece.name, piece.name)}({p_val}) bị {PIECE_NAME_VI.get(attacker_name, attacker_name)}({PIECE_VALUES.get(attacker_name, 0)}) ăn",
+                    "piece": PIECE_NAME_VI.get(piece.name, piece.name),
                 }
             )
 
@@ -255,11 +278,11 @@ def ac3_move(board, recorder=None):
                 chosen_move=best_move,
                 all_moves=len(legal_moves),
                 safe_moves=[
-                    {"move": m, "score": best_score if m == best_move else 0}
+                    {"move": m, "score": best_score if m == best_move else 0, "piece": _get_piece_name(board, m[0])}
                     for m in safe_moves[:10]
                 ],
                 pruned_moves=pruned_moves[:10],
-                chosen_from_safe={"move": best_move, "score": best_score},
+                chosen_from_safe={"move": best_move, "score": best_score, "piece": _get_piece_name(board, best_move[0])},
             )
         )
 

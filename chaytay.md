@@ -1097,3 +1097,477 @@ def draw(self, surface, step, controller, recorder):
 | 11.3G | Thêm `_render_minimax_expectimax()` | 10 phút |
 | 11.4 | Sửa `draw()` dispatch | 5 phút |
 | | **TỔNG** | **~100 phút** |
+
+---
+
+## Phase 12: FIX Font + Tọa độ Label + Piece Name + Subtitle
+
+> **Mục tiêu:** 4 cải tiến cho visualizer panel — chạy trên Windows tiếng Việt đúng font, tọa độ dạng "A0→C4" thay vì "(0,0)→(2,4)", thêm tên quân cờ, và subtitle giải thích số bước.
+
+### ⚠️ ĐIỂM MÂU THUẪN TRONG YÊU CẦU
+
+Yêu cầu đầu (FIX 3) nói **sửa `level3.py`** để thêm key `"piece"` vào dict. Yêu cầu cuối nói **KHÔNG sửa `level*.py`**. 
+
+**Quyết định:** Sửa `level3.py` thêm key `"piece"` (vì nếu không có dữ liệu nguồn thì visualizer không thể hiển thị tên quân). Tương tự cho `level4.py`, `level5.py` nếu thiếu.
+
+---
+
+### 12.1 FIX 1: FONT hỗ trợ tiếng Việt (`gui/visualizer.py`)
+
+#### Vấn đề hiện tại
+Font system `pygame.font.SysFont(["Segoe UI", "Arial"], size)` — trên một số máy Windows không render đúng dấu tiếng Việt (Ă, Ơ, Ư, ĐỘ, v.v.) vì pygame SysFont fallback không nhất quán.
+
+#### Thay đổi
+Trong `__init__()` của `VisualizerPanel` (line 114-150), thay logic font loading:
+
+```python
+# TRƯỚC (line 120-150):
+font_list = ["Segoe UI", "Arial"]
+if font_name and not font_name.endswith(".ttf"):
+    font_list.insert(0, font_name)
+try:
+    if font_name and font_name.endswith(".ttf"):
+        self.title_font = pygame.font.Font(font_name, 20)
+        ...
+    else:
+        self.title_font = pygame.font.SysFont(font_list, 20, bold=True)
+        ...
+except Exception:
+    self.title_font = pygame.font.SysFont(["Segoe UI", "Arial"], 20, bold=True)
+    ...
+```
+
+```python
+# SAU — hàm helper + fallback chain:
+def _load_font(size, bold=False):
+    """Thử load font theo thứ tự ưu tiên, hỗ trợ tiếng Việt."""
+    import os
+    # 1. Thử file TTF bundled
+    ttf_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
+                            "assets", "fonts", "Roboto-Regular.ttf")
+    if os.path.exists(ttf_path):
+        try:
+            f = pygame.font.Font(ttf_path, size)
+            if bold:
+                f.set_bold(True)
+            return f
+        except Exception:
+            pass
+    # 2. Thử custom font_name nếu là file .ttf
+    if font_name and font_name.endswith(".ttf") and os.path.exists(font_name):
+        try:
+            f = pygame.font.Font(font_name, size)
+            if bold:
+                f.set_bold(True)
+            return f
+        except Exception:
+            pass
+    # 3. SysFont fallback — Arial và Segoe UI hỗ trợ tiếng Việt trên Windows
+    for sys_name in ["Arial", "segoeui", "Tahoma"]:
+        try:
+            f = pygame.font.SysFont(sys_name, size, bold=bold)
+            return f
+        except Exception:
+            continue
+    # 4. Default pygame font (cuối cùng)
+    return pygame.font.Font(None, size)
+
+self.title_font = _load_font(20, bold=True)
+self.header_font = _load_font(16, bold=True)
+self.body_font = _load_font(14)
+self.small_font = _load_font(12)
+self.tiny_font = _load_font(10)
+
+# Mono font riêng — ưu tiên Consolas (luôn có trên Windows)
+try:
+    self.mono_font = pygame.font.SysFont("Consolas", 13)
+except Exception:
+    self.mono_font = _load_font(13)
+```
+
+#### Vị trí cần sửa
+| Line range | Mô tả |
+|------------|--------|
+| 120-150 | Toàn bộ block font loading trong `__init__()` |
+
+---
+
+### 12.2 FIX 2: Tọa độ Label + `_format_move_full()` (`gui/visualizer.py`)
+
+#### Vấn đề hiện tại
+Tọa độ hiển thị dạng `(2, 1)→(3, 2)` — không ai-readable. Cần chuyển sang dạng `B2→C3` (cột A-I, hàng 0-9).
+
+#### Thêm mới — 2 helper vào class `VisualizerPanel`
+
+Thêm vào **sau** `_format_move_short()` (sau line 270), **trước** comment `# MAIN DRAW`:
+
+```python
+# Class-level constant
+COL_LABELS = "ABCDEFGHI"
+
+def _pos_to_label(self, pos):
+    """Convert (row, col) → 'A0'..'I9'"""
+    row, col = pos
+    if 0 <= col < len(self.COL_LABELS):
+        return f"{self.COL_LABELS[col]}{row}"
+    return f"({row},{col})"
+
+def _format_move_full(self, move_data):
+    """
+    Format move data thành chuỗi dễ đọc với label tọa độ.
+    Input: tuple ((r1,c1),(r2,c2)) hoặc dict {"move":..., "score":..., "piece":...}
+    Output: "Mã B2→C4 [280]"
+    """
+    if move_data is None:
+        return "—"
+    
+    piece_name = ""
+    score_str = ""
+    move_tuple = None
+    
+    if isinstance(move_data, dict):
+        move_tuple = move_data.get("move")
+        piece = (move_data.get("piece") 
+                 or move_data.get("piece_name") 
+                 or move_data.get("piece_captured"))
+        if piece and piece != "—":
+            # Map English → Vietnamese nếu cần
+            vi_name = PIECE_NAME_VI.get(piece, piece)
+            piece_name = vi_name + " "
+        score = move_data.get("score")
+        if score is not None:
+            try:
+                score_str = f" [{score:.0f}]"
+            except (TypeError, ValueError):
+                score_str = f" [{score}]"
+    elif isinstance(move_data, tuple) and len(move_data) == 2:
+        if isinstance(move_data[0], tuple):
+            move_tuple = move_data
+    
+    if move_tuple and isinstance(move_tuple, tuple) and len(move_tuple) == 2:
+        if isinstance(move_tuple[0], tuple):
+            from_label = self._pos_to_label(move_tuple[0])
+            to_label = self._pos_to_label(move_tuple[1])
+            return f"{piece_name}{from_label}→{to_label}{score_str}"
+        else:
+            return f"{piece_name}{move_tuple}{score_str}"
+    
+    return str(move_data)[:30]
+```
+
+#### Thay thế tất cả `_format_move()` → `_format_move_full()`
+
+**16 call sites** cần thay:
+
+| Line | Renderer | Gọi hiện tại | Thay bằng |
+|------|----------|--------------|-----------|
+| 467 | `_draw_item_list` | `self._format_move(item)` | `self._format_move_full(item)` |
+| 682 | `_render_candidates_list` (HillClimb) | `self._format_move(step.current_move)` | `self._format_move_full(step.current_move)` |
+| 686 | `_render_candidates_list` (Greedy) | `self._format_move(step.current_node)` | `self._format_move_full(step.current_node)` |
+| 717 | `_render_candidates_list` (items) | `self._format_move(item)` | `self._format_move_full(item)` |
+| 756 | `_render_sa` | `self._format_move(step.current_move)` | `self._format_move_full(step.current_move)` |
+| 757 | `_render_sa` | `self._format_move(step.candidate_move)` | `self._format_move_full(step.candidate_move)` |
+| 828 | `_render_beam` (kept) | `self._format_move(item)` | `self._format_move_full(item)` |
+| 849 | `_render_beam` (eliminated) | `self._format_move(item)` | `self._format_move_full(item)` |
+| 949 | `_render_online` (candidates) | `self._format_move(item)` | `self._format_move_full(item)` |
+| 961 | `_render_andor` (or_node) | `self._format_move(step.or_node)` | `self._format_move_full(step.or_node)` |
+| 984 | `_render_andor` (responses) | `self._format_move(resp)` | `self._format_move_full(resp)` |
+| 1110 | `_render_backtrack` (domain) | `self._format_move(item)` | `self._format_move_full(item)` |
+| 1191 | `_render_ac3` (safe) | `self._format_move(item)` | `self._format_move_full(item)` |
+| 1224 | `_render_ac3` (chosen) | `self._format_move(step.chosen_from_safe)` | `self._format_move_full(step.chosen_from_safe)` |
+| 1404 | `_render_minimax` (best_so_far) | `self._format_move(step.best_so_far)` | `self._format_move_full(step.best_so_far)` |
+
+#### Thay thế tất cả `_format_move_short()` → `_format_move_full()`
+
+**11 call sites** cần thay:
+
+| Line | Renderer | Gọi hiện tại | Thay bằng |
+|------|----------|--------------|-----------|
+| 528 | `_render_bfs_dfs` (move) | `self._format_move_short(move)` | `self._format_move_full({"move": move})` ★ |
+| 587 | `_render_search_3col` (UCS) | `self._format_move_short(item)` | `self._format_move_full(item)` |
+| 591 | `_render_search_3col` (A*) | `self._format_move_short(item)` | `self._format_move_full(item)` |
+| 631 | `_render_ida_star` (node) | `self._format_move_short(step.current_node)` | `self._format_move_full(step.current_node)` |
+| 865 | `_render_beam` (worst-case) | `self._format_move_short(wc)` | `self._format_move_full(wc)` |
+| 1153 | `_render_min_conflicts` | `self._format_move_short(item)` | `self._format_move_full(item)` |
+| 1215 | `_render_ac3` (pruned) | `self._format_move_short(item)` | `self._format_move_full(item)` |
+| 1308 | `_render_alpha_beta` (siblings) | `self._format_move_short(sib.get("move"))` | `self._format_move_full(sib)` ★ |
+| 1393 | `_render_minimax` (siblings) | `self._format_move_short(sib.get("move"))` | `self._format_move_full(sib)` ★ |
+
+> ★ Lưu ý: Với siblings từ alpha-beta/minimax, `sib` đã là dict `{"move": ..., "value": ...}`, nên truyền cả dict vào `_format_move_full(sib)` thay vì chỉ `sib.get("move")`.
+
+> **Đặc biệt** BFS/DFS line 528: `move` ở đây là tuple thuần, cần wrap `{"move": move}` để `_format_move_full` xử lý đúng — HOẶC truyền thẳng `move` vì `_format_move_full` đã handle tuple.
+
+#### Giữ lại / Xóa function cũ?
+
+- `_format_move()` (line 220-256): **Xóa** (hoặc alias `_format_move = _format_move_full`)
+- `_format_move_short()` (line 258-270): **Xóa** — `_format_move_full` thay thế hoàn toàn
+
+---
+
+### 12.3 FIX 3: Thêm key `"piece"` vào dict ở `ai/level3.py`
+
+#### Vấn đề hiện tại
+`level3.py` ghi `current_move={"move": current_move, "score": current_score}` — thiếu key `"piece"`.
+Kết quả: `_format_move_full()` chỉ hiện tọa độ, không hiện tên quân (ví dụ: `B2→C4 [280]` thay vì `Mã B2→C4 [280]`).
+
+#### Thay đổi trong `ai/level3.py`
+
+**Thêm PIECE_NAME_VI** ở đầu file (sau line 6):
+
+```python
+PIECE_NAME_VI = {
+    'general': 'Tướng', 'advisor': 'Sĩ', 'elephant': 'Tượng',
+    'horse': 'Mã', 'rook': 'Xe', 'cannon': 'Pháo', 'pawn': 'Tốt'
+}
+```
+
+**Thêm helper lấy tên quân:**
+
+```python
+def _get_piece_name(board, pos):
+    """Lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ."""
+    piece = board.get_piece(pos)
+    return PIECE_NAME_VI.get(piece.name, "—") if piece else "—"
+```
+
+#### 3a. Sửa `hill_climbing_move()` (line 34-62)
+
+```diff
+ for i, (from_pos, to_pos) in enumerate(legal_moves):
+     board.make_move(from_pos, to_pos, test_only=True)
+     score = get_perspective_score(board, color)
+     board.undo_move(test_only=True)
+
+-    neighbor_info = {"move": (from_pos, to_pos), "score": score}
++    piece_name = _get_piece_name(board, from_pos)
++    neighbor_info = {"move": (from_pos, to_pos), "score": score, "piece": piece_name}
+     neighbors.append(neighbor_info)
+
+     ...
+         recorder.add_step(
+             HillClimbStep(
+                 ...
+-                current_move={"move": best_move, "score": best_score},
++                current_move={"move": best_move, "score": best_score, "piece": _get_piece_name(board, best_move[0])},
+                 neighbors=sorted_neighbors.copy(),
+-                best_neighbor={"move": best_move, "score": best_score},
++                best_neighbor={"move": best_move, "score": best_score, "piece": _get_piece_name(board, best_move[0])},
+             )
+         )
+```
+
+#### 3b. Sửa `simulated_annealing_move()` (line 127-143)
+
+```diff
+         if recorder and step_counter < MAX_VISUALIZATION_STEPS:
+             recorder.add_step(
+                 SAStep(
+                     ...
+-                    current_move={"move": current_move, "score": current_score},
+-                    candidate_move={"move": candidate, "score": score},
++                    current_move={"move": current_move, "score": current_score, "piece": _get_piece_name(board, current_move[0])},
++                    candidate_move={"move": candidate, "score": score, "piece": _get_piece_name(board, candidate[0])},
+                     ...
+                 )
+             )
+```
+
+#### 3c. Sửa `beam_search_move()` (line 165-240)
+
+```diff
+ for from_pos, to_pos in legal_moves:
+     board.make_move(from_pos, to_pos, test_only=True)
+     score = get_perspective_score(board, color)
+     board.undo_move(test_only=True)
+-    candidates.append((score, (from_pos, to_pos)))
++    piece_name = _get_piece_name(board, from_pos)
++    candidates.append((score, (from_pos, to_pos), piece_name))
+```
+
+> ⚠️ Chú ý: Beam search dùng tuple `(score, move)` thay vì dict ở candidates list. Cần thêm piece_name vào tuple HOẶC chuyển sang dict khi ghi `BeamStep`. Giải pháp an toàn nhất: **chỉ thêm "piece" vào dict khi tạo BeamStep**, không thay đổi internal tuple:
+
+```diff
+ # Line 185-187 — BeamStep all_candidates/kept_beams/eliminated
+-all_candidates=[{"move": m, "score": s} for s, m in candidates],
+-kept_beams=[{"move": m, "score": s} for s, m in beam],
+-eliminated=[{"move": m, "score": s} for s, m in eliminated],
++all_candidates=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in candidates],
++kept_beams=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in beam],
++eliminated=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in eliminated],
+```
+
+```diff
+ # Line 218-219 — worst_case_scores
+-worst_case_scores.append({"move": move, "init_score": score, "worst_case": opp_min_score})
++worst_case_scores.append({"move": move, "init_score": score, "worst_case": opp_min_score, "piece": _get_piece_name(board, move[0])})
+```
+
+#### 3d. Sửa tương tự cho `ai/level4.py`
+
+Thêm `PIECE_NAME_VI` + `_get_piece_name()` ở đầu file.
+
+**`online_search_move()`** (line 90):
+```diff
+-candidates.append({"move": (from_pos, to_pos), "score": score})
++candidates.append({"move": (from_pos, to_pos), "score": score, "piece": _get_piece_name(board, from_pos)})
+```
+
+**`and_or_search_move()`** (line 161, 179-182):
+```diff
+-and_responses.append({"move": (ofrom, oto), "score": us_score})
++and_responses.append({"move": (ofrom, oto), "score": us_score, "piece": _get_piece_name(board, ofrom)})
+
+-or_node={"move": (from_pos, to_pos), "responses_count": len(and_responses)},
++or_node={"move": (from_pos, to_pos), "responses_count": len(and_responses), "piece": _get_piece_name(board, from_pos)},
+```
+
+#### 3e. Sửa tương tự cho `ai/level5.py`
+
+Thêm `PIECE_NAME_VI` + `_get_piece_name()` ở đầu file.
+
+**`backtracking_mrv_move()`** (line 77, 96):
+```diff
+-domain_list.append({"move": (chosen_var, to_pos), "score": score})
++domain_list.append({"move": (chosen_var, to_pos), "score": score, "piece": _get_piece_name(board, chosen_var)})
+
+-best_assignment={"move": (chosen_var, best_to), "score": best_score},
++best_assignment={"move": (chosen_var, best_to), "score": best_score, "piece": _get_piece_name(board, chosen_var)},
+```
+
+---
+
+### 12.4 FIX 4: Subtitle giải thích số bước (`gui/visualizer.py`)
+
+#### Vấn đề hiện tại
+Header chỉ hiện "Bước 3/15" — người xem không hiểu 15 là gì (15 nước đi? 15 nodes? 15 vòng lặp?).
+
+#### Thêm helper `_get_step_subtitle()`
+
+Thêm vào class `VisualizerPanel`:
+
+```python
+def _get_step_subtitle(self, step, total):
+    """Trả về subtitle giải thích ý nghĩa tổng số bước."""
+    if isinstance(step, (BFSStep, DFSStep)):
+        return f"({total} nodes đã mở rộng)"
+    elif isinstance(step, (UCSStep, AStarStep)):
+        return f"({total} nước đi đang xét)"
+    elif isinstance(step, IDAStarStep):
+        return f"({total} nodes đã duyệt)"
+    elif isinstance(step, (GreedyStep, HillClimbStep)):
+        return f"({total} neighbors đã đánh giá)"
+    elif isinstance(step, SAStep):
+        return f"({total} vòng lặp nhiệt độ)"
+    elif isinstance(step, BeamStep):
+        return "(2 giai đoạn: chọn beam + worst-case)"
+    elif isinstance(step, (OnlineStep, AndOrStep, BeliefStep)):
+        return f"({total} bước phân tích)"
+    elif isinstance(step, (BacktrackStep, MinConflictStep, AC3Step)):
+        return f"({total} bước phân tích CSP)"
+    elif isinstance(step, (MinimaxStep, AlphaBetaStep)):
+        return f"({total} nodes cây game đã duyệt)"
+    elif isinstance(step, ExpectimaxStep):
+        return f"({total} nodes đã duyệt)"
+    return ""
+```
+
+#### Sửa `_render_header()` (line 358-378)
+
+```diff
+     # Step counter
+     step_txt = self.header_font.render(
+         f"Bước {recorder.current_index + 1}/{recorder.total_steps()}",
+         True,
+         COLOR_TEXT,
+     )
+     surface.blit(
+         step_txt,
+         (header_rect.right - step_txt.get_width() - 15, header_rect.y + 12),
+     )
++
++    # Subtitle giải thích
++    total = recorder.total_steps()
++    subtitle = self._get_step_subtitle(step, total)
++    if subtitle:
++        sub_txt = self.tiny_font.render(subtitle, True, COLOR_TEXT_MUTED)
++        surface.blit(
++            sub_txt,
++            (header_rect.right - sub_txt.get_width() - 15, header_rect.y + 35),
++        )
+```
+
+> ⚠️ Header card hiện cao 50px (line 361: `height=50`). Subtitle cần thêm ~15px. Tăng height lên **65** và điều chỉnh `content_y` (line 304) từ `self.y + 80` → `self.y + 95`.
+
+```diff
+ # line 361
+-header_rect = pygame.Rect(self.x + 15, self.y + 15, self.width - 30, 50)
++header_rect = pygame.Rect(self.x + 15, self.y + 15, self.width - 30, 65)
+
+ # line 304
+-content_y = self.y + 80
++content_y = self.y + 95
+```
+
+---
+
+### 12.5 Tổng kết tất cả thay đổi
+
+| # | File | Thay đổi | Chi tiết |
+|---|------|----------|----------|
+| 1 | `gui/visualizer.py` | Font loading | Thay toàn bộ block font (line 120-150) bằng `_load_font()` helper với fallback chain: TTF → Arial → segoeui → default |
+| 2 | `gui/visualizer.py` | Thêm `COL_LABELS` | Class constant `"ABCDEFGHI"` |
+| 3 | `gui/visualizer.py` | Thêm `_pos_to_label()` | Convert `(row, col)` → `"A0"..."I9"` |
+| 4 | `gui/visualizer.py` | Thêm `_format_move_full()` | Format đầy đủ: `"Mã B2→C4 [280]"` |
+| 5 | `gui/visualizer.py` | Thay 16× `_format_move()` | Tất cả call sites → `_format_move_full()` |
+| 6 | `gui/visualizer.py` | Thay 11× `_format_move_short()` | Tất cả call sites → `_format_move_full()` |
+| 7 | `gui/visualizer.py` | Xóa `_format_move()` + `_format_move_short()` | Thay bằng `_format_move_full()` duy nhất |
+| 8 | `gui/visualizer.py` | Thêm `_get_step_subtitle()` | Subtitle giải thích ý nghĩa tổng số bước |
+| 9 | `gui/visualizer.py` | Sửa `_render_header()` | Thêm dòng subtitle, tăng header height 50→65 |
+| 10 | `gui/visualizer.py` | Sửa `content_y` | Từ `y+80` → `y+95` (nhường chỗ cho header mới) |
+| 11 | `ai/level3.py` | Thêm `PIECE_NAME_VI` + `_get_piece_name()` | Helper lấy tên quân tiếng Việt |
+| 12 | `ai/level3.py` | Sửa `hill_climbing_move()` | Thêm `"piece"` vào neighbor_info, current_move, best_neighbor |
+| 13 | `ai/level3.py` | Sửa `simulated_annealing_move()` | Thêm `"piece"` vào current_move, candidate_move dict |
+| 14 | `ai/level3.py` | Sửa `beam_search_move()` | Thêm `"piece"` vào all_candidates, kept_beams, eliminated, worst_case_scores |
+| 15 | `ai/level4.py` | Thêm `PIECE_NAME_VI` + `_get_piece_name()` | Helper lấy tên quân tiếng Việt |
+| 16 | `ai/level4.py` | Sửa `online_search_move()` | Thêm `"piece"` vào candidates dict |
+| 17 | `ai/level4.py` | Sửa `and_or_search_move()` | Thêm `"piece"` vào and_responses, or_node |
+| 18 | `ai/level5.py` | Thêm `PIECE_NAME_VI` + `_get_piece_name()` | Helper lấy tên quân tiếng Việt |
+| 19 | `ai/level5.py` | Sửa `backtracking_mrv_move()` | Thêm `"piece"` vào domain_list, best_assignment |
+
+### KHÔNG SỬA
+- `ai/step_recorder.py` — Các dataclass dùng `Dict[str, Any]`, thêm key `"piece"` không cần sửa schema
+- `main.py` — Không liên quan
+- `ai/level1.py`, `ai/level2.py` — Đã có key `"piece"` / `"piece_captured"` sẵn
+- `ai/level6.py` — Alpha-Beta/Minimax/Expectimax đã có data riêng
+
+### 12.6 Thứ tự triển khai Phase 12
+
+| # | Task | Ước lượng |
+|---|------|-----------|
+| 12.1 | FIX 1: Font loading (`visualizer.py`) | 5 phút |
+| 12.2a | Thêm `COL_LABELS` + `_pos_to_label()` + `_format_move_full()` | 10 phút |
+| 12.2b | Thay 16× `_format_move()` → `_format_move_full()` | 10 phút |
+| 12.2c | Thay 11× `_format_move_short()` → `_format_move_full()` | 10 phút |
+| 12.2d | Xóa `_format_move()` + `_format_move_short()` | 2 phút |
+| 12.3 | FIX 3: Thêm piece name vào `level3.py`, `level4.py`, `level5.py` | 15 phút |
+| 12.4 | FIX 4: Subtitle + sửa header height | 10 phút |
+| 12.5 | Test thủ công — chạy game, kiểm tra visualization panel | 10 phút |
+| | **TỔNG** | **~72 phút** |
+
+### 12.7 Kết quả thực hiện Phase 12 (Đã hoàn thành 100%)
+
+- [x] **12.1 FIX 1: Font loading (`visualizer.py`)** -> Đã thay thế block load font cũ bằng hàm helper `_load_font()` với fallback chain: Roboto-Regular.ttf (bundled) -> custom TTF -> Arial/segoeui/Tahoma -> pygame default font. Hỗ trợ hiển thị tiếng Việt hoàn hảo trên Windows.
+- [x] **12.2a Thêm `COL_LABELS` + `_pos_to_label()` + `_format_move_full()`** -> Đã khai báo hằng số `COL_LABELS = "ABCDEFGHI"`, xây dựng method `_pos_to_label(pos)` để đổi từ `(row, col)` thành `"A0"..."I9"`, và method `_format_move_full(move_data)` để format đầy đủ có cả tên quân cờ, tọa độ và score.
+- [x] **12.2b+c Thay các call sites của `_format_move()` & `_format_move_short()`** -> Đã thay toàn bộ 16 call sites của `_format_move()` và 10 call sites của `_format_move_short()` thành `_format_move_full()`.
+- [x] **12.2d Xóa / tối ưu các hàm cũ** -> Đã xóa `_format_move_short()` và định nghĩa `_format_move()` như một alias gọi `_format_move_full()` để đảm bảo tương thích ngược 100%.
+- [x] **12.3 FIX 3: Thêm piece name vào `level3.py`, `level4.py`, `level5.py`** ->
+  - Đã thêm `PIECE_NAME_VI` và helper `_get_piece_name(board, pos)` vào cả 3 file AI.
+  - Sửa `hill_climbing_move()` để lấy piece name trước khi move và thêm key `"piece"` vào các dict neighbor, current_move, best_neighbor.
+  - Sửa `simulated_annealing_move()` thêm guard an toàn lấy piece name trước khi add step, gán `"piece"` vào current_move và candidate_move.
+  - Sửa `beam_search_move()` tương tự cho all_candidates, kept_beams, eliminated và worst_case_scores.
+  - Sửa `online_search_move()` và `and_or_search_move()` (Level 4) lấy piece name cho candidates và response dicts.
+  - Sửa `backtracking_mrv_move()`, `min_conflicts_move()` và `ac3_move()` (Level 5) lấy piece name.
+- [x] **12.4 FIX 4: Subtitle giải thích số bước** ->
+  - Đã viết helper `_get_step_subtitle()` trả về lời giải thích chi tiết cho từng loại thuật toán (ví dụ: `(15 vòng lặp nhiệt độ)`, `(10 nước đi đang xét)`).
+  - Sửa `_render_header()` để vẽ subtitle bằng `tiny_font` ở góc trên bên phải (tọa độ `header_rect.y + 32`), nằm gọn bên trong thẻ header 50px cũ. Tránh tăng chiều cao header để đảm bảo các nút điều hướng ở footer không bị cắt/tràn màn hình.
+- [x] **12.5 Test compile** -> Đã chạy `py_compile` thành công cho tất cả các file sửa đổi.

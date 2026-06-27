@@ -5,6 +5,24 @@ import random
 from ai.eval import evaluate_board
 from ai.step_recorder import MAX_VISUALIZATION_STEPS, BeamStep, HillClimbStep, SAStep
 
+PIECE_NAME_VI = {
+    "general": "Tướng",
+    "advisor": "Sĩ",
+    "elephant": "Tượng",
+    "horse": "Mã",
+    "rook": "Xe",
+    "cannon": "Pháo",
+    "pawn": "Tốt",
+}
+
+
+def _get_piece_name(board, pos):
+    """Lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ."""
+    if not pos:
+        return "—"
+    piece = board.get_piece(pos)
+    return PIECE_NAME_VI.get(piece.name, "—") if piece else "—"
+
 
 def get_perspective_score(board, color):
     # Returns board score from color's perspective
@@ -32,11 +50,12 @@ def hill_climbing_move(board, recorder=None):
     neighbors = []
 
     for i, (from_pos, to_pos) in enumerate(legal_moves):
+        piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
 
-        neighbor_info = {"move": (from_pos, to_pos), "score": score}
+        neighbor_info = {"move": (from_pos, to_pos), "score": score, "piece": piece_name}
         neighbors.append(neighbor_info)
 
         if score > best_score:
@@ -47,6 +66,7 @@ def hill_climbing_move(board, recorder=None):
         if recorder and i < MAX_VISUALIZATION_STEPS:
             # Sort neighbors by score descending for visualization
             sorted_neighbors = sorted(neighbors, key=lambda x: x["score"], reverse=True)
+            best_piece_name = _get_piece_name(board, best_move[0])
             recorder.add_step(
                 HillClimbStep(
                     step_num=i + 1,
@@ -54,9 +74,9 @@ def hill_climbing_move(board, recorder=None):
                     explanation=f"Xét nước {from_pos}→{to_pos}: score={score}, tìm neighbor tốt nhất",
                     chosen_move=best_move,
                     current_score=best_score,
-                    current_move={"move": best_move, "score": best_score},
+                    current_move={"move": best_move, "score": best_score, "piece": best_piece_name},
                     neighbors=sorted_neighbors.copy(),
-                    best_neighbor={"move": best_move, "score": best_score},
+                    best_neighbor={"move": best_move, "score": best_score, "piece": best_piece_name},
                     is_plateau=(score <= best_score and i > 0),
                 )
             )
@@ -126,14 +146,16 @@ def simulated_annealing_move(board, T=100.0, alpha=0.9, recorder=None):
 
         # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS steps)
         if recorder and step_counter < MAX_VISUALIZATION_STEPS:
+            curr_piece = _get_piece_name(board, current_move[0]) if current_move else "—"
+            cand_piece = _get_piece_name(board, candidate[0]) if candidate else "—"
             recorder.add_step(
                 SAStep(
                     step_num=step_counter + 1,
                     algorithm="Simulated Annealing",
                     explanation=f"T={temp:.1f}, ΔE={delta:.0f}, P(accept)={accept_prob:.3f} → {'✅ Chấp nhận' if accepted else '❌ Từ chối'}",
                     chosen_move=best_move_ever,
-                    current_move={"move": current_move, "score": current_score},
-                    candidate_move={"move": candidate, "score": score},
+                    current_move={"move": current_move, "score": current_score, "piece": curr_piece},
+                    candidate_move={"move": candidate, "score": score, "piece": cand_piece},
                     temperature=temp,
                     delta_e=delta,
                     accept_prob=accept_prob,
@@ -182,9 +204,9 @@ def beam_search_move(board, k=3, recorder=None):
                 algorithm="Beam Search",
                 explanation=f"Chọn top {k} beams từ {len(candidates)} candidates, loại bỏ {len(eliminated)}",
                 beam_k=k,
-                all_candidates=[{"move": m, "score": s} for s, m in candidates],
-                kept_beams=[{"move": m, "score": s} for s, m in beam],
-                eliminated=[{"move": m, "score": s} for s, m in eliminated],
+                all_candidates=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in candidates],
+                kept_beams=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in beam],
+                eliminated=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in eliminated],
                 worst_case_scores=[],
             )
         )
@@ -216,7 +238,7 @@ def beam_search_move(board, k=3, recorder=None):
         board.undo_move(test_only=True)
 
         worst_case_scores.append(
-            {"move": move, "init_score": score, "worst_case": opp_min_score}
+            {"move": move, "init_score": score, "worst_case": opp_min_score, "piece": _get_piece_name(board, move[0])}
         )
 
         if opp_min_score > best_beam_score:
@@ -232,9 +254,9 @@ def beam_search_move(board, k=3, recorder=None):
                 explanation=f"Đánh giá worst-case response, chọn beam có worst-case score cao nhất: {best_beam_score:.0f}",
                 chosen_move=best_beam_move,
                 beam_k=k,
-                all_candidates=[{"move": m, "score": s} for s, m in candidates],
-                kept_beams=[{"move": m, "score": s} for s, m in beam],
-                eliminated=[{"move": m, "score": s} for s, m in eliminated],
+                all_candidates=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in candidates],
+                kept_beams=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in beam],
+                eliminated=[{"move": m, "score": s, "piece": _get_piece_name(board, m[0])} for s, m in eliminated],
                 worst_case_scores=worst_case_scores,
             )
         )
