@@ -1,0 +1,41 @@
+name: Code Quality and Security
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-scan:
+    name: Ruff Lint and Bandit Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository (Pinned SHA)
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies (Linters)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff bandit
+
+      - name: Lint with Ruff
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          ruff check .
+
+      - name: Security scan with Bandit
+        run: |
+          # Run bandit recursively on all files, ignore tests directory if desired (uncomment next line to ignore)
+          # bandit -r . -x tests/
+          bandit -r .

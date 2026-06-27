@@ -471,12 +471,17 @@ class Renderer:
 
         # 4. Text Character Render with Outline
         text_color = skin_data["red_text"] if piece.color == 'red' else skin_data["black_text"]
-        outline_color = (0, 0, 0)
         
+        # Determine outline color based on skin and piece color
+        draw_outline = True
         if skin == "royal_jade":
             outline_color = (0, 45, 30)
         elif skin == "cyber_steel":
             outline_color = (20, 20, 25)
+        else:
+            # For classic wood: use light highlight for both red and black to avoid stroke smudging
+            outline_color = (245, 240, 225)
+            draw_outline = False
             
         if self.chinese_supported:
             char = piece.char
@@ -484,7 +489,7 @@ class Renderer:
             char_map = {'G': 'G', 'A': 'A', 'E': 'E', 'R': 'R', 'C': 'C', 'H': 'H', 'P': 'P'}
             char = char_map.get(piece.name, '?')
             
-        # Draw 1px character outline
+        # Draw 1px character outline/highlight
         txt_outline = self.piece_font.render(char, True, outline_color)
         rect = txt_outline.get_bounding_rect()
         if rect.width > 0 and rect.height > 0:
@@ -494,10 +499,14 @@ class Renderer:
             ox = cx - txt_outline.get_width() // 2 - 2
             oy = cy - txt_outline.get_height() // 2 - 2
         
-        surface.blit(txt_outline, (ox - 1, oy))
-        surface.blit(txt_outline, (ox + 1, oy))
-        surface.blit(txt_outline, (ox, oy - 1))
-        surface.blit(txt_outline, (ox, oy + 1))
+        if draw_outline:
+            surface.blit(txt_outline, (ox - 1, oy))
+            surface.blit(txt_outline, (ox + 1, oy))
+            surface.blit(txt_outline, (ox, oy - 1))
+            surface.blit(txt_outline, (ox, oy + 1))
+        elif skin == "classic_wood_piece":
+            # Just draw a single slight offset highlight for a clean engraved look without smudging
+            surface.blit(txt_outline, (ox + 1, oy + 1))
         
         # Main text
         txt_main = self.piece_font.render(char, True, text_color)
