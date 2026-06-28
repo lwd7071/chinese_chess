@@ -61,3 +61,4 @@ cover/
 run_evals.py
 .claude/
 test/
+.ruff_cache/
