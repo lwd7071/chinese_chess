@@ -278,7 +278,7 @@ def ucs_move(board, recorder=None):
         # Calculate cost
         cap_val = PIECE_VALUES.get(target.name, 0) if target else 0
         cost = 1000 - cap_val
-        
+
         char_to_key = {
             "G": "general",
             "A": "advisor",

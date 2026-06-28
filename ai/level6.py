@@ -8,7 +8,6 @@ from ai.step_recorder import (
     ExpectimaxStep,
     MinimaxStep,
     move_to_label,
-    pos_to_label,
 )
 
 
@@ -393,7 +392,7 @@ def expectimax_move(board, depth=3, recorder=None):
 
             # Record step (limit to MAX_VISUALIZATION_STEPS)
             if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
-                eval_list = [{"move": m, "value": v} for m, v in zip(ordered, results)]
+                eval_list = [{"move": m, "value": v} for m, v in zip(ordered, results, strict=False)]
                 recorder.add_step(
                     ExpectimaxStep(
                         step_num=step_counter[0] + 1,

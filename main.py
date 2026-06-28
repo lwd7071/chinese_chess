@@ -59,12 +59,10 @@ class GameController:
             print("Warning: pygame.mixer.init() failed. Running without sound.")
 
         # Detect display info to fit smaller monitors (DPI scaling or small screens)
-        screen_w = 0
         screen_h = 0
         if pygame.display.get_init():
             try:
                 info = pygame.display.Info()
-                screen_w = info.current_w
                 screen_h = info.current_h
             except Exception:
                 pass

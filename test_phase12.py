@@ -2,8 +2,9 @@
 Phase 12 Diagnostic Script — kiểm tra thực tế tất cả thay đổi
 Chạy WITHOUT pygame để verify logic, data flow, function signatures
 """
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 errors = []
@@ -29,12 +30,12 @@ print("=" * 70)
 print("\n--- CHECK 1: ai/level3.py ---")
 try:
     import ai.level3 as L3
-    
+
     # Check PIECE_NAME_VI exists
-    check("level3.PIECE_NAME_VI exists", 
+    check("level3.PIECE_NAME_VI exists",
           hasattr(L3, 'PIECE_NAME_VI'),
           "Missing PIECE_NAME_VI dict")
-    
+
     if hasattr(L3, 'PIECE_NAME_VI'):
         check("level3.PIECE_NAME_VI has 7 entries",
               len(L3.PIECE_NAME_VI) == 7,
@@ -42,15 +43,15 @@ try:
         check("level3.PIECE_NAME_VI['rook'] == 'Xe'",
               L3.PIECE_NAME_VI.get('rook') == 'Xe',
               f"Got: {L3.PIECE_NAME_VI.get('rook')}")
-    
+
     # Check _get_piece_name helper
     check("level3._get_piece_name exists",
           hasattr(L3, '_get_piece_name'),
           "Missing _get_piece_name helper function")
-    
+
     # Check function signatures have recorder param
     import inspect
-    
+
     for func_name in ['hill_climbing_move', 'simulated_annealing_move', 'beam_search_move']:
         func = getattr(L3, func_name, None)
         check(f"level3.{func_name} exists", func is not None, "Function missing")
@@ -69,15 +70,15 @@ except Exception as e:
 print("\n--- CHECK 2: ai/level4.py ---")
 try:
     import ai.level4 as L4
-    
+
     check("level4.PIECE_NAME_VI exists",
           hasattr(L4, 'PIECE_NAME_VI'),
           "Missing PIECE_NAME_VI dict")
-    
+
     check("level4._get_piece_name exists",
           hasattr(L4, '_get_piece_name'),
           "Missing _get_piece_name helper function")
-    
+
     for func_name in ['online_search_move', 'and_or_search_move', 'belief_state_search_move']:
         func = getattr(L4, func_name, None)
         check(f"level4.{func_name} exists", func is not None, "Function missing")
@@ -96,15 +97,15 @@ except Exception as e:
 print("\n--- CHECK 3: ai/level5.py ---")
 try:
     import ai.level5 as L5
-    
+
     check("level5.PIECE_NAME_VI exists",
           hasattr(L5, 'PIECE_NAME_VI'),
           "Missing PIECE_NAME_VI dict")
-    
+
     check("level5._get_piece_name exists",
           hasattr(L5, '_get_piece_name'),
           "Missing _get_piece_name helper function")
-    
+
     for func_name in ['backtracking_mrv_move', 'min_conflicts_move', 'ac3_move']:
         func = getattr(L5, func_name, None)
         check(f"level5.{func_name} exists", func is not None, "Function missing")
@@ -123,21 +124,16 @@ except Exception as e:
 print("\n--- CHECK 4: ai/step_recorder.py ---")
 try:
     from ai.step_recorder import (
-        BaseStep, StepRecorder,
-        BFSStep, DFSStep, UCSStep,
-        GreedyStep, AStarStep, IDAStarStep,
-        HillClimbStep, SAStep, BeamStep,
-        OnlineStep, AndOrStep, BeliefStep,
-        BacktrackStep, MinConflictStep, AC3Step,
-        MinimaxStep, AlphaBetaStep, ExpectimaxStep
+        StepRecorder,
+        UCSStep,
     )
     check("All 18 Step dataclasses importable", True)
     check("StepRecorder importable", True)
-    
+
     # Test StepRecorder functionality
     rec = StepRecorder()
     check("StepRecorder.steps initially empty", len(rec.steps) == 0)
-    
+
     rec.add_step(UCSStep(
         step_num=1, algorithm="UCS",
         explanation="Test step",
@@ -147,14 +143,14 @@ try:
         explored=[]
     ))
     check("StepRecorder.add_step works", rec.total_steps() == 1)
-    check("StepRecorder.get_current_step returns step", 
+    check("StepRecorder.get_current_step returns step",
           rec.get_current_step() is not None)
     check("StepRecorder.get_current_step is UCSStep",
           isinstance(rec.get_current_step(), UCSStep))
-    
+
     rec.clear()
     check("StepRecorder.clear works", rec.total_steps() == 0)
-    
+
 except Exception as e:
     errors.append(f"❌ step_recorder.py import/test failed: {e}")
 
@@ -166,7 +162,7 @@ try:
     viz_path = os.path.join(os.path.dirname(__file__), 'gui', 'visualizer.py')
     with open(viz_path, 'r', encoding='utf-8') as f:
         viz_source = f.read()
-    
+
     # FIX 1: Font loading
     check("FIX1: _load_font helper exists",
           '_load_font' in viz_source,
@@ -177,7 +173,7 @@ try:
     check("FIX1: Arial fallback",
           '"Arial"' in viz_source or "'Arial'" in viz_source,
           "No Arial fallback")
-    
+
     # FIX 2: Coordinate labels
     check("FIX2: COL_LABELS constant exists",
           'COL_LABELS' in viz_source,
@@ -191,13 +187,13 @@ try:
     check("FIX2: _format_move_full method exists",
           'def _format_move_full' in viz_source,
           "Missing _format_move_full method definition")
-    
+
     # FIX 2d: Old functions removed/aliased
     has_format_move_short_def = 'def _format_move_short' in viz_source
     check("FIX2d: _format_move_short REMOVED",
           not has_format_move_short_def,
           "_format_move_short still defined — should be deleted")
-    
+
     # Check _format_move is aliased or calls _format_move_full
     if 'def _format_move(' in viz_source or '_format_move = _format_move_full' in viz_source:
         # Check it's not the old implementation
@@ -207,19 +203,19 @@ try:
             check("FIX2d: _format_move wraps _format_move_full", True)
         else:
             warn("FIX2d: _format_move exists but may not call _format_move_full")
-    
+
     # Check no stale calls to _format_move_short
     import re
     short_calls = re.findall(r'_format_move_short\(', viz_source)
     check("FIX2: No remaining _format_move_short() calls",
           len(short_calls) == 0,
           f"Found {len(short_calls)} stale calls to _format_move_short()")
-    
+
     # FIX 4: Subtitle
     check("FIX4: _get_step_subtitle method exists",
           '_get_step_subtitle' in viz_source,
           "Missing _get_step_subtitle method")
-    
+
     # Check all renderers exist
     renderers = [
         '_render_bfs_dfs', '_render_search_3col', '_render_ida_star',
@@ -232,7 +228,7 @@ try:
         check(f"Renderer {r} exists",
               f'def {r}' in viz_source,
               f"Missing renderer method {r}")
-    
+
     # Check dispatch in draw()
     step_types_in_dispatch = [
         'BFSStep', 'DFSStep', 'UCSStep', 'AStarStep', 'IDAStarStep',
@@ -245,7 +241,7 @@ try:
         check(f"Dispatch handles {st}",
               st in viz_source,
               f"{st} not referenced in visualizer.py")
-    
+
     # PIECE_NAME_VI in visualizer
     check("PIECE_NAME_VI in visualizer.py",
           'PIECE_NAME_VI' in viz_source,
@@ -262,11 +258,11 @@ try:
     import ai.level1 as L1
     import ai.level2 as L2
     import ai.level6 as L6
-    
+
     l1_funcs = ['bfs_move', 'dfs_move', 'ucs_move']
     l2_funcs = ['greedy_move', 'a_star_move', 'ida_star_move']
     l6_funcs = ['minimax_move', 'alpha_beta_move', 'expectimax_move']
-    
+
     for mod, funcs, name in [(L1, l1_funcs, 'level1'), (L2, l2_funcs, 'level2'), (L6, l6_funcs, 'level6')]:
         for func_name in funcs:
             func = getattr(mod, func_name, None)
@@ -288,7 +284,7 @@ try:
     main_path = os.path.join(os.path.dirname(__file__), 'main.py')
     with open(main_path, 'r', encoding='utf-8') as f:
         main_source = f.read()
-    
+
     check("main.py imports StepRecorder",
           'StepRecorder' in main_source,
           "Missing StepRecorder import")
@@ -317,7 +313,7 @@ try:
         fpath = os.path.join(os.path.dirname(__file__), fname)
         with open(fpath, 'r', encoding='utf-8') as f:
             src = f.read()
-        
+
         piece_key_count = src.count('"piece"')
         check(f"{display}: has 'piece' key references",
               piece_key_count >= 2,

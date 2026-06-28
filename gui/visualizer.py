@@ -108,7 +108,7 @@ class StepController:
 class EmojiSafeFont:
     """Wrapper for pygame.font.Font that dynamically renders custom vector badges/icons
     instead of displaying text-based emojis or bracket characters (like [OK], [X])."""
-    
+
     CURRENT_BOARD = None
     CURRENT_TURN = None
 
@@ -134,7 +134,7 @@ class EmojiSafeFont:
     def tokenize(self, text):
         if not isinstance(text, str):
             return [("text", text)]
-        
+
         tokens = []
         current_pos = 0
         while current_pos < len(text):
@@ -147,7 +147,7 @@ class EmojiSafeFont:
                     if found_idx == -1 or idx < found_idx:
                         found_idx = idx
                         found_tag = tag
-            
+
             if found_idx == -1:
                 # No more tags
                 tokens.append(("text", text[current_pos:]))
@@ -166,17 +166,17 @@ class EmojiSafeFont:
         if not isinstance(text, str):
             return text
         import re
-        
+
         # Track the color of the first resolved piece in this text line/move
         detected_color = [None]
-        
+
         def repl(match):
             try:
                 row = int(match.group(1))
                 col = int(match.group(2))
                 if 0 <= row <= 9 and 0 <= col <= 8:
                     col_labels = "ABCDEFGHI"
-                    
+
                     # Determine piece color contextually
                     color = None
                     if detected_color[0] is not None:
@@ -186,10 +186,10 @@ class EmojiSafeFont:
                         if piece:
                             color = piece.color
                             detected_color[0] = color
-                            
+
                     if color is None:
                         color = detected_color[0] or EmojiSafeFont.CURRENT_TURN or "red"
-                        
+
                     if color == "black":
                         col_char = col_labels[col]
                         row_char = str(row)
@@ -200,23 +200,23 @@ class EmojiSafeFont:
             except Exception:
                 pass
             return match.group(0)
-            
+
         return re.sub(r'\((\d),\s*(\d)\)', repl, text)
 
     def size(self, text):
         if isinstance(text, str):
             text = self.clean_coordinates(text)
-            
+
         if not isinstance(text, str) or not text:
             return self._font.size(text)
-            
+
         tokens = self.tokenize(text)
         if len(tokens) == 1 and tokens[0][0] == "text":
             return self._font.size(text)
-            
+
         total_w = 0
         max_h = self._font.get_height()
-        
+
         for t_type, content in tokens:
             if t_type == "text":
                 w, h = self._font.size(content)
@@ -226,11 +226,11 @@ class EmojiSafeFont:
                 # Icon size is 12x12, with 4px right spacing
                 total_w += 12 + 4
                 max_h = max(max_h, 12)
-                
+
         # Remove trailing spacing
         if total_w > 0:
             total_w -= 4
-            
+
         return total_w, max_h
 
     def get_height(self):
@@ -239,26 +239,26 @@ class EmojiSafeFont:
     def render(self, text, antialias, color, background=None):
         if isinstance(text, str):
             text = self.clean_coordinates(text)
-            
+
         if not isinstance(text, str) or not text:
             return self._font.render(text, antialias, color, background)
-            
+
         tokens = self.tokenize(text)
         # If no icons found, render normally
         if len(tokens) == 1 and tokens[0][0] == "text":
             return self._font.render(text, antialias, color, background)
-            
+
         # Compute combined surface size
         width, height = self.size(text)
-        
+
         # Create transparent surface
         surf = pygame.Surface((width, height), pygame.SRCALPHA)
-        
+
         x_offset = 0
         icon_h = 12
         icon_y = (height - icon_h) // 2
-        
-        for i, (t_type, content) in enumerate(tokens):
+
+        for t_type, content in tokens:
             if t_type == "text":
                 text_surf = self._font.render(content, antialias, color, background)
                 text_y = (height - text_surf.get_height()) // 2
@@ -320,7 +320,7 @@ class EmojiSafeFont:
                         ],
                     )
                 x_offset += 12 + 4
-                
+
         return surf
 
     def __getattr__(self, name):
@@ -372,7 +372,7 @@ class VisualizerPanel:
                     f = pygame.font.SysFont(sys_name, size, bold=bold)
                     return f
                 except Exception:
-                    continue
+                    pass
             # 4. Default pygame font (cuối cùng)
             return pygame.font.Font(None, size)
 
@@ -530,7 +530,7 @@ class VisualizerPanel:
                         color = piece.color
                     else:
                         color = self.current_board.turn
-                
+
                 from_label = self._pos_to_label_with_color(move_tuple[0], color)
                 to_label = self._pos_to_label_with_color(move_tuple[1], color)
                 return f"{piece_name}{from_label}→{to_label}{score_str}"
