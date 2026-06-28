@@ -3,8 +3,32 @@
   "country": "Việt Nam",
   "birthday": "01/01/2000",
   "level": 3,
-  "exp": 392,
+  "exp": 472,
   "history": [
+    {
+      "mode": "Người vs Bot",
+      "algo": "BFS",
+      "result": "Thua",
+      "time": "28/06/2026 15:47"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "BFS",
+      "result": "Thua",
+      "time": "28/06/2026 15:32"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Beam Search",
+      "result": "Thua",
+      "time": "28/06/2026 15:31"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Hill Climbing",
+      "result": "Thua",
+      "time": "28/06/2026 15:29"
+    },
     {
       "mode": "Bot vs Bot",
       "algo": "UCS vs BFS",

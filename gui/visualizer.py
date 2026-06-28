@@ -381,6 +381,10 @@ class VisualizerPanel:
         self.btn_auto = pygame.Rect(start_x + 176, btn_y, btn_w, 36)
         self.btn_skip = pygame.Rect(start_x + 264, btn_y, btn_w, 36)
 
+        # Speed slider
+        self.slider_rect = pygame.Rect(start_x, btn_y - 45, 344, 8)
+        self.is_dragging_slider = False
+
         # Scroll state for long lists
         self.scroll_offset = 0
         self.max_scroll = 0
@@ -405,9 +409,22 @@ class VisualizerPanel:
         self.btn_skip.x = start_x + 264
         self.btn_skip.y = btn_y
 
+        self.slider_rect.x = start_x
+        self.slider_rect.y = btn_y - 45
+
     def handle_event(self, event, controller, recorder):
-        """Handle mouse clicks and scroll events"""
+        """Handle mouse clicks, dragging, and scroll events"""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # Check slider click
+            slider_click_area = self.slider_rect.inflate(10, 20)
+            if slider_click_area.collidepoint(event.pos):
+                self.is_dragging_slider = True
+                mx = event.pos[0]
+                pct = (mx - self.slider_rect.x) / self.slider_rect.width
+                pct = max(0.0, min(1.0, pct))
+                controller.auto_delay = 3.0 - pct * (3.0 - 0.1)
+                return "slider"
+
             if self.btn_prev.collidepoint(event.pos):
                 controller.prev_step(recorder)
                 controller.mode = "manual"  # Switch to manual on click
@@ -426,6 +443,20 @@ class VisualizerPanel:
                 recorder.reset_to_end()
                 controller.mode = "manual"
                 return "finish"
+
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.is_dragging_slider = False
+
+        elif event.type == pygame.MOUSEMOTION:
+            if getattr(self, "is_dragging_slider", False):
+                if not pygame.mouse.get_pressed()[0]:
+                    self.is_dragging_slider = False
+                else:
+                    mx = event.pos[0]
+                    pct = (mx - self.slider_rect.x) / self.slider_rect.width
+                    pct = max(0.0, min(1.0, pct))
+                    controller.auto_delay = 3.0 - pct * (3.0 - 0.1)
+                    return "slider"
 
         elif event.type == pygame.MOUSEWHEEL:
             # Scroll content if needed
@@ -579,7 +610,7 @@ class VisualizerPanel:
         # Body - delegate to specific renderer
         content_y = self.y + 80
         content_rect = pygame.Rect(
-            self.x + 15, content_y, self.width - 30, self.height - 160
+            self.x + 15, content_y, self.width - 30, self.height - 210
         )
 
         if isinstance(step, (BFSStep, DFSStep)):
@@ -604,6 +635,29 @@ class VisualizerPanel:
             self._render_minimax_expectimax(surface, step, content_rect)
         else:
             self._render_text_only(surface, step, content_rect)
+
+        # Draw speed slider
+        pygame.draw.rect(surface, COLOR_OUTLINE, self.slider_rect, 0, 4)
+
+        # Calculate handle position: Delay 3.0s (slow) -> 0.1s (fast)
+        delay_range = 3.0 - 0.1
+        pct = (3.0 - controller.auto_delay) / delay_range
+        pct = max(0.0, min(1.0, pct))
+
+        handle_x = self.slider_rect.x + int(pct * self.slider_rect.width)
+        handle_y = self.slider_rect.centery
+
+        # Draw active track
+        active_rect = pygame.Rect(self.slider_rect.x, self.slider_rect.y, handle_x - self.slider_rect.x, self.slider_rect.height)
+        pygame.draw.rect(surface, COLOR_ACCENT, active_rect, 0, 4)
+
+        # Draw handle circle
+        pygame.draw.circle(surface, (255, 255, 255), (handle_x, handle_y), 8)
+        pygame.draw.circle(surface, COLOR_ACCENT, (handle_x, handle_y), 8, 2)
+
+        # Draw label
+        label_txt = self.tiny_font.render(f"Tốc độ chạy tự động: {controller.auto_delay:.1f}s/bước", True, COLOR_TEXT)
+        surface.blit(label_txt, (self.slider_rect.x, self.slider_rect.y - 18))
 
         # Navigation footer
         self._render_footer(surface, controller, recorder)
@@ -919,13 +973,13 @@ class VisualizerPanel:
             columns = [
                 ("CURRENT NODE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
                 ("QUEUE (FIFO)", step.queue[:8], COLOR_JADE),
-                ("EVALUATED", (step.evaluated or step.explored)[:8], COLOR_TEXT_MUTED),
+                ("EVALUATED", (getattr(step, "evaluated", None) or step.explored)[-8:], COLOR_TEXT_MUTED),
             ]
         else:
             columns = [
                 ("CURRENT PATH", [step.current_node] if step.current_node else [], COLOR_ACCENT),
                 ("STACK", step.stack[:8], COLOR_JADE),
-                ("BACKTRACK LOG", (step.backtrack_log or step.explored)[:8], COLOR_TEXT_MUTED),
+                ("BACKTRACK LOG", (getattr(step, "backtrack_log", None) or step.explored)[-8:], COLOR_TEXT_MUTED),
             ]
 
         for i, (title, items, color) in enumerate(columns):
@@ -969,7 +1023,18 @@ class VisualizerPanel:
                         else:
                             label = f"d={depth}"
                 else:
-                    label = str(item)[:18]
+                    label = str(item)
+
+                # Prevent text from overflowing the column
+                max_text_w = col_w - 12
+                if self.tiny_font.size(label)[0] > max_text_w:
+                    for i in range(len(label) - 1, 0, -1):
+                        truncated = label[:i] + ".."
+                        if self.tiny_font.size(truncated)[0] <= max_text_w:
+                            label = truncated
+                            break
+                    else:
+                        label = ".."
                 txt = self.tiny_font.render(label, True, COLOR_TEXT)
                 surface.blit(txt, (col_rect.x + 6, iy))
 
@@ -994,7 +1059,7 @@ class VisualizerPanel:
         columns = [
             ("CURRENT MOVE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
             ("FRONTIER (PQ)", getattr(step, "frontier", [])[:8], COLOR_JADE),
-            ("EVALUATED", getattr(step, "evaluated", getattr(step, "explored", []))[:8], COLOR_TEXT_MUTED),
+            ("EVALUATED", (getattr(step, "evaluated", None) or getattr(step, "explored", []))[-8:], COLOR_TEXT_MUTED),
         ]
 
         for i, (title, items, color) in enumerate(columns):
@@ -1119,14 +1184,14 @@ class VisualizerPanel:
             c3_title = "EVALUATED"
             c1_items = [step.current_move] if step.current_move else []
             c2_items = step.neighbors[:8]
-            c3_items = getattr(step, "evaluated", [])[:8]
+            c3_items = getattr(step, "evaluated", [])[-8:]
         else:  # GreedyStep
             c1_title = "CURRENT MOVE"
             c2_title = "CANDIDATES"
             c3_title = "EVALUATED"
             c1_items = [step.current_node] if step.current_node else []
             c2_items = step.candidates[:8]
-            c3_items = getattr(step, "evaluated", [])[:8]
+            c3_items = getattr(step, "evaluated", [])[-8:]
 
         columns = [
             (c1_title, c1_items, COLOR_ACCENT),

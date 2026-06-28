@@ -59,37 +59,50 @@ def hill_climbing_move(board, recorder=None):
     best_score = float("-inf")
 
     color = board.turn
-    neighbors = []
 
-    for i, (from_pos, to_pos) in enumerate(legal_moves):
-        piece_name = _get_piece_name(board, from_pos)
-        board.make_move(from_pos, to_pos, test_only=True)
+    # Pre-generate all neighbor nodes
+    all_neighbors = []
+    for m in legal_moves:
+        piece_name = _get_piece_name(board, m[0])
+        # Simulate move to get the score
+        board.make_move(m[0], m[1], test_only=True)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
 
-        neighbor_info = {"move": (from_pos, to_pos), "score": score, "piece": piece_name}
-        neighbors.append(neighbor_info)
+        all_neighbors.append({
+            "move": m,
+            "score": score,
+            "piece": piece_name,
+        })
+
+    evaluated_so_far = []
+
+    for i, neighbor_info in enumerate(all_neighbors):
+        score = neighbor_info["score"]
+        m = neighbor_info["move"]
+
+        evaluated_so_far.append(neighbor_info)
+        remaining_neighbors = all_neighbors[i + 1:]
 
         if score > best_score:
             best_score = score
-            best_move = (from_pos, to_pos)
+            best_move = m
 
-        # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS steps)
+        # Record step if recorder provided
         if recorder and i < MAX_VISUALIZATION_STEPS:
-            # Sort neighbors by score descending for visualization
-            sorted_neighbors = sorted(neighbors, key=lambda x: x["score"], reverse=True)
             best_piece_name = _get_piece_name(board, best_move[0])
             recorder.add_step(
                 HillClimbStep(
                     step_num=i + 1,
                     algorithm="Hill Climbing",
-                    explanation=f"Xét nước {from_pos}→{to_pos}: score={score}, tìm neighbor tốt nhất",
+                    explanation=f"Xét nước {m[0]}→{m[1]}: score={score:.0f}, tìm neighbor tốt nhất",
                     chosen_move=best_move,
                     current_score=best_score,
                     current_move={"move": best_move, "score": best_score, "piece": best_piece_name},
-                    neighbors=sorted_neighbors.copy(),
+                    neighbors=remaining_neighbors.copy(),
                     best_neighbor={"move": best_move, "score": best_score, "piece": best_piece_name},
                     is_plateau=(score <= best_score and i > 0),
+                    evaluated=evaluated_so_far.copy(),
                 )
             )
 

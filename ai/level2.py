@@ -43,11 +43,10 @@ def greedy_move(board, recorder=None):
     best_move = legal_moves[0]
     max_val = -1
 
-    # For visualization
-    candidates = []
-
-    for i, (from_pos, to_pos) in enumerate(legal_moves):
-        target = board.get_piece(to_pos)
+    # Pre-generate candidate nodes
+    all_nodes = []
+    for m in legal_moves:
+        target = board.get_piece(m[1])
         val = PIECE_VALUES.get(target.name, 0) if target else 0
         char_to_key = {
             "G": "general",
@@ -61,30 +60,36 @@ def greedy_move(board, recorder=None):
         key = char_to_key.get(target.name, target.name) if target else None
         piece_name = PIECE_NAME_VI.get(key, "—") if key else "—"
 
-        # Build candidate info
-        candidate_info = {
-            "move": (from_pos, to_pos),
-            "h": val,  # h(n) = value of captured piece
+        all_nodes.append({
+            "move": m,
+            "h": val,
             "piece": piece_name,
-        }
-        candidates.append(candidate_info)
+        })
+
+    evaluated_so_far = []
+
+    for i, candidate_info in enumerate(all_nodes):
+        val = candidate_info["h"]
+        m = candidate_info["move"]
+
+        evaluated_so_far.append(candidate_info)
+        remaining_candidates = all_nodes[i + 1:]
 
         if val > max_val:
             max_val = val
-            best_move = (from_pos, to_pos)
+            best_move = m
 
-        # Record step if recorder provided (only first MAX_VISUALIZATION_STEPS to avoid clutter)
+        # Record step if recorder provided
         if recorder and i < MAX_VISUALIZATION_STEPS:
-            # Sort candidates by h descending (highest value first)
-            sorted_candidates = sorted(candidates, key=lambda x: x["h"], reverse=True)
             recorder.add_step(
                 GreedyStep(
                     step_num=i + 1,
                     algorithm="Greedy",
-                    explanation=f"Xét nước {from_pos}→{to_pos}: h={val} ({piece_name}), chọn h LỚN NHẤT",
+                    explanation=f"Xét nước {m[0]}→{m[1]}: h={val} ({candidate_info['piece']}), chọn h LỚN NHẤT",
                     chosen_move=best_move,
                     current_node=candidate_info,
-                    candidates=sorted_candidates.copy(),
+                    candidates=remaining_candidates.copy(),
+                    evaluated=evaluated_so_far.copy(),
                 )
             )
 

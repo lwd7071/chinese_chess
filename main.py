@@ -114,6 +114,8 @@ class GameController:
             font_name=self.renderer.font_name,
         )
         self.step_controller = StepController()
+        self.redo_history = []
+        self.redo_move_log = []
 
         self.state = "menu"  # menu, game, shop, game_over
 
@@ -149,7 +151,7 @@ class GameController:
         self.ai_result = None
         self.ai_lock = threading.Lock()
         self.last_bot_move_time = 0
-        self.bot_paused = False
+        self.bot_paused = True
 
         # Animation state
         self.animation = None
@@ -238,17 +240,87 @@ class GameController:
         self.animation = None
         self.last_bot_move_time = time.time()
         self.game_over_result = ""
-        self.bot_paused = False
+        self.bot_paused = True
         self.exp_awarded = False
         self.red_exp = self.settings.data.get("exp", 0)
         self.step_recorder.clear()
         self.step_controller = StepController()
+        self.redo_history = []
+        self.redo_move_log = []
+
+    def review_undo(self):
+        if not self.board.history:
+            return
+
+        self.bot_paused = True
+        self.animation = None
+        self.pending_ai_move = None
+        self.pending_move = None
+        self.ai_thread = None
+        self.ai_result = None
+
+        # Save to redo stack before popping
+        move_info = self.board.history[-1]
+        original_piece = self.board.moved_pieces_stack[-1]
+        self.redo_history.append((move_info, original_piece))
+
+        # Use built-in board undo!
+        self.board.undo_move()
+
+        # Sync move_log
+        if self.board.move_log:
+            popped_log = self.board.move_log.pop()
+            self.redo_move_log.append(popped_log)
+
+        self.latest_move_index = len(self.board.history) - 1 if self.board.history else None
+
+        # Recalculate sidebar history scroll
+        visible_rows = getattr(self.sidebar, "history_visible_rows", 6)
+        pair_rows_count = len(self.board.move_log) // 2 + (len(self.board.move_log) % 2)
+        self.sidebar.history_scroll = max(0, pair_rows_count - visible_rows)
+
+        from gui.sound import play_synth_sound
+        play_synth_sound("move")
+
+    def review_redo(self):
+        if not self.redo_history:
+            return
+
+        self.bot_paused = True
+        self.animation = None
+        self.pending_ai_move = None
+        self.pending_move = None
+        self.ai_thread = None
+        self.ai_result = None
+
+        move_info, original_piece = self.redo_history.pop()
+        from_pos, to_pos, captured, old_turn = move_info
+
+        # Use built-in board make_move!
+        self.board.make_move(from_pos, to_pos, log_move=False)
+
+        # Sync move_log
+        if self.redo_move_log:
+            popped_log = self.redo_move_log.pop()
+            self.board.move_log.append(popped_log)
+
+        self.latest_move_index = len(self.board.history) - 1
+
+        # Recalculate sidebar history scroll
+        visible_rows = getattr(self.sidebar, "history_visible_rows", 6)
+        pair_rows_count = len(self.board.move_log) // 2 + (len(self.board.move_log) % 2)
+        self.sidebar.history_scroll = max(0, pair_rows_count - visible_rows)
+
+        from gui.sound import play_synth_sound
+        play_synth_sound("move")
 
     def show_popup(self, message):
         self.popup_message = message
         self.popup_timer = time.time() + 2.0
 
     def trigger_move_animation(self, from_pos, to_pos):
+        self.redo_history = []
+        self.redo_move_log = []
         piece = self.board.get_piece(from_pos)
         captured = self.board.get_piece(to_pos)
 
@@ -434,6 +506,12 @@ class GameController:
                             elif action == "toggle_pause":
                                 self.bot_paused = not self.bot_paused
                                 play_synth_sound("move")
+                            elif action == "review_prev":
+                                if self.menu.game_mode == "bot_vs_bot" and len(self.board.history) > 0:
+                                    self.review_undo()
+                            elif action == "review_next":
+                                if self.menu.game_mode == "bot_vs_bot" and len(self.redo_history) > 0:
+                                    self.review_redo()
                             elif action == "undo":
                                 if self.menu.game_mode == "human_vs_bot":
                                     if len(self.board.history) >= 2:
@@ -466,6 +544,19 @@ class GameController:
                             self.state = "menu"
                             self.menu.state = "mode_select"
                             self.menu.trigger_transition()
+                        else:
+                            action = self.sidebar.handle_event(event, self.menu.game_mode)
+                            if action:
+                                if action == "review_prev":
+                                    if self.menu.game_mode == "bot_vs_bot" and len(self.board.history) > 0:
+                                        self.review_undo()
+                                elif action == "review_next":
+                                    if self.menu.game_mode == "bot_vs_bot" and len(self.redo_history) > 0:
+                                        self.review_redo()
+                                elif action == "return":
+                                    self.state = "menu"
+                                    self.menu.state = "mode_select"
+                                    self.menu.trigger_transition()
 
             # 2. Game Logic / Bot turns
             if self.state == "game" and not self.animation:
@@ -870,6 +961,8 @@ class GameController:
                 red_exp=self.red_exp,
                 black_exp=self.black_exp,
                 is_game_over=(self.state == "game_over"),
+                can_undo=len(self.board.history) > 0,
+                can_redo=len(self.redo_history) > 0,
             )
 
         # 6. Draw capture burst particles

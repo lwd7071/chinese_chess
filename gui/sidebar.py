@@ -224,7 +224,11 @@ class Sidebar:
 
             # 2. Check Footer Button clicks
             if game_mode == "bot_vs_bot":
-                if self.btn_surrender.collidepoint(event.pos):
+                if self.btn_undo.collidepoint(event.pos):
+                    return "review_prev"
+                elif self.btn_hint.collidepoint(event.pos):
+                    return "review_next"
+                elif self.btn_surrender.collidepoint(event.pos):
                     return "return"
                 elif self.btn_return.collidepoint(event.pos):
                     return "toggle_pause"
@@ -345,6 +349,8 @@ class Sidebar:
         red_exp=0,
         black_exp=0,
         is_game_over=False,
+        can_undo=False,
+        can_redo=False,
     ):
         # 1. Fill sidebar background
         sidebar_rect = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -910,8 +916,41 @@ class Sidebar:
         mouse_pos = pygame.mouse.get_pos()
 
         if game_mode == "bot_vs_bot":
-            # Draw two buttons side-by-side at the bottom: QUAY LẠI (left) and DỪNG/TIẾP TỤC (right)
-            # 1. QUAY LẠI (Left button, positioned at btn_surrender)
+            # 1. TRƯỚC (Left button of row 1, positioned at btn_undo)
+            rect_prev = self.btn_undo
+            is_hover_prev = rect_prev.collidepoint(mouse_pos) and can_undo
+            bg_prev = (52, 152, 219) if can_undo else (44, 28, 24)
+            if can_undo and is_hover_prev:
+                bg_prev = (41, 128, 185)
+            pygame.draw.rect(surface, bg_prev, rect_prev, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT if can_undo else COLOR_OUTLINE, rect_prev, 1, 6)
+            txt_prev = self.body_font.render("TRƯỚC", True, COLOR_TEXT if can_undo else COLOR_TEXT_MUTED)
+            surface.blit(
+                txt_prev,
+                (
+                    rect_prev.centerx - txt_prev.get_width() // 2,
+                    rect_prev.centery - txt_prev.get_height() // 2,
+                ),
+            )
+
+            # 2. SAU (Right button of row 1, positioned at btn_hint)
+            rect_next = self.btn_hint
+            is_hover_next = rect_next.collidepoint(mouse_pos) and can_redo
+            bg_next = (46, 204, 113) if can_redo else (44, 28, 24)
+            if can_redo and is_hover_next:
+                bg_next = (39, 174, 96)
+            pygame.draw.rect(surface, bg_next, rect_next, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT if can_redo else COLOR_OUTLINE, rect_next, 1, 6)
+            txt_next = self.body_font.render("SAU", True, COLOR_TEXT if can_redo else COLOR_TEXT_MUTED)
+            surface.blit(
+                txt_next,
+                (
+                    rect_next.centerx - txt_next.get_width() // 2,
+                    rect_next.centery - txt_next.get_height() // 2,
+                ),
+            )
+
+            # 3. QUAY LẠI (Left button of row 2, positioned at btn_surrender)
             rect_ret = self.btn_surrender
             is_hover_ret = rect_ret.collidepoint(mouse_pos)
             pygame.draw.rect(
@@ -932,10 +971,13 @@ class Sidebar:
                 ),
             )
 
-            # 2. DỪNG/TIẾP TỤC (Right button, positioned at btn_return)
+            # 4. DỪNG/TIẾP TỤC (Right button of row 2, positioned at btn_return)
             rect_pause = self.btn_return
             is_hover_pause = rect_pause.collidepoint(mouse_pos)
-            pause_label = "TIẾP TỤC" if bot_paused else "DỪNG"
+            if len(board.history) == 0 and bot_paused:
+                pause_label = "BẮT ĐẦU"
+            else:
+                pause_label = "TIẾP TỤC" if bot_paused else "DỪNG"
             pause_color = (46, 204, 113) if bot_paused else (231, 76, 60)
             pause_hover_color = (39, 174, 96) if bot_paused else (192, 57, 43)
 
