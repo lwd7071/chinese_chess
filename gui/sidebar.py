@@ -276,7 +276,7 @@ class Sidebar:
         return None
 
     def format_square(self, pos):
-        return f"{chr(65 + pos[1])}{pos[0]}"
+        return f"{chr(65 + (8 - pos[1]))}{pos[0]}"
 
     def get_piece_name(self, piece_name):
         return PIECE_NAME_VI.get(piece_name, piece_name or "Quân")
@@ -411,29 +411,6 @@ class Sidebar:
         pygame.draw.rect(surface, (30, 18, 14), turn_box, 0, 13)
         pygame.draw.rect(surface, COLOR_OUTLINE, turn_box, 1, 13)
 
-        # Timer icon (represented as vertical lines or small circle)
-        timer_center = (turn_box.x + 18, turn_box.centery)
-        pygame.draw.circle(surface, COLOR_ACCENT, timer_center, 6, 1)
-        pygame.draw.line(
-            surface,
-            COLOR_ACCENT,
-            timer_center,
-            (timer_center[0], timer_center[1] - 3),
-            1,
-        )
-        pygame.draw.line(
-            surface,
-            COLOR_ACCENT,
-            timer_center,
-            (timer_center[0] + 2, timer_center[1]),
-            1,
-        )
-
-        timer_txt = self.mono_font.render("05:24", True, COLOR_ACCENT)
-        surface.blit(
-            timer_txt, (turn_box.x + 28, turn_box.centery - timer_txt.get_height() // 2)
-        )
-
         turn_val_str = (
             "LƯỢT CỦA BẠN"
             if board.turn == "red" and game_mode == "human_vs_bot"
@@ -451,7 +428,7 @@ class Sidebar:
         surface.blit(
             turn_val,
             (
-                turn_box.right - turn_val.get_width() - 15,
+                turn_box.centerx - turn_val.get_width() // 2,
                 turn_box.centery - turn_val.get_height() // 2,
             ),
         )

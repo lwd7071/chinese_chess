@@ -176,26 +176,8 @@ class EmojiSafeFont:
                 col = int(match.group(2))
                 if 0 <= row <= 9 and 0 <= col <= 8:
                     col_labels = "ABCDEFGHI"
-
-                    # Determine piece color contextually
-                    color = None
-                    if detected_color[0] is not None:
-                        color = detected_color[0]
-                    elif EmojiSafeFont.CURRENT_BOARD:
-                        piece = EmojiSafeFont.CURRENT_BOARD.get_piece((row, col))
-                        if piece:
-                            color = piece.color
-                            detected_color[0] = color
-
-                    if color is None:
-                        color = detected_color[0] or EmojiSafeFont.CURRENT_TURN or "red"
-
-                    if color == "black":
-                        col_char = col_labels[col]
-                        row_char = str(row)
-                    else:
-                        col_char = col_labels[8 - col]
-                        row_char = str(9 - row)
+                    col_char = col_labels[8 - col]
+                    row_char = str(row)
                     return f"{col_char}{row_char}"
             except Exception:
                 pass
@@ -478,12 +460,8 @@ class VisualizerPanel:
     def _pos_to_label_with_color(self, pos, color):
         row, col = pos
         if 0 <= col < len(self.COL_LABELS) and 0 <= row <= 9:
-            if color == "black":
-                col_char = self.COL_LABELS[col]
-                row_char = str(row)
-            else:
-                col_char = self.COL_LABELS[8 - col]
-                row_char = str(9 - row)
+            col_char = self.COL_LABELS[8 - col]   # A ở phải, I ở trái
+            row_char = str(row)                   # 0 ở trên, 9 ở dưới
             return f"{col_char}{row_char}"
         return f"({row},{col})"
 

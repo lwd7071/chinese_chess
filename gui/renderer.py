@@ -425,16 +425,9 @@ class Renderer:
         else:
             color = theme_data["line_color"]  # Dark wood
 
-        # Draw Columns (top A-I, bottom reversed I-A)
+        # Draw Columns (bottom reversed I-A)
         for c in range(9):
             cx, _ = self.get_xy(0, c)
-
-            # Top label (Black side): standard A-I
-            col_char_top = chr(65 + c)  # A to I
-            lbl_top = self.label_font.render(col_char_top, True, color)
-            tx = cx - lbl_top.get_width() // 2
-            ty = self.offset_y - 38 - lbl_top.get_height()
-            surface.blit(lbl_top, (tx, ty))
 
             # Bottom label (Red side): reversed I-A
             col_char_bottom = chr(65 + (8 - c))  # I to A
@@ -443,19 +436,12 @@ class Renderer:
             by = self.offset_y + 9 * self.cell_size + 38
             surface.blit(lbl_bottom, (bx, by))
 
-        # Draw Rows (left 0-9, right reversed 9-0)
+        # Draw Rows (right 0-9)
         for r in range(10):
             _, cy = self.get_xy(r, 0)
 
-            # Left label (Black/Global): standard 0-9
-            row_char_left = str(r)
-            lbl_left = self.label_font.render(row_char_left, True, color)
-            lx = self.offset_x - 38 - lbl_left.get_width()
-            ly = cy - lbl_left.get_height() // 2
-            surface.blit(lbl_left, (lx, ly))
-
-            # Right label (Red side): reversed 9-0
-            row_char_right = str(9 - r)
+            # Right label (Red side): 0-9
+            row_char_right = str(r)
             lbl_right = self.label_font.render(row_char_right, True, color)
             rx = self.offset_x + 8 * self.cell_size + 38
             ry = cy - lbl_right.get_height() // 2

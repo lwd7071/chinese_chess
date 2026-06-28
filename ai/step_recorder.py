@@ -24,7 +24,7 @@ def pos_to_label(pos: Optional[Tuple[int, int]]) -> str:
         return "—"
     r, c = pos
     if 0 <= c <= 8 and 0 <= r <= 9:
-        return f"{chr(65 + c)}{r}"
+        return f"{chr(65 + (8 - c))}{r}"
     return f"({r},{c})"
 
 
