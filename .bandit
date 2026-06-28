@@ -1,0 +1,6 @@
+[bandit]
+# Skip Low-severity warnings not relevant to game security:
+# B311: standard random is appropriate for game AI, animations, and UI simulations
+# B110: try-except-pass is intentional for graceful error handling in GUI/asset loading
+# B404/B603: subprocess used only in run_evals.py utility script (not game runtime code)
+skips = B311,B110,B404,B603

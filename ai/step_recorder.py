@@ -15,7 +15,25 @@ from typing import Any, Dict, List, Optional, Tuple
 # Type alias cho dễ đọc
 Move = Tuple[Tuple[int, int], Tuple[int, int]]  # ((from_r, from_c), (to_r, to_c))
 
-MAX_VISUALIZATION_STEPS = 30
+MAX_VISUALIZATION_STEPS = 10000
+
+
+def pos_to_label(pos: Optional[Tuple[int, int]]) -> str:
+    """Chuyển đổi tọa độ (row, col) sang ký hiệu cờ, ví dụ: (7, 1) -> 'B7'"""
+    if not pos or not isinstance(pos, (tuple, list)) or len(pos) < 2:
+        return "—"
+    r, c = pos
+    if 0 <= c <= 8 and 0 <= r <= 9:
+        return f"{chr(65 + (8 - c))}{r}"
+    return f"({r},{c})"
+
+
+def move_to_label(move: Optional[Move]) -> str:
+    """Chuyển đổi move ((r1, c1), (r2, c2)) sang chuỗi ký hiệu, ví dụ: 'B7→B0'"""
+    if not move or not isinstance(move, (tuple, list)) or len(move) < 2:
+        return "—"
+    return f"{pos_to_label(move[0])}→{pos_to_label(move[1])}"
+
 
 
 # ============================================================================
@@ -51,6 +69,8 @@ class BFSStep(BaseStep):
     explored: List[Dict[str, Any]] = field(
         default_factory=list
     )  # Các node đã duyệt xong
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
+    current_depth: int = 0
 
 
 @dataclass
@@ -64,6 +84,7 @@ class DFSStep(BaseStep):
         default_factory=list
     )  # Stack đệ quy: nhánh đang đi sâu
     explored: List[Dict[str, Any]] = field(default_factory=list)
+    backtrack_log: List[Dict[str, Any]] = field(default_factory=list)
     is_backtracking: bool = False  # True khi đang quay lui
 
 
@@ -78,6 +99,7 @@ class UCSStep(BaseStep):
         default_factory=list
     )  # Priority Queue sorted by g_cost tăng dần
     explored: List[Dict[str, Any]] = field(default_factory=list)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -95,6 +117,7 @@ class GreedyStep(BaseStep):
     candidates: List[Dict[str, Any]] = field(
         default_factory=list
     )  # Tất cả nước đi + h(n) của chúng
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -106,6 +129,7 @@ class AStarStep(BaseStep):
     )  # {'move': ..., 'g': 200, 'h': 3500, 'f': 3700}
     frontier: List[Dict[str, Any]] = field(default_factory=list)  # Sorted by f = g + h
     explored: List[Dict[str, Any]] = field(default_factory=list)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -119,6 +143,8 @@ class IDAStarStep(BaseStep):
     iteration: int = 0  # Vòng lặp thứ mấy (max 3)
     exceeded_f: Optional[float] = None  # f vượt ngưỡng → trả về để tăng threshold
     is_cutoff: bool = False  # True nếu bị cắt vì f > threshold
+    status: str = ""
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -137,6 +163,7 @@ class HillClimbStep(BaseStep):
     )  # [{'move': ..., 'score': ...}] tất cả hàng xóm
     best_neighbor: Dict[str, Any] = field(default_factory=dict)
     is_plateau: bool = False  # True nếu best_neighbor <= current (bị kẹt)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -153,6 +180,9 @@ class SAStep(BaseStep):
     delta_e: float = 0.0  # ΔE = candidate_score - current_score
     accept_prob: float = 0.0  # e^(ΔE/T) nếu ΔE < 0
     accepted: bool = False  # True nếu chấp nhận candidate
+    random_value: float = 0.0
+    decision: str = ""
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -168,6 +198,7 @@ class BeamStep(BaseStep):
     worst_case_scores: List[Dict] = field(
         default_factory=list
     )  # Score sau khi đối thủ phản công (minimax-like)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -189,6 +220,7 @@ class OnlineStep(BaseStep):
     candidates: List[Dict] = field(
         default_factory=list
     )  # Nước đi đánh giá theo trọng số mới
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -201,6 +233,7 @@ class AndOrStep(BaseStep):
     )  # Tất cả phản công của đối thủ (AND)
     worst_case: Dict[str, Any] = field(default_factory=dict)  # Phản công tệ nhất cho ta
     guaranteed_score: float = 0.0  # Score đảm bảo nếu chọn nước này
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -215,6 +248,10 @@ class BeliefStep(BaseStep):
         default_factory=dict
     )  # {'aggressive': u1, 'defensive': u2, 'positional': u3}
     expected_utility: float = 0.0  # p_agg*u_agg + p_def*u_def + p_pos*u_pos
+    u_agg: float = 0.0
+    u_def: float = 0.0
+    u_pos: float = 0.0
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -236,6 +273,7 @@ class BacktrackStep(BaseStep):
     best_assignment: Dict = field(
         default_factory=dict
     )  # Ô đích tốt nhất (score cao nhất)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -247,6 +285,7 @@ class MinConflictStep(BaseStep):
         default_factory=list
     )  # [{'move': ..., 'conflicts_after': ..., 'score': ...}]
     best_candidate: Dict = field(default_factory=dict)  # Nước giảm conflict nhiều nhất
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -263,6 +302,7 @@ class AC3Step(BaseStep):
     chosen_from_safe: Dict = field(
         default_factory=dict
     )  # Nước tốt nhất trong safe_moves
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================
@@ -286,6 +326,8 @@ class MinimaxStep(BaseStep):
     best_so_far: Dict = field(
         default_factory=dict
     )  # Nước tốt nhất tìm được đến hiện tại
+    node_type: str = "MAX"
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -303,6 +345,8 @@ class AlphaBetaStep(BaseStep):
     is_pruned: bool = False  # True nếu nhánh này bị cắt
     prune_reason: str = ""  # "β(200) ≤ α(350) → cắt nhánh"
     siblings_evaluated: List[Dict] = field(default_factory=list)
+    evaluated_and_pruned: List[Dict[str, Any]] = field(default_factory=list)
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -320,6 +364,10 @@ class ExpectimaxStep(BaseStep):
     expected_value: Optional[float] = (
         None  # 0.7 * best + 0.3 * avg(others) (nếu CHANCE node)
     )
+    node_type: str = "MAX"
+    best_res: float = 0.0
+    others_avg: float = 0.0
+    evaluated: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # ============================================================================

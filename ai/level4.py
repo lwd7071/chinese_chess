@@ -4,6 +4,36 @@ import random
 from ai.level3 import get_perspective_score
 from ai.step_recorder import AndOrStep, BeliefStep, OnlineStep
 
+PIECE_NAME_VI = {
+    "general": "Tướng",
+    "advisor": "Sĩ",
+    "elephant": "Tượng",
+    "horse": "Mã",
+    "rook": "Xe",
+    "cannon": "Pháo",
+    "pawn": "Tốt",
+}
+
+
+def _get_piece_name(board, pos):
+    """Lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ."""
+    if not pos:
+        return "—"
+    piece = board.get_piece(pos)
+    if not piece:
+        return "—"
+    char_to_key = {
+        "G": "general",
+        "A": "advisor",
+        "E": "elephant",
+        "H": "horse",
+        "R": "rook",
+        "C": "cannon",
+        "P": "pawn",
+    }
+    key = char_to_key.get(piece.name, piece.name)
+    return PIECE_NAME_VI.get(key, "—")
+
 
 def online_search_move(board, recorder=None):
     """
@@ -83,11 +113,12 @@ def online_search_move(board, recorder=None):
     candidates = []
 
     for _i, (from_pos, to_pos) in enumerate(legal_moves):
+        piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
         board.undo_move(test_only=True)
 
-        candidates.append({"move": (from_pos, to_pos), "score": score})
+        candidates.append({"move": (from_pos, to_pos), "score": score, "piece": piece_name})
 
         if score > best_score:
             best_score = score
@@ -141,6 +172,7 @@ def and_or_search_move(board, recorder=None):
 
     # We examine up to 10 moves for speed
     for i, (from_pos, to_pos) in enumerate(legal_moves[:10]):
+        or_piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
 
         opp_moves = board.get_all_legal_moves(board.turn)
@@ -149,20 +181,25 @@ def and_or_search_move(board, recorder=None):
         if not opp_moves:
             # Checkmate for opponent - win for us!
             worst_case_score = float("inf")
+            worst_case_move = None
+            worst_case_piece = "—"
         else:
             worst_case_score = float("inf")
             worst_case_move = None
+            worst_case_piece = "—"
             # Opponent plays to minimize our score (AND nodes)
             for ofrom, oto in opp_moves:
+                opp_piece = _get_piece_name(board, ofrom)
                 board.make_move(ofrom, oto, test_only=True)
                 us_score = get_perspective_score(board, color)
                 board.undo_move(test_only=True)
 
-                and_responses.append({"move": (ofrom, oto), "score": us_score})
+                and_responses.append({"move": (ofrom, oto), "score": us_score, "piece": opp_piece})
 
                 if us_score < worst_case_score:
                     worst_case_score = us_score
                     worst_case_move = (ofrom, oto)
+                    worst_case_piece = opp_piece
 
         board.undo_move(test_only=True)
 
@@ -179,9 +216,10 @@ def and_or_search_move(board, recorder=None):
                     or_node={
                         "move": (from_pos, to_pos),
                         "responses_count": len(and_responses),
+                        "piece": or_piece_name,
                     },
                     and_responses=and_responses[:5],  # Limit to 5 for display
-                    worst_case={"move": worst_case_move, "score": worst_case_score}
+                    worst_case={"move": worst_case_move, "score": worst_case_score, "piece": worst_case_piece}
                     if worst_case_move
                     else {},
                     guaranteed_score=worst_case_score,

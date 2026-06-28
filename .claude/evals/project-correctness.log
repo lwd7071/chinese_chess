@@ -1106,3 +1106,505 @@ Overall Status: 3/3 passed
 EVAL RUN END: 2026-06-26T22:31:26.655917
 ============================================================
 
+============================================================
+EVAL RUN START: 2026-06-28T02:51:02.700480
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.20s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.43s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.70s)
+  Trial 2/3...
+    Trial 2: PASS (0.95s)
+  Trial 3/3...
+    Trial 3: PASS (0.71s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T02:51:05.706458
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T02:51:39.281459
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.13s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.24s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (1.37s)
+  Trial 2/3...
+    Trial 2: PASS (0.55s)
+  Trial 3/3...
+    Trial 3: PASS (0.44s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T02:51:42.030840
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T02:56:14.366013
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.13s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.23s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: FAIL (0.48s)
+--- OUTPUT ---
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.1)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+EEE
+======================================================================
+ERROR: test_calculate_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_calculate_uses_lock)
+Verify that the background calculation thread acquires the lock when writing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 71, in test_calculate_uses_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+======================================================================
+ERROR: test_controller_has_ai_lock (tests.test_main_thread_safety.TestThreadSafety.test_controller_has_ai_lock)
+Verify that GameController has an ai_lock initialized.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 51, in test_controller_has_ai_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+======================================================================
+ERROR: test_get_result_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_get_result_uses_lock)
+Verify that the main thread acquires the lock when reading and clearing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 125, in test_get_result_uses_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.231s
+
+FAILED (errors=3)
+
+--------------
+  Trial 2/3...
+    Trial 2: FAIL (0.41s)
+--- OUTPUT ---
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.1)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+EEE
+======================================================================
+ERROR: test_calculate_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_calculate_uses_lock)
+Verify that the background calculation thread acquires the lock when writing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 71, in test_calculate_uses_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+======================================================================
+ERROR: test_controller_has_ai_lock (tests.test_main_thread_safety.TestThreadSafety.test_controller_has_ai_lock)
+Verify that GameController has an ai_lock initialized.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 51, in test_controller_has_ai_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+======================================================================
+ERROR: test_get_result_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_get_result_uses_lock)
+Verify that the main thread acquires the lock when reading and clearing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 125, in test_get_result_uses_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.198s
+
+FAILED (errors=3)
+
+--------------
+  Trial 3/3...
+    Trial 3: FAIL (0.39s)
+--- OUTPUT ---
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.1)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+EEE
+======================================================================
+ERROR: test_calculate_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_calculate_uses_lock)
+Verify that the background calculation thread acquires the lock when writing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 71, in test_calculate_uses_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+======================================================================
+ERROR: test_controller_has_ai_lock (tests.test_main_thread_safety.TestThreadSafety.test_controller_has_ai_lock)
+Verify that GameController has an ai_lock initialized.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 51, in test_controller_has_ai_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+======================================================================
+ERROR: test_get_result_uses_lock (tests.test_main_thread_safety.TestThreadSafety.test_get_result_uses_lock)
+Verify that the main thread acquires the lock when reading and clearing ai_result.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\nguye\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py", line 1387, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\tests\test_main_thread_safety.py", line 125, in test_get_result_uses_lock
+    controller = self.GameController()
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\chinese_chess\main.py", line 62, in __init__
+    info = pygame.display.Info()
+           ^^^^^^^^^^^^^^^^^^^^^
+pygame.error: video system not initialized
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.196s
+
+FAILED (errors=3)
+
+--------------
+Regression [thread-safety]: FAIL (pass^3 = 0.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     FAIL (pass^3 = 0.00%)
+Overall Status: 2/3 passed
+EVAL RUN END: 2026-06-28T02:56:16.020627
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T02:56:23.297383
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.27s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.33s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.45s)
+  Trial 2/3...
+    Trial 2: PASS (0.41s)
+  Trial 3/3...
+    Trial 3: PASS (0.41s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T02:56:25.173924
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T02:58:21.787488
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.20s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.26s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.47s)
+  Trial 2/3...
+    Trial 2: PASS (0.43s)
+  Trial 3/3...
+    Trial 3: PASS (0.64s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T02:58:23.804609
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T12:03:02.608397
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.16s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.29s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (6.11s)
+  Trial 2/3...
+    Trial 2: PASS (0.55s)
+  Trial 3/3...
+    Trial 3: PASS (0.50s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T12:03:10.230194
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T12:08:10.114140
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.29s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.44s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.58s)
+  Trial 2/3...
+    Trial 2: PASS (0.48s)
+  Trial 3/3...
+    Trial 3: PASS (0.48s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T12:08:12.385231
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T13:50:05.889380
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.16s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.22s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (3.31s)
+  Trial 2/3...
+    Trial 2: PASS (0.48s)
+  Trial 3/3...
+    Trial 3: PASS (0.54s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T13:50:10.603689
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T13:55:37.461943
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (1.73s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.45s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.84s)
+  Trial 2/3...
+    Trial 2: PASS (0.79s)
+  Trial 3/3...
+    Trial 3: PASS (0.92s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T13:55:42.205515
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T14:22:56.589568
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.14s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.23s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (6.43s)
+  Trial 2/3...
+    Trial 2: PASS (0.54s)
+  Trial 3/3...
+    Trial 3: PASS (0.53s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T14:23:04.481043
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T14:37:17.275746
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.25s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.37s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (1.99s)
+  Trial 2/3...
+    Trial 2: PASS (1.12s)
+  Trial 3/3...
+    Trial 3: PASS (3.02s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T14:37:24.245646
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T14:43:01.586471
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.18s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.38s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (0.76s)
+  Trial 2/3...
+    Trial 2: PASS (0.79s)
+  Trial 3/3...
+    Trial 3: PASS (0.72s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T14:43:04.426771
+============================================================
+
+============================================================
+EVAL RUN START: 2026-06-28T14:51:47.337445
+============================================================
+Running Capability Eval: rule-validation...
+Capability [rule-validation]: PASS (0.33s)
+Running Capability Eval: ai-level-behavior...
+Capability [ai-level-behavior]: PASS (0.49s)
+Running Regression Eval: thread-safety (pass^3 stability check)...
+  Trial 1/3...
+    Trial 1: PASS (1.17s)
+  Trial 2/3...
+    Trial 2: PASS (1.24s)
+  Trial 3/3...
+    Trial 3: PASS (0.80s)
+Regression [thread-safety]: PASS (pass^3 = 100.00%)
+============================================================
+EVAL SUMMARY REPORT
+============================================================
+Capability [rule-validation]:   PASS
+Capability [ai-level-behavior]: PASS
+Regression [thread-safety]:     PASS (pass^3 = 100.00%)
+Overall Status: 3/3 passed
+EVAL RUN END: 2026-06-28T14:51:51.382239
+============================================================
+

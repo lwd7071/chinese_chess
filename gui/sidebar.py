@@ -106,6 +106,12 @@ class Sidebar:
         self.history_view_rect = pygame.Rect(x + 15, 545, width - 30, 160)
         self._history_total = 0
 
+        # Bot speed slider state (only used in bot_vs_bot mode)
+        # 0.0 = slowest (3.0s delay), 1.0 = fastest (0.05s delay)
+        self.bot_speed_value = 0.9  # default: fast
+        self.slider_rect = pygame.Rect(x + 20, 0, width - 40, 8)  # y recalculated in draw
+        self.slider_dragging = False
+
     def update_layout(self, x, y, width, height):
         self.x = x
         self.y = y
@@ -130,8 +136,11 @@ class Sidebar:
         self.history_visible_rows = max(2, (self.history_card_height - 95) // 24)
 
     def get_bot_speed_delay(self):
-        # Default fixed delay, or adjustable if needed
-        return 0.8
+        # Map slider value (0.0=slowest, 1.0=fastest) to delay in seconds
+        # Range: 3.0s (slow) to 0.05s (fast)
+        min_delay = 0.05
+        max_delay = 3.0
+        return max_delay - self.bot_speed_value * (max_delay - min_delay)
 
     def handle_event(self, event, game_mode="human_vs_bot"):
         pos = pygame.mouse.get_pos()
@@ -144,6 +153,27 @@ class Sidebar:
         dropdown_rect_black = pygame.Rect(
             self.dropdown_rect.x + rect_w + 10, self.dropdown_rect.y, rect_w, 28
         )
+
+        # Handle slider drag events for bot_vs_bot
+        if game_mode == "bot_vs_bot":
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                # Expand clickable area around slider track
+                slider_hit = self.slider_rect.inflate(0, 16)
+                if slider_hit.collidepoint(event.pos):
+                    self.slider_dragging = True
+                    # Immediately update value
+                    rel_x = event.pos[0] - self.slider_rect.x
+                    self.bot_speed_value = max(0.0, min(1.0, rel_x / self.slider_rect.width))
+                    return None
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if self.slider_dragging:
+                    self.slider_dragging = False
+                    return None
+            elif event.type == pygame.MOUSEMOTION:
+                if self.slider_dragging:
+                    rel_x = event.pos[0] - self.slider_rect.x
+                    self.bot_speed_value = max(0.0, min(1.0, rel_x / self.slider_rect.width))
+                    return None
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             # 1. Check Dropdown list clicks first
@@ -224,7 +254,11 @@ class Sidebar:
 
             # 2. Check Footer Button clicks
             if game_mode == "bot_vs_bot":
-                if self.btn_surrender.collidepoint(event.pos):
+                if self.btn_undo.collidepoint(event.pos):
+                    return "review_prev"
+                elif self.btn_hint.collidepoint(event.pos):
+                    return "review_next"
+                elif self.btn_surrender.collidepoint(event.pos):
                     return "return"
                 elif self.btn_return.collidepoint(event.pos):
                     return "toggle_pause"
@@ -276,7 +310,7 @@ class Sidebar:
         return None
 
     def format_square(self, pos):
-        return f"{chr(65 + pos[1])}{pos[0]}"
+        return f"{chr(65 + (8 - pos[1]))}{pos[0]}"
 
     def get_piece_name(self, piece_name):
         return PIECE_NAME_VI.get(piece_name, piece_name or "Quân")
@@ -346,6 +380,8 @@ class Sidebar:
         black_exp=0,
         is_game_over=False,
         elapsed_time=0.0,
+        can_undo=False,
+        can_redo=False,
     ):
         # 1. Fill sidebar background
         sidebar_rect = pygame.Rect(self.x, self.y, self.width, self.height)
@@ -438,7 +474,6 @@ class Sidebar:
         surface.blit(
             timer_txt, (turn_box.x + 28, turn_box.centery - timer_txt.get_height() // 2)
         )
-
         turn_val_str = (
             "LƯỢT CỦA BẠN"
             if board.turn == "red" and game_mode == "human_vs_bot"
@@ -456,7 +491,7 @@ class Sidebar:
         surface.blit(
             turn_val,
             (
-                turn_box.right - turn_val.get_width() - 15,
+                turn_box.centerx - turn_val.get_width() // 2,
                 turn_box.centery - turn_val.get_height() // 2,
             ),
         )
@@ -528,7 +563,8 @@ class Sidebar:
         )
 
         # 5. Bảng Điều Khiển Thuật Toán
-        algo_card_rect = pygame.Rect(self.x + 15, 315, self.width - 30, 160)
+        algo_card_extra = 45 if game_mode == "bot_vs_bot" else 0
+        algo_card_rect = pygame.Rect(self.x + 15, 315, self.width - 30, 160 + algo_card_extra)
         pygame.draw.rect(surface, COLOR_CARD_BG, algo_card_rect, 0, 8)
         pygame.draw.rect(surface, COLOR_OUTLINE, algo_card_rect, 1, 8)
 
@@ -824,10 +860,70 @@ class Sidebar:
                 (algo_card_rect.right - calc_lbl.get_width() - 15, progress_y + 10),
             )
 
+        # Speed slider (bot_vs_bot only)
+        if game_mode == "bot_vs_bot":
+            slider_y = algo_card_rect.y + 170
+            slider_track_x = algo_card_rect.x + 15
+            slider_track_w = algo_card_rect.width - 30
+
+            # Update slider_rect for event handling
+            self.slider_rect = pygame.Rect(slider_track_x, slider_y, slider_track_w, 8)
+
+            # Label row
+            speed_lbl = self.tiny_font.render("TỐC ĐỘ ĐÁNH", True, COLOR_TEXT_MUTED)
+            surface.blit(speed_lbl, (slider_track_x, slider_y - 15))
+
+            # Current speed text
+            delay_val = self.get_bot_speed_delay()
+            if delay_val <= 0.3:
+                speed_text = "Nhanh nhất"
+                speed_color = COLOR_JADE
+            elif delay_val <= 0.8:
+                speed_text = "Nhanh"
+                speed_color = COLOR_JADE
+            elif delay_val <= 1.5:
+                speed_text = "Trung bình"
+                speed_color = COLOR_ACCENT
+            elif delay_val <= 2.3:
+                speed_text = "Chậm"
+                speed_color = COLOR_TEXT_MUTED
+            else:
+                speed_text = "Rất chậm"
+                speed_color = COLOR_RED
+            speed_val_lbl = self.tiny_font.render(speed_text, True, speed_color)
+            surface.blit(
+                speed_val_lbl,
+                (algo_card_rect.right - speed_val_lbl.get_width() - 15, slider_y - 15),
+            )
+
+            # Track background
+            pygame.draw.rect(
+                surface, (30, 20, 16), (slider_track_x, slider_y, slider_track_w, 8), 0, 4
+            )
+            # Filled track
+            filled_w = max(8, int(slider_track_w * self.bot_speed_value))
+            pygame.draw.rect(
+                surface, COLOR_ACCENT, (slider_track_x, slider_y, filled_w, 8), 0, 4
+            )
+            # Track outline
+            pygame.draw.rect(
+                surface, COLOR_OUTLINE, (slider_track_x, slider_y, slider_track_w, 8), 1, 4
+            )
+            # Knob
+            knob_x = slider_track_x + int(slider_track_w * self.bot_speed_value)
+            knob_x = max(slider_track_x + 6, min(slider_track_x + slider_track_w - 6, knob_x))
+            knob_color = COLOR_ACCENT if self.slider_dragging else (200, 170, 60)
+            pygame.draw.circle(surface, knob_color, (knob_x, slider_y + 4), 7)
+            pygame.draw.circle(surface, COLOR_SIDEBAR_BG, (knob_x, slider_y + 4), 4)
+
+
         # 6. Move History (2 Columns: Red / Black)
+        history_card_top = algo_card_rect.bottom + 10
         history_card_rect = pygame.Rect(
-            self.x + 15, 485, self.width - 30, self.history_card_height
+            self.x + 15, history_card_top, self.width - 30, self.history_card_height
         )
+        # Also update history_view_rect y to match
+        self.history_view_rect.y = history_card_top + 60
         pygame.draw.rect(surface, COLOR_CARD_BG, history_card_rect, 0, 8)
         pygame.draw.rect(surface, COLOR_OUTLINE, history_card_rect, 1, 8)
 
@@ -938,8 +1034,41 @@ class Sidebar:
         mouse_pos = pygame.mouse.get_pos()
 
         if game_mode == "bot_vs_bot":
-            # Draw two buttons side-by-side at the bottom: QUAY LẠI (left) and DỪNG/TIẾP TỤC (right)
-            # 1. QUAY LẠI (Left button, positioned at btn_surrender)
+            # 1. TRƯỚC (Left button of row 1, positioned at btn_undo)
+            rect_prev = self.btn_undo
+            is_hover_prev = rect_prev.collidepoint(mouse_pos) and can_undo
+            bg_prev = (52, 152, 219) if can_undo else (44, 28, 24)
+            if can_undo and is_hover_prev:
+                bg_prev = (41, 128, 185)
+            pygame.draw.rect(surface, bg_prev, rect_prev, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT if can_undo else COLOR_OUTLINE, rect_prev, 1, 6)
+            txt_prev = self.body_font.render("TRƯỚC", True, COLOR_TEXT if can_undo else COLOR_TEXT_MUTED)
+            surface.blit(
+                txt_prev,
+                (
+                    rect_prev.centerx - txt_prev.get_width() // 2,
+                    rect_prev.centery - txt_prev.get_height() // 2,
+                ),
+            )
+
+            # 2. SAU (Right button of row 1, positioned at btn_hint)
+            rect_next = self.btn_hint
+            is_hover_next = rect_next.collidepoint(mouse_pos) and can_redo
+            bg_next = (46, 204, 113) if can_redo else (44, 28, 24)
+            if can_redo and is_hover_next:
+                bg_next = (39, 174, 96)
+            pygame.draw.rect(surface, bg_next, rect_next, 0, 6)
+            pygame.draw.rect(surface, COLOR_ACCENT if can_redo else COLOR_OUTLINE, rect_next, 1, 6)
+            txt_next = self.body_font.render("SAU", True, COLOR_TEXT if can_redo else COLOR_TEXT_MUTED)
+            surface.blit(
+                txt_next,
+                (
+                    rect_next.centerx - txt_next.get_width() // 2,
+                    rect_next.centery - txt_next.get_height() // 2,
+                ),
+            )
+
+            # 3. QUAY LẠI (Left button of row 2, positioned at btn_surrender)
             rect_ret = self.btn_surrender
             is_hover_ret = rect_ret.collidepoint(mouse_pos)
             pygame.draw.rect(
@@ -960,10 +1089,13 @@ class Sidebar:
                 ),
             )
 
-            # 2. DỪNG/TIẾP TỤC (Right button, positioned at btn_return)
+            # 4. DỪNG/TIẾP TỤC (Right button of row 2, positioned at btn_return)
             rect_pause = self.btn_return
             is_hover_pause = rect_pause.collidepoint(mouse_pos)
-            pause_label = "TIẾP TỤC" if bot_paused else "DỪNG"
+            if len(board.history) == 0 and bot_paused:
+                pause_label = "BẮT ĐẦU"
+            else:
+                pause_label = "TIẾP TỤC" if bot_paused else "DỪNG"
             pause_color = (46, 204, 113) if bot_paused else (231, 76, 60)
             pause_hover_color = (39, 174, 96) if bot_paused else (192, 57, 43)
 

@@ -4,6 +4,21 @@ Tài liệu ghi lại quá trình phát triển tính năng **Step-by-Step Visua
 
 ---
 
+## 2026-06-28: Hoàn thiện Cải Tiến Giao Diện Chạy Tay (Visualization Panel) ✅
+
+### Mục tiêu & Tổng kết
+Hoàn tất chuẩn hóa toàn bộ 18 thuật toán trong hệ thống để khớp 100% với lý thuyết chuẩn, giải quyết triệt để các vấn đề hiển thị gây hiểu nhầm trước đây.
+
+### Các nâng cấp cụ thể:
+1. **Cải tiến Dataclass (`ai/step_recorder.py`)**: Bổ sung các trường dữ liệu chi tiết (`evaluated`, `backtrack_log`, `candidates`, `random_value`, `decision`...) cùng tiện ích chuyển đổi tọa độ sang ký hiệu cờ chuẩn `move_to_label`, `pos_to_label`.
+2. **Nâng cấp AI Logic (`ai/level1.py` → `ai/level6.py`)**: Đưa chuỗi giải thích chi tiết, minh bạch vào đầu mỗi bước thực thi, hiển thị rõ ràng quá trình ra quyết định và tính toán chi phí/heuristic/xác suất.
+3. **Chuẩn hóa GUI (`gui/visualizer.py`)**: Cập nhật chính xác tên 3 cột hiển thị theo tiêu chuẩn học thuật (`CURRENT MOVE`, `FRONTIER (PQ)`, `EVALUATED`, `BACKTRACK LOG`, v.v.) giúp giao diện trực quan và dễ theo dõi.
+4. **Sửa lỗi phát sinh & Tối ưu hiển thị đa thiết bị (Hotfix)**:
+   - *Sửa lỗi crash `TypeError` tại Level 6*: Khắc phục triệt để lỗi khi chạy Visualizer thuật toán Alpha-Beta & Expectimax bị crash do thiếu trường `evaluated` trong dataclass tương ứng. Thêm trường này vào `ai/step_recorder.py` giúp chương trình chạy Visualizer trơn tru.
+   - *Fix lỗi che tọa độ (DPI Scaling / Màn hình nhỏ)*: Khắc phục lỗi che mất tọa độ cờ (`A B C D` và `1 2 3`) khi chơi trên màn hình nhỏ hoặc máy tính bật chế độ phóng to hệ thống (DPI Scaling). Tự động điều chỉnh kích thước cửa sổ khởi tạo phù hợp với chiều cao màn hình thực tế của người dùng thông qua `pygame.display.Info()`, đồng thời hạ giới hạn thu nhỏ tối thiểu từ `1000x750` xuống `900x600` ở sự kiện `VIDEORESIZE`.
+
+---
+
 ## 2026-06-25: Hoàn thành Task 1 - Step Recorder Module ✅
 
 ### Mục tiêu
@@ -554,3 +569,53 @@ Tạo `gui/visualizer.py` với VisualizerPanel và StepController để hiển 
 ### Next: Task 9 - Integration vào main.py
 
 ---
+
+
+## 2026-06-28: Cải Tiến Giao Diện Chạy Tay - Đợt 1
+
+### Tổng Quan
+Bắt đầu cải tiến giao diện visualizer theo kế hoạch trong `improve_chaytay.md`. Mục tiêu: làm cho giao diện dễ hiểu hơn cho người học AI lần đầu, không cần giải thích thêm.
+
+### Đã Hoàn Thành
+
+#### 1. Chuẩn Hóa Tên Cột
+**UCS và A*** (2 thuật toán demo chính):
+- `EXPLORED` → `EVALUATED` (tránh hiểu nhầm "đã đi rồi", đúng là "đã đánh giá xong")
+- `CURRENT` → `CURRENT MOVE` (rõ ràng hơn)
+- `FRONTIER` → `FRONTIER (PQ)` (thêm chú thích Priority Queue)
+
+**BFS và DFS**:
+- BFS: `QUEUE` → `QUEUE (FIFO)` (chú thích FIFO)
+- DFS: `EXPLORED` → `BACKTRACK LOG` (đúng với cơ chế backtracking)
+- Cả 2: `CURRENT` → `CURRENT NODE`
+
+#### 2. Cải Thiện Hiển Thị
+- UCS: `c=100` → `cost:100` (dễ đọc hơn)
+- Highlight cột CURRENT với màu vàng (COLOR_ACCENT)
+- Giữ nguyên tính năng backtracking badge cho DFS
+
+### Tác Động
+- **Giáo dục tốt hơn:** Thuật ngữ đúng với sách giáo khoa
+- **Tránh nhầm lẫn:** EVALUATED thay vì EXPLORED (học sinh hay nhầm "đã đi rồi")
+- **Nhất quán:** Tất cả thuật toán cùng nhóm dùng cùng tên cột
+
+---
+
+## 2026-06-28: Thực thi Bước 1 - Cập nhật Dataclass trong `ai/step_recorder.py` ✅
+
+### Công việc đã hoàn thành
+- **File sửa:** `ai/step_recorder.py`
+- **Chi tiết bổ sung:**
+  - Đã thêm trường `evaluated` vào tất cả các Dataclass, giữ nguyên `explored` để tương thích ngược.
+  - `BFSStep`: Thêm `current_depth`.
+  - `DFSStep`: Thêm `backtrack_log`.
+  - `IDAStarStep`: Thêm `status`.
+  - `SAStep`: Thêm `random_value`, `decision`.
+  - `BeliefStep`: Thêm `u_agg`, `u_def`, `u_pos`.
+  - `MinimaxStep`, `AlphaBetaStep`, `ExpectimaxStep`: Thêm `node_type`, `evaluated_and_pruned`, `best_res`, `others_avg`.
+- **Kết quả:** Đã test import thành công, sẵn sàng 100% cho Bước 2.
+
+### Kế Hoạch Tiếp Theo
+1. **Bước 2:** Cập nhật lời ghi bước trong các file AI (`level1.py` → `level6.py`).
+2. **Bước 3:** Cập nhật Renderer trong `gui/visualizer.py`.
+

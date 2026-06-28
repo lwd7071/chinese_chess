@@ -425,39 +425,27 @@ class Renderer:
         else:
             color = theme_data["line_color"]  # Dark wood
 
-        # Draw Columns A-I (top & bottom)
+        # Draw Columns (bottom reversed I-A)
         for c in range(9):
-            col_char = chr(65 + c)  # A to I
-            lbl = self.label_font.render(col_char, True, color)
-
             cx, _ = self.get_xy(0, c)
 
-            # Top label (Black side): shifted up to avoid piece overlap
-            tx = cx - lbl.get_width() // 2
-            ty = self.offset_y - 38 - lbl.get_height()
-            surface.blit(lbl, (tx, ty))
-
-            # Bottom label (Red side): shifted down to avoid piece overlap
-            bx = cx - lbl.get_width() // 2
+            # Bottom label (Red side): reversed I-A
+            col_char_bottom = chr(65 + (8 - c))  # I to A
+            lbl_bottom = self.label_font.render(col_char_bottom, True, color)
+            bx = cx - lbl_bottom.get_width() // 2
             by = self.offset_y + 9 * self.cell_size + 38
-            surface.blit(lbl, (bx, by))
+            surface.blit(lbl_bottom, (bx, by))
 
-        # Draw Rows 0-9 (left & right)
+        # Draw Rows (right 0-9)
         for r in range(10):
-            row_char = str(r)
-            lbl = self.label_font.render(row_char, True, color)
-
             _, cy = self.get_xy(r, 0)
 
-            # Left label: shifted left to avoid piece overlap
-            lx = self.offset_x - 38 - lbl.get_width()
-            ly = cy - lbl.get_height() // 2
-            surface.blit(lbl, (lx, ly))
-
-            # Right label: shifted right to avoid piece overlap
+            # Right label (Red side): 0-9
+            row_char_right = str(r)
+            lbl_right = self.label_font.render(row_char_right, True, color)
             rx = self.offset_x + 8 * self.cell_size + 38
-            ry = cy - lbl.get_height() // 2
-            surface.blit(lbl, (rx, ry))
+            ry = cy - lbl_right.get_height() // 2
+            surface.blit(lbl_right, (rx, ry))
 
     def draw_dashed_line(
         self, surface, color, start_pos, end_pos, width=1, dash_length=4, space_length=4

@@ -1,10 +1,82 @@
 {
-  "name": "Kỳ Vương",
+  "name": "cubu",
   "country": "Việt Nam",
   "birthday": "01/01/2000",
   "level": 3,
-  "exp": 102,
+  "exp": 472,
   "history": [
+    {
+      "mode": "Bot vs Bot",
+      "algo": "BFS vs Minimax",
+      "result": "Đỏ thắng",
+      "time": "28/06/2026 16:12"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "BFS",
+      "result": "Thua",
+      "time": "28/06/2026 15:47"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "BFS",
+      "result": "Thua",
+      "time": "28/06/2026 15:32"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Beam Search",
+      "result": "Thua",
+      "time": "28/06/2026 15:31"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Hill Climbing",
+      "result": "Thua",
+      "time": "28/06/2026 15:29"
+    },
+    {
+      "mode": "Bot vs Bot",
+      "algo": "UCS vs BFS",
+      "result": "Đen thắng",
+      "time": "28/06/2026 12:12"
+    },
+    {
+      "mode": "Bot vs Bot",
+      "algo": "UCS vs BFS",
+      "result": "Đen thắng",
+      "time": "28/06/2026 11:45"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "DFS",
+      "result": "Thua",
+      "time": "28/06/2026 11:47"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "Minimax",
+      "result": "Thua",
+      "time": "27/06/2026 14:20"
+    },
+    {
+      "mode": "Bot vs Bot",
+      "algo": "BFS vs DFS",
+      "result": "Đỏ thắng",
+      "time": "27/06/2026 14:13"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "BFS",
+      "result": "Thắng",
+      "time": "27/06/2026 13:57"
+    },
+    {
+      "mode": "Người vs Bot",
+      "algo": "UCS",
+      "result": "Thua",
+      "time": "27/06/2026 13:53"
+    },
     {
       "mode": "Người vs Bot",
       "algo": "Expectimax",
