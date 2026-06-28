@@ -139,11 +139,18 @@ def minimax_move(board, depth=3, recorder=None):
 
     # Root call
     for m in sorted_moves[:15]:
+        if time.time() - start_time > 1.2:
+            break  # Hết thời gian thì dừng duyệt các nước phía sau
+
         board.make_move(m[0], m[1], test_only=True)
         score = search(
             board, depth - 1, color == "black", [m]
         )  # Black is min (if color is red, next player is black/min)
         board.undo_move(test_only=True)
+
+        # Nếu bị timeout giữa chừng khi đang search, điểm số bị thiếu độ sâu phản công -> loại bỏ
+        if time.time() - start_time > 1.2:
+            break
 
         if color == "red":
             if score > best_score:
@@ -288,9 +295,16 @@ def alpha_beta_move(board, depth=4, recorder=None):
     beta = float("inf")
 
     for m in sorted_moves[:20]:
+        if time.time() - start_time > 1.2:
+            break  # Hết thời gian thì dừng duyệt các nước phía sau
+
         board.make_move(m[0], m[1], test_only=True)
         score = search(board, depth - 1, alpha, beta, color == "black", [m])
         board.undo_move(test_only=True)
+
+        # Nếu bị timeout giữa chừng khi đang search, điểm số bị thiếu độ sâu phản công -> loại bỏ
+        if time.time() - start_time > 1.2:
+            break
 
         if color == "red":
             if score > best_score:
@@ -412,9 +426,16 @@ def expectimax_move(board, depth=3, recorder=None):
 
     # Root call (AI's first moves)
     for m in sorted_moves[:12]:
+        if time.time() - start_time > 1.2:
+            break  # Hết thời gian thì dừng duyệt các nước phía sau
+
         board.make_move(m[0], m[1], test_only=True)
         score = search(board, depth - 1, False)  # Next turn is opponent's (Chance)
         board.undo_move(test_only=True)
+
+        # Nếu bị timeout giữa chừng khi đang search, điểm số bị thiếu độ sâu phản công -> loại bỏ
+        if time.time() - start_time > 1.2:
+            break
 
         if ai_color == "red":
             if score > best_score:

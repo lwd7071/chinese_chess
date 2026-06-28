@@ -257,11 +257,19 @@ def ac3_move(board, recorder=None):
         if not is_unsafe:
             safe_moves.append((from_pos, to_pos))
         else:
+            char_to_key = {
+                "G": "general", "A": "advisor", "E": "elephant",
+                "H": "horse", "R": "rook", "C": "cannon", "P": "pawn",
+            }
+            p_key = char_to_key.get(piece.name, piece.name)
+            a_key = char_to_key.get(attacker_name, attacker_name) if attacker_name else ""
+            p_vi = PIECE_NAME_VI.get(p_key, p_key)
+            a_vi = PIECE_NAME_VI.get(a_key, a_key)
             pruned_moves.append(
                 {
                     "move": (from_pos, to_pos),
-                    "reason": f"{PIECE_NAME_VI.get(piece.name, piece.name)}({p_val}) bị {PIECE_NAME_VI.get(attacker_name, attacker_name)}({PIECE_VALUES.get(attacker_name, 0)}) ăn",
-                    "piece": PIECE_NAME_VI.get(piece.name, piece.name),
+                    "reason": f"{p_vi}({p_val}) bị {a_vi}({PIECE_VALUES.get(attacker_name, 0)}) ăn",
+                    "piece": p_vi,
                 }
             )
 

@@ -124,6 +124,7 @@ def a_star_move(board, recorder=None):
     random.shuffle(legal_moves)
     best_move = None
     min_f = float("inf")
+    ai_color = board.turn
 
     # For visualization
     frontier_list = []
@@ -150,7 +151,7 @@ def a_star_move(board, recorder=None):
 
         # Make move to calculate remaining opponent material h(n)
         board.make_move(from_pos, to_pos, test_only=True)
-        h = get_opponent_material(board, board.turn)  # opposite side material
+        h = get_opponent_material(board, ai_color)  # opposite side material
         board.undo_move(test_only=True)
 
         # f(n) = g(n) + h(n)
@@ -211,13 +212,14 @@ def ida_star_move(board, recorder=None):
 
     random.shuffle(legal_moves)
     step_counter = [0]  # For recording
+    ai_color = board.turn
 
     def search(from_pos, to_pos, g, depth, threshold):
         # Simulate move
         board.make_move(from_pos, to_pos, test_only=True)
 
         # Heuristic h(n)
-        h = get_opponent_material(board, board.turn)
+        h = get_opponent_material(board, ai_color)
         f = g + h
 
         # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS steps)

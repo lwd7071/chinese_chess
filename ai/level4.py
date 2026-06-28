@@ -170,8 +170,8 @@ def and_or_search_move(board, recorder=None):
     best_move = legal_moves[0]
     best_guaranteed_score = float("-inf")
 
-    # We examine up to 10 moves for speed
-    for i, (from_pos, to_pos) in enumerate(legal_moves[:10]):
+    # We examine all legal moves for optimal worst-case guarantee
+    for i, (from_pos, to_pos) in enumerate(legal_moves):
         or_piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
 
@@ -323,7 +323,7 @@ def belief_state_search_move(board, recorder=None):
     best_move = legal_moves[0]
     best_expected_utility = float("-inf")
 
-    for from_pos, to_pos in legal_moves[:12]:
+    for from_pos, to_pos in legal_moves:
         board.make_move(from_pos, to_pos, test_only=True)
 
         # Expected utility over the belief distribution
