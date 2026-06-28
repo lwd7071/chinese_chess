@@ -6,6 +6,18 @@
   "exp": 392,
   "history": [
     {
+      "mode": "Bot vs Bot",
+      "algo": "UCS vs BFS",
+      "result": "Đen thắng",
+      "time": "28/06/2026 12:12"
+    },
+    {
+      "mode": "Bot vs Bot",
+      "algo": "UCS vs BFS",
+      "result": "Đen thắng",
+      "time": "28/06/2026 11:45"
+    },
+    {
       "mode": "Người vs Bot",
       "algo": "DFS",
       "result": "Thua",
