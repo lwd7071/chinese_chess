@@ -64,9 +64,9 @@ def bfs_move(board, depth=2, recorder=None):
     while queue:
         curr = queue.popleft()
 
-        # Record step if recorder provided
+        # Record step if recorder provided (only for depth < depth to match manual execution traversal steps of the black side)
         if (
-            recorder and step_counter < MAX_VISUALIZATION_STEPS
+            recorder and curr.depth < depth and step_counter < MAX_VISUALIZATION_STEPS
         ):  # Limit steps to avoid too many
             queue_info = [
                 {"id": f"n{n.id}", "move": n.move, "depth": n.depth}
