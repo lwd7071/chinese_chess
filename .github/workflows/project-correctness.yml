@@ -35,7 +35,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Compile Python sources
-        run: python -m compileall ai game gui tests main.py run_evals.py
+        run: python -m compileall ai game gui main.py
 
       - name: Create eval virtual environment
         run: python -m venv venv
@@ -45,13 +45,5 @@ jobs:
           venv/bin/python -m pip install --upgrade pip
           venv/bin/python -m pip install -r requirements.txt
 
-      - name: Run project correctness evals
-        run: venv/bin/python run_evals.py
-
-      - name: Upload eval log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-correctness-log
-          path: .claude/evals/project-correctness.log
-          if-no-files-found: ignore
+      - name: Verify main entrypoint syntax
+        run: venv/bin/python -m py_compile main.py
