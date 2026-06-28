@@ -6,6 +6,12 @@
   "exp": 472,
   "history": [
     {
+      "mode": "Bot vs Bot",
+      "algo": "BFS vs Minimax",
+      "result": "Đỏ thắng",
+      "time": "28/06/2026 16:12"
+    },
+    {
       "mode": "Người vs Bot",
       "algo": "BFS",
       "result": "Thua",
