@@ -167,8 +167,6 @@ class EmojiSafeFont:
             return text
         import re
 
-        # Track the color of the first resolved piece in this text line/move
-        detected_color = [None]
 
         def repl(match):
             try:

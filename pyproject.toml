@@ -21,3 +21,10 @@ ignore = [
 "tests/*" = ["S101", "S311"] # allow asserts and standard pseudo-random generators in test files
 "ai/*" = ["S311"]             # allow standard pseudo-random generators in AI search/gameplay files
 "gui/*" = ["S311"]            # allow standard pseudo-random generators in GUI animations/simulation
+
+[tool.bandit]
+# Skip Low-severity warnings that are not security concerns for a game project:
+# B311: standard random is fine for game AI, animations, and UI simulations (not crypto)
+# B110: try-except-pass is intentional for graceful error handling in GUI/asset loading
+# B404/B603: subprocess used only in run_evals.py utility script (not game code)
+skips = ["B311", "B110", "B404", "B603"]

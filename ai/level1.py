@@ -3,7 +3,12 @@ import random
 from collections import deque
 
 from ai.eval import PIECE_VALUES, evaluate_board
-from ai.step_recorder import MAX_VISUALIZATION_STEPS, BFSStep, DFSStep, UCSStep, move_to_label
+from ai.step_recorder import (
+    BFSStep,
+    DFSStep,
+    UCSStep,
+    move_to_label,
+)
 
 PIECE_NAME_VI = {
     "general": "Tướng",
@@ -136,7 +141,7 @@ def bfs_move(board, depth=2, recorder=None):
                 "piece": piece_vi,
             }
             explored_nodes.append(node_info)
-            
+
             queue_info = []
             for remaining_cid in root_node.children[idx + 1 : idx + 1 + 10]:
                 rcnode = nodes[remaining_cid]
@@ -258,13 +263,13 @@ def dfs_move(board, depth=2, recorder=None):
                 step_num[0] += 1
                 move_lbl = move_to_label(m)
                 role = "Ta" if turn_color == ai_color else "Địch"
-                
+
                 if remaining_depth - 1 == 0:
                     val = evaluate_board(board)
                     node_info["score"] = val
                     explanation = f"DFS chạm đáy: {role} đi {move_lbl} (depth={curr_depth + 1}), điểm = {val}"
                     explored_nodes.append(node_info)
-                    
+
                     recorder.add_step(
                         DFSStep(
                             step_num=step_num[0],
@@ -291,7 +296,7 @@ def dfs_move(board, depth=2, recorder=None):
                             is_backtracking=False
                         )
                     )
-                    
+
                     val = dfs_record(board, new_moves, new_pieces, remaining_depth - 1, child_node_id)
 
                 if is_red:
