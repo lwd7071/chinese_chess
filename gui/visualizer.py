@@ -919,13 +919,13 @@ class VisualizerPanel:
             columns = [
                 ("CURRENT NODE", [step.current_node] if step.current_node else [], COLOR_ACCENT),
                 ("QUEUE (FIFO)", step.queue[:8], COLOR_JADE),
-                ("EVALUATED", getattr(step, "evaluated", step.explored)[:8], COLOR_TEXT_MUTED),
+                ("EVALUATED", (step.evaluated or step.explored)[:8], COLOR_TEXT_MUTED),
             ]
         else:
             columns = [
                 ("CURRENT PATH", [step.current_node] if step.current_node else [], COLOR_ACCENT),
                 ("STACK", step.stack[:8], COLOR_JADE),
-                ("BACKTRACK LOG", getattr(step, "backtrack_log", step.explored)[:8], COLOR_TEXT_MUTED),
+                ("BACKTRACK LOG", (step.backtrack_log or step.explored)[:8], COLOR_TEXT_MUTED),
             ]
 
         for i, (title, items, color) in enumerate(columns):
