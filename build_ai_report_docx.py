@@ -29,8 +29,12 @@ def clean_inline(text: str) -> str:
     text = re.sub(r"\{#[^}]+\}", "", text)
     text = text.replace("\\-", "-").replace("\\_", "_").replace("\\*", "*")
     text = text.replace("â€“", "-").replace("â†’", "->").replace("â€”", "-")
+    text = text.replace("–", "-").replace("—", "-").replace("→", "->")
+    text = text.replace("📷", "Hình:").replace("⚠️", "Lưu ý:")
     text = text.replace("ðŸ“·", "Hình:").replace("âš ï¸", "Lưu ý:")
+    text = text.replace("✅", "Đạt").replace("❌", "Không đạt")
     text = text.replace("âœ…", "Đạt").replace("âŒ", "Không đạt")
+    text = re.sub(r"[\U0001F000-\U0001FAFF]", "", text)
     text = text.replace("\u200b", "")
     return text.strip()
 
