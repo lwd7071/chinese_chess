@@ -7,6 +7,12 @@
   "history": [
     {
       "mode": "Bot vs Bot",
+      "algo": "IDA* vs Expectimax",
+      "result": "Đen thắng",
+      "time": "29/06/2026 11:27"
+    },
+    {
+      "mode": "Bot vs Bot",
       "algo": "BFS vs Minimax",
       "result": "Đỏ thắng",
       "time": "28/06/2026 19:06"

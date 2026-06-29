@@ -1,10 +1,12 @@
 # Level 5 AI: Backtracking CSP (MRV), Min-Conflicts, AC-3
+# Gói chứa các thuật toán giải quyết bài toán Thỏa mãn Ràng buộc (Constraint Satisfaction Problems - CSP): Quay lui với mảng chọn MRV (Backtracking MRV), Tối thiểu hóa xung đột (Min-Conflicts), và Tương thích cung AC-3 (Arc Consistency).
 import random
 
 from ai.eval import PIECE_VALUES
 from ai.level3 import get_perspective_score
 from ai.step_recorder import AC3Step, BacktrackStep, MinConflictStep
 
+# Bảng dịch tên các quân cờ sang tiếng Việt phục vụ hiển thị trực quan
 PIECE_NAME_VI = {
     "general": "Tướng",
     "advisor": "Sĩ",
@@ -17,7 +19,13 @@ PIECE_NAME_VI = {
 
 
 def _get_piece_name(board, pos):
-    """Lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ."""
+    """
+    Hàm phụ trợ lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ.
+
+    Args:
+        board: Trạng thái bàn cờ
+        pos: Tọa độ (hàng, cột) của quân cờ
+    """
     if not pos:
         return "—"
     piece = board.get_piece(pos)
@@ -37,11 +45,18 @@ def _get_piece_name(board, pos):
 
 
 def get_threats_count(board, color):
-    """Counts how many pieces of the given color are currently under direct threat from opponent"""
+    """
+    Hàm tính toán số lượng quân cờ của một phe (color) đang bị đối phương đe dọa (tấn công trực tiếp).
+    Được sử dụng làm hàm chi phí (conflicts) trong thuật toán Min-Conflicts.
+
+    Args:
+        board: Trạng thái bàn cờ
+        color: Màu quân của phe cần kiểm tra ('red' hoặc 'black')
+    """
     opp = "black" if color == "red" else "red"
     threatened = set()
 
-    # Generate all opponent raw attacks
+    # Tạo toàn bộ các nước đi/tấn công thô (raw moves) của đối thủ
     for r in range(10):
         for c in range(9):
             p = board.matrix[r][c]
@@ -57,13 +72,16 @@ def get_threats_count(board, color):
 
 def backtracking_mrv_move(board, recorder=None):
     """
-    Backtracking with MRV (Minimum Remaining Values):
-    We select the piece (Variable) that has the FEWEST legal destination moves (Domain).
-    We move it to the square that yields the highest evaluation score.
+    Thuật toán Quay lui kết hợp Heuristic MRV (Minimum Remaining Values).
+    Mô hình hóa dưới dạng bài toán CSP:
+    - Biến (Variables): Các quân cờ hiện tại có ít nhất 1 nước đi hợp lệ.
+    - Miền giá trị (Domain): Danh sách các vị trí đích đến hợp lệ của quân cờ đó.
+    Heuristic MRV: Ưu tiên chọn Biến (quân cờ) có miền giá trị nhỏ nhất (ít nước đi nhất) để xử lý trước.
+    Sau đó, chọn giá trị (nước đi) mang lại điểm số đánh giá cao nhất.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -71,15 +89,14 @@ def backtracking_mrv_move(board, recorder=None):
 
     color = board.turn
 
-    # Variables: pieces that have at least 1 legal move
-    # Map from_pos -> list of target positions
+    # Lập bản đồ ánh xạ từ vị trí quân cờ (tên Biến) đến danh sách các nước đi (Miền giá trị)
     var_domains = {}
     for from_pos, to_pos in legal_moves:
         if from_pos not in var_domains:
             var_domains[from_pos] = []
         var_domains[from_pos].append(to_pos)
 
-    # Record all variables with domain sizes
+    # Ghi lại thông tin toàn bộ các Biến và kích thước Miền giá trị tương ứng
     if recorder:
         variables_info = {str(pos): len(domain) for pos, domain in var_domains.items()}
         recorder.add_step(
@@ -91,11 +108,11 @@ def backtracking_mrv_move(board, recorder=None):
             )
         )
 
-    # MRV: Choose the variable (from_pos) with the smallest domain (fewest moves)
+    # Heuristic MRV: Chọn biến (tọa độ quân cờ) có domain nhỏ nhất (ít sự lựa chọn nhất)
     chosen_var = min(var_domains.keys(), key=lambda x: len(var_domains[x]))
     domain_list = []
 
-    # Find the best value (to_pos) for the chosen variable
+    # Tìm giá trị (to_pos) tốt nhất cho biến vừa chọn dựa trên điểm đánh giá bàn cờ
     best_to = var_domains[chosen_var][0]
     best_score = float("-inf")
 
@@ -111,7 +128,7 @@ def backtracking_mrv_move(board, recorder=None):
             best_score = score
             best_to = to_pos
 
-    # Record MRV selection
+    # Ghi lại quyết định chọn biến MRV và giá trị gán tốt nhất
     if recorder:
         recorder.add_step(
             BacktrackStep(
@@ -133,13 +150,14 @@ def backtracking_mrv_move(board, recorder=None):
 
 def min_conflicts_move(board, recorder=None):
     """
-    Min-Conflicts:
-    Conflicts = Number of our pieces under attack.
-    We choose the move that minimizes the number of our pieces under threat.
+    Thuật toán Tối thiểu hóa Xung đột (Min-Conflicts).
+    Trong bài toán này: Xung đột (Conflicts) = Số lượng quân cờ của ta đang bị đối phương đe dọa.
+    Thuật toán chọn ra nước đi làm giảm thiểu tối đa số lượng xung đột hiện tại trên bàn cờ.
+    Nếu các nước đi có số lượng xung đột bằng nhau, sử dụng điểm số đánh giá bàn cờ để phá vỡ thế cân bằng (break ties).
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -148,16 +166,17 @@ def min_conflicts_move(board, recorder=None):
     color = board.turn
     random.shuffle(legal_moves)
 
-    # Current conflicts before any move
+    # Đếm số lượng xung đột ban đầu trước khi đi
     current_conflicts = get_threats_count(board, color)
 
     best_move = legal_moves[0]
     min_conflicts = float("inf")
 
-    # We want to break ties with the evaluation function
+    # Điểm đánh giá dùng để so sánh giữa các nước đi có cùng số lượng xung đột
     best_score = float("-inf")
     candidates = []
 
+    # Thử từng nước đi và tính toán số lượng xung đột còn lại
     for from_pos, to_pos in legal_moves:
         piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
@@ -178,7 +197,7 @@ def min_conflicts_move(board, recorder=None):
                 best_score = score
                 best_move = (from_pos, to_pos)
 
-    # Record step
+    # Ghi lại kết quả tìm kiếm Min-Conflicts
     if recorder:
         sorted_candidates = sorted(
             candidates, key=lambda x: (x["conflicts_after"], -x["score"])
@@ -206,15 +225,15 @@ def min_conflicts_move(board, recorder=None):
 
 def ac3_move(board, recorder=None):
     """
-    AC-3 (Arc Consistency):
-    Prunes target cells that are unsafe (guarded by a piece of lower value).
-    For example, a Rook moving to a cell guarded by a Pawn will be pruned.
-    If some moves remain, we pick the best one using evaluation.
-    If all moves are pruned, we select the best move from the original list (fallback).
+    Thuật toán Tương thích Cung AC-3 (Arc Consistency 3).
+    Thuật toán kiểm tra và cắt tỉa (prune) các nước đi dẫn đến ô cờ không an toàn (bị kiểm soát bởi quân địch có giá trị thấp hơn).
+    Ví dụ: Xe di chuyển vào ô đang bị Tốt hoặc Pháo đối phương kiểm soát sẽ bị loại bỏ ngay lập tức (tránh các pha đổi quân lỗ).
+    Sau khi loại bỏ các nước đi rủi ro, thuật toán chọn ra nước đi tốt nhất trong số các nước đi an toàn (safe moves).
+    Nếu tất cả các nước đi đều bị loại bỏ, thuật toán sử dụng lại danh sách ban đầu làm phương án dự phòng (fallback).
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -223,7 +242,7 @@ def ac3_move(board, recorder=None):
     color = board.turn
     opp = "black" if color == "red" else "red"
 
-    # Prune unsafe moves (AC-3 check)
+    # Lọc danh sách các nước đi an toàn (AC-3 arc check)
     safe_moves = []
     pruned_moves = []
 
@@ -231,10 +250,10 @@ def ac3_move(board, recorder=None):
         piece = board.get_piece(from_pos)
         p_val = PIECE_VALUES.get(piece.name, 0)
 
-        # Test move
+        # Mô phỏng nước đi
         board.make_move(from_pos, to_pos, test_only=True)
 
-        # Check if the target position is under attack by a cheaper opponent piece
+        # Kiểm tra xem ô đích đến có nằm trong tầm ngắm của quân đối phương rẻ hơn hay không
         is_unsafe = False
         attacker_name = None
         for r in range(10):
@@ -242,10 +261,10 @@ def ac3_move(board, recorder=None):
                 p = board.matrix[r][c]
                 if p and p.color == opp:
                     if to_pos in p.get_raw_moves(board.matrix):
-                        # Opponent piece can capture us
+                        # Quân địch có thể ăn được quân ta tại vị trí đích
                         opp_val = PIECE_VALUES.get(p.name, 0)
                         if opp_val < p_val:
-                            # It's an unsafe trade! (e.g. Rook captured by Cannon/Pawn)
+                            # Đổi quân bất lợi! (VD: Xe bị Pháo/Tốt ăn)
                             is_unsafe = True
                             attacker_name = p.name
                             break
@@ -273,13 +292,14 @@ def ac3_move(board, recorder=None):
                 }
             )
 
-    # Select from safe moves if available, otherwise fallback to all legal moves
+    # Chọn từ danh sách an toàn nếu có, nếu không thì dùng danh sách gốc
     candidates = safe_moves if safe_moves else legal_moves
 
     random.shuffle(candidates)
     best_move = candidates[0]
     best_score = float("-inf")
 
+    # Đánh giá điểm số để chọn ra nước đi tối ưu nhất
     for from_pos, to_pos in candidates:
         board.make_move(from_pos, to_pos, test_only=True)
         score = get_perspective_score(board, color)
@@ -288,7 +308,7 @@ def ac3_move(board, recorder=None):
             best_score = score
             best_move = (from_pos, to_pos)
 
-    # Record step
+    # Ghi lại bước lọc AC-3 và sự lựa chọn nước đi
     if recorder:
         recorder.add_step(
             AC3Step(

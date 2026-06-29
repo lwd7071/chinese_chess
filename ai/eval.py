@@ -87,36 +87,42 @@ PST_DEFENSIVE = [
 
 def evaluate_board(board):
     """
-    Evaluation function from RED perspective.
-    Score = (Red Material + Red Positional) - (Black Material + Black Positional)
+    Hàm đánh giá giá trị bàn cờ (Evaluation function) từ góc nhìn của quân ĐỎ (RED).
+    Điểm số (Score) = (Tổng giá trị quân Đỏ + Điểm vị trí quân Đỏ) - (Tổng giá trị quân Đen + Điểm vị trí quân Đen).
+    - Điểm dương (> 0): Đỏ đang chiếm ưu thế.
+    - Điểm âm (< 0): Đen đang chiếm ưu thế.
+    - Điểm bằng 0: Thế trận cân bằng.
     """
     score = 0
+    # Duyệt qua toàn bộ 10 hàng và 9 cột trên bàn cờ cờ tướng
     for r in range(10):
         for c in range(9):
             p = board.matrix[r][c]
             if p is None:
                 continue
 
+            # Lấy giá trị cơ bản của quân cờ (ví dụ: Tướng=10000, Xe=900, Pháo=450,...)
             val = PIECE_VALUES.get(p.name, 0)
             bonus = 0
 
-            # Apply PST bonuses
+            # Tính toán điểm thưởng vị trí (PST - Piece-Square Table) tùy thuộc vào màu quân cờ
             if p.color == "red":
                 if p.name == "P":
-                    bonus = PST_PAWN_RED[r][c]
+                    bonus = PST_PAWN_RED[r][c] # Tốt đỏ: thưởng khi sang sông và tiến vào trung tâm
                 elif p.name == "H":
-                    bonus = PST_KNIGHT_RED[r][c]
+                    bonus = PST_KNIGHT_RED[r][c] # Mã đỏ: ưa thích vị trí trung tâm, tránh rìa bàn cờ
                 elif p.name == "C":
-                    bonus = PST_CANNON_RED[r][c]
+                    bonus = PST_CANNON_RED[r][c] # Pháo đỏ: thích kiểm soát các hàng phòng thủ và cột trung tâm
                 elif p.name == "R":
-                    bonus = PST_ROOK_RED[r][c]
+                    bonus = PST_ROOK_RED[r][c] # Xe đỏ: ưa thích các cột mở và vị trí thông thoáng
                 elif p.name in ["E", "A"]:
-                    bonus = PST_DEFENSIVE[r][c]
+                    bonus = PST_DEFENSIVE[r][c] # Sĩ/Tượng đỏ: thích ở vị trí trung tâm của cung tướng để phòng thủ
+                # Cộng điểm cho quân Đỏ
                 score += val + bonus
-            else:  # Black
-                # Vertically mirror row for black PST lookup
+            else:  # Quân Đen (Black)
+                # Lật ngược tọa độ hàng (vertically mirror) để đối chiếu đúng với bảng điểm PST của Đỏ
                 mr = 9 - r
-                # Horizontally mirror col to keep symmetry
+                # Lật ngược tọa độ cột (horizontally mirror) để duy trì tính đối xứng
                 mc = 8 - c
                 if p.name == "P":
                     bonus = PST_PAWN_RED[mr][mc]
@@ -128,6 +134,7 @@ def evaluate_board(board):
                     bonus = PST_ROOK_RED[mr][mc]
                 elif p.name in ["E", "A"]:
                     bonus = PST_DEFENSIVE[mr][mc]
+                # Trừ điểm đối với quân Đen (do đang tính theo góc nhìn của Đỏ)
                 score -= val + bonus
 
     return score

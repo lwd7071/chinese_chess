@@ -1,4 +1,5 @@
 # Level 2 AI: Greedy, A*, IDA*
+# Gói chứa các thuật toán tìm kiếm có thông tin (informed search) dựa trên hàm đánh giá heuristic: Greedy Best-First Search, A*, và IDA*.
 import random
 
 from ai.eval import PIECE_VALUES
@@ -6,8 +7,17 @@ from ai.step_recorder import MAX_VISUALIZATION_STEPS, AStarStep, GreedyStep, IDA
 
 
 def get_opponent_material(board, color):
+    """
+    Hàm tính tổng giá trị vật chất (tổng điểm các quân cờ) hiện có của đối thủ trên bàn cờ.
+    Được sử dụng làm hàm heuristic h(n) để ước lượng sức mạnh còn lại của đối thủ.
+
+    Args:
+        board: Trạng thái bàn cờ
+        color: Màu quân của phía AI hiện tại (red hoặc black)
+    """
     opp = "black" if color == "red" else "red"
     total = 0
+    # Duyệt qua toàn bộ bàn cờ để tổng hợp điểm số các quân cờ của đối thủ
     for r in range(10):
         for c in range(9):
             p = board.matrix[r][c]
@@ -18,17 +28,19 @@ def get_opponent_material(board, color):
 
 def greedy_move(board, recorder=None):
     """
-    Greedy: Picks the move that captures the highest value opponent piece, otherwise chooses randomly
+    Thuật toán tìm kiếm Tham lam (Greedy Best-First Search).
+    Thuật toán luôn ưu tiên chọn nước đi ăn quân đối thủ có giá trị cao nhất tại bước hiện tại.
+    Nếu không có quân nào để ăn, thuật toán sẽ chọn ngẫu nhiên một nước đi hợp lệ.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
         return None
 
-    # Mapping piece names to Vietnamese
+    # Bảng dịch tên các quân cờ sang tiếng Việt phục vụ hiển thị
     PIECE_NAME_VI = {
         "general": "Tướng",
         "advisor": "Sĩ",
@@ -39,14 +51,16 @@ def greedy_move(board, recorder=None):
         "pawn": "Tốt",
     }
 
+    # Xáo trộn danh sách nước đi để tạo sự đa dạng khi các nước đi có cùng giá trị heuristic
     random.shuffle(legal_moves)
     best_move = legal_moves[0]
     max_val = -1
 
-    # Pre-generate candidate nodes
+    # Tạo trước danh sách thông tin các nút ứng viên (candidates)
     all_nodes = []
     for m in legal_moves:
         target = board.get_piece(m[1])
+        # h(n) trong Greedy ở đây chính là giá trị quân cờ ăn được tại vị trí đích
         val = PIECE_VALUES.get(target.name, 0) if target else 0
         char_to_key = {
             "G": "general",
@@ -68,6 +82,7 @@ def greedy_move(board, recorder=None):
 
     evaluated_so_far = []
 
+    # Duyệt qua các ứng viên để tìm nước đi có h(n) lớn nhất
     for i, candidate_info in enumerate(all_nodes):
         val = candidate_info["h"]
         m = candidate_info["move"]
@@ -79,7 +94,7 @@ def greedy_move(board, recorder=None):
             max_val = val
             best_move = m
 
-        # Record step if recorder provided
+        # Ghi lại bước tìm kiếm nếu có đối tượng recorder
         if recorder and i < MAX_VISUALIZATION_STEPS:
             recorder.add_step(
                 GreedyStep(
@@ -98,19 +113,21 @@ def greedy_move(board, recorder=None):
 
 def a_star_move(board, recorder=None):
     """
-    A* Search: f(n) = g(n) + h(n)
-    g(n) = 1000 - captured_piece_value (cost to reach this state)
-    h(n) = total remaining opponent material value (heuristic)
+    Thuật toán tìm kiếm A* (A* Search).
+    Đánh giá mỗi nút dựa trên hàm f(n) = g(n) + h(n), trong đó:
+    - g(n) = 1000 - giá trị quân bị ăn (chi phí thực tế để đạt đến trạng thái này, ăn quân to thì chi phí nhỏ).
+    - h(n) = tổng giá trị quân cờ còn lại của đối thủ (heuristic ước lượng chi phí còn lại để chiến thắng).
+    Thuật toán tìm nước đi có f(n) nhỏ nhất.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
         return None
 
-    # Mapping piece names to Vietnamese
+    # Bảng dịch tên các quân cờ sang tiếng Việt
     PIECE_NAME_VI = {
         "general": "Tướng",
         "advisor": "Sĩ",
@@ -126,12 +143,12 @@ def a_star_move(board, recorder=None):
     min_f = float("inf")
     ai_color = board.turn
 
-    # For visualization
+    # Danh sách tập biên (frontier) và tập đã duyệt (explored) phục vụ trực quan hóa
     frontier_list = []
     explored_list = []
 
     for i, (from_pos, to_pos) in enumerate(legal_moves):
-        # Simulate move
+        # Mô phỏng nước đi và tính g(n)
         target = board.get_piece(to_pos)
         cap_val = PIECE_VALUES.get(target.name, 0) if target else 0
         char_to_key = {
@@ -146,12 +163,12 @@ def a_star_move(board, recorder=None):
         key = char_to_key.get(target.name, target.name) if target else None
         piece_name = PIECE_NAME_VI.get(key, "—") if key else "—"
 
-        # g(n) = cost to reach this node
+        # g(n) = chi phí thực tế đi tới nút này
         g = 1000 - cap_val
 
-        # Make move to calculate remaining opponent material h(n)
+        # Thử thực hiện nước đi để tính toán giá trị heuristic h(n) (lực lượng còn lại của địch)
         board.make_move(from_pos, to_pos, test_only=True)
-        h = get_opponent_material(board, ai_color)  # opposite side material
+        h = get_opponent_material(board, ai_color)  # Tổng vật chất đối thủ
         board.undo_move(test_only=True)
 
         # f(n) = g(n) + h(n)
@@ -166,17 +183,17 @@ def a_star_move(board, recorder=None):
             "cap_val": cap_val,
         }
 
-        # Add to frontier
+        # Đưa nút vào danh sách tập biên
         frontier_list.append(node_info)
 
-        # Update best move
+        # Cập nhật nước đi có f(n) nhỏ nhất
         if f < min_f:
             min_f = f
             best_move = (from_pos, to_pos)
 
-        # Record step if recorder provided
+        # Ghi lại bước đi nếu có recorder
         if recorder:
-            # Sort frontier by f for visualization
+            # Sắp xếp tập biên theo giá trị f tăng dần để hiển thị trực quan
             sorted_frontier = sorted(frontier_list, key=lambda x: x["f"])
             recorder.add_step(
                 AStarStep(
@@ -190,7 +207,7 @@ def a_star_move(board, recorder=None):
                 )
             )
 
-        # Move to explored
+        # Chuyển nút vào danh sách đã kiểm tra
         explored_list.append(node_info)
 
     return best_move
@@ -198,31 +215,36 @@ def a_star_move(board, recorder=None):
 
 def ida_star_move(board, recorder=None):
     """
-    IDA*: Iterative Deepening A* (depth-limited A* search).
-    Runs A* with a threshold on f-cost, increasing the threshold on each iteration.
+    Thuật toán IDA* (Iterative Deepening A*).
+    Kết hợp giữa cơ chế duyệt sâu lặp (Iterative Deepening) và hàm đánh giá của A*.
+    Thuật toán duyệt cây tìm kiếm theo chiều sâu nhưng cắt tỉa các nhánh có chi phí f(n) vượt quá ngưỡng (threshold).
+    Sau mỗi lần lặp, ngưỡng threshold sẽ được tăng lên bằng giá trị f(n) nhỏ nhất vượt ngưỡng ở lần lặp trước.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
-    # For a turn-based board game, we can run a 2-ply IDA* search
+    # Lấy danh sách các nước đi hợp lệ hiện tại
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
         return None
 
     random.shuffle(legal_moves)
-    step_counter = [0]  # For recording
+    step_counter = [0]  # Biến đếm số bước dùng cho việc ghi log
     ai_color = board.turn
 
     def search(from_pos, to_pos, g, depth, threshold):
-        # Simulate move
+        """
+        Hàm đệ quy thực hiện tìm kiếm theo chiều sâu với ngưỡng threshold của IDA*.
+        """
+        # Thử thực hiện nước đi
         board.make_move(from_pos, to_pos, test_only=True)
 
-        # Heuristic h(n)
+        # Tính toán heuristic h(n) và f(n)
         h = get_opponent_material(board, ai_color)
         f = g + h
 
-        # Record step if recorder provided (limit to MAX_VISUALIZATION_STEPS steps)
+        # Ghi lại bước tìm kiếm nếu có recorder (giới hạn tối đa MAX_VISUALIZATION_STEPS bước)
         if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
             recorder.add_step(
                 IDAStarStep(
@@ -231,32 +253,34 @@ def ida_star_move(board, recorder=None):
                     explanation=f"IDA* node {from_pos}→{to_pos}: f={f}, threshold={threshold}, depth={depth}",
                     current_node={"move": (from_pos, to_pos), "g": g, "h": h, "f": f},
                     threshold=threshold,
-                    iteration=0,  # Will be updated in outer loop
+                    iteration=0,  # Sẽ được cập nhật ở vòng lặp bên ngoài
                     exceeded_f=f if f > threshold else None,
                     is_cutoff=(f > threshold),
                 )
             )
             step_counter[0] += 1
 
+        # Nếu chi phí f(n) vượt quá ngưỡng, cắt tỉa nhánh này và trả về f(n)
         if f > threshold:
             board.undo_move(test_only=True)
             return f, None
 
+        # Nếu đã đạt độ sâu tối đa hoặc hết nước đi, trả về kết quả
         if depth == 0 or not board.get_all_legal_moves(board.turn):
             board.undo_move(test_only=True)
             return f, (from_pos, to_pos)
 
-        # Recursive step: next ply (opponent's turn)
-        # Opponent wants to maximize their result, which means minimizing f from our perspective.
+        # Bước đệ quy: tính toán nước đi tiếp theo của đối thủ (next ply).
+        # Đối thủ muốn tối đa hóa lợi thế của họ, tức là làm giảm f(n) từ góc nhìn của ta.
         opp_moves = board.get_all_legal_moves(board.turn)
         min_t = float("inf")
 
-        # Sort opponent moves greedily to speed up
+        # Duyệt qua các nước đi của đối thủ
         for ofrom, oto in opp_moves:
             otarg = board.get_piece(oto)
             ocap_val = PIECE_VALUES.get(otarg.name, 0) if otarg else 0
 
-            # g cost from our perspective increases if opponent captures our pieces
+            # Chi phí g(n) từ góc nhìn của ta sẽ tăng lên nếu đối thủ ăn quân của ta
             next_g = g + ocap_val
 
             t, sol = search(ofrom, oto, next_g, depth - 1, threshold)
@@ -269,11 +293,11 @@ def ida_star_move(board, recorder=None):
         board.undo_move(test_only=True)
         return min_t, None
 
-    # Iterative deepening loop
-    threshold = get_opponent_material(board, board.turn)  # initial remaining material
+    # Vòng lặp tăng dần ngưỡng tìm kiếm (Iterative deepening loop)
+    threshold = get_opponent_material(board, board.turn)  # Ngưỡng ban đầu là tổng vật chất hiện tại của đối thủ
     legal_moves[0]
 
-    for iteration in range(3):  # Max 3 iterations to prevent slow down
+    for iteration in range(3):  # Giới hạn tối đa 3 lần lặp để tránh thuật toán chạy quá chậm
         if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
             recorder.add_step(
                 IDAStarStep(
@@ -292,7 +316,7 @@ def ida_star_move(board, recorder=None):
             cap_val = PIECE_VALUES.get(target.name, 0) if target else 0
             g = 1000 - cap_val
 
-            t, sol = search(from_pos, to_pos, g, 1, threshold)  # depth 1
+            t, sol = search(from_pos, to_pos, g, 1, threshold)  # Duyệt độ sâu 1 ply
             if sol is not None:
                 return (from_pos, to_pos)
             if t < min_exceeded:
@@ -301,5 +325,5 @@ def ida_star_move(board, recorder=None):
             break
         threshold = min_exceeded
 
-    return greedy_move(board)  # Fallback to greedy if limit exceeded
+    return greedy_move(board)  # Dự phòng quay về Greedy nếu vượt giới hạn tìm kiếm
 

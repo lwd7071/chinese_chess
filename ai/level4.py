@@ -1,9 +1,11 @@
 # Level 4 AI: Online Search, AND-OR Search, Belief State Search
+# Gói chứa các thuật toán tìm kiếm nâng cao trong môi trường động hoặc có yếu tố bất định: Online Search (chỉnh trọng số động), AND-OR Search (tìm kiếm cây điều kiện), và Belief State Search (tìm kiếm theo trạng thái niềm tin).
 import random
 
 from ai.level3 import get_perspective_score
 from ai.step_recorder import AndOrStep, BeliefStep, OnlineStep
 
+# Bảng dịch tên các quân cờ sang tiếng Việt phục vụ hiển thị trực quan
 PIECE_NAME_VI = {
     "general": "Tướng",
     "advisor": "Sĩ",
@@ -16,7 +18,13 @@ PIECE_NAME_VI = {
 
 
 def _get_piece_name(board, pos):
-    """Lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ."""
+    """
+    Hàm phụ trợ lấy tên quân cờ tiếng Việt từ vị trí trên bàn cờ.
+
+    Args:
+        board: Trạng thái bàn cờ
+        pos: Tọa độ (hàng, cột) của quân cờ
+    """
     if not pos:
         return "—"
     piece = board.get_piece(pos)
@@ -37,14 +45,14 @@ def _get_piece_name(board, pos):
 
 def online_search_move(board, recorder=None):
     """
-    Online Search (Dynamic Strategy Adjustment):
-    If our general is in check, we dynamically update our evaluation coefficients
-    to prioritize defensive pieces (Sĩ, Tượng) and safety.
-    If we are safe, we value attacking pieces (Xe, Pháo, Mã) and center control.
+    Thuật toán tìm kiếm trực tuyến (Online Search - Điều chỉnh chiến lược động).
+    Dựa trên tình huống thực tế trên bàn cờ để thay đổi trọng số đánh giá quân cờ:
+    - Nếu Tướng đang bị chiếu (in check): Tăng mạnh giá trị của Sĩ và Tượng để ưu tiên cố thủ, bảo vệ Tướng.
+    - Nếu Tướng an toàn: Tăng giá trị của các quân tấn công (Xe, Pháo, Mã) để ưu tiên thế trận tấn công và kiểm soát trung tâm.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -53,7 +61,7 @@ def online_search_move(board, recorder=None):
     color = board.turn
     in_check = board.is_in_check(color)
 
-    # Define dynamic weights
+    # Định nghĩa bộ trọng số chuẩn ban đầu
     weights_before = {
         "general": 10000,
         "rook": 900,
@@ -65,18 +73,18 @@ def online_search_move(board, recorder=None):
     }
 
     if in_check:
-        # Increase values of defensive advisors and elephants to prioritize protection
+        # Tướng bị chiếu: Tăng giá trị Sĩ (200 -> 400) và Tượng (200 -> 350) nhằm bọc lót
         weights_after = weights_before.copy()
         weights_after["advisor"] = 400
         weights_after["elephant"] = 350
     else:
-        # Increase values of attacking pieces for aggressive push
+        # Tướng an toàn: Tăng giá trị các quân chủ lực Xe (900 -> 1100), Pháo (450 -> 550), Mã (300 -> 400)
         weights_after = weights_before.copy()
         weights_after["rook"] = 1100
         weights_after["cannon"] = 550
         weights_after["horse"] = 400
 
-    # Record initial state if recorder provided
+    # Ghi lại bước khởi tạo và điều chỉnh trọng số nếu có recorder
     if recorder:
         recorder.add_step(
             OnlineStep(
@@ -90,7 +98,7 @@ def online_search_move(board, recorder=None):
             )
         )
 
-    # Temporary patch of values
+    # Can thiệp tạm thời vào bảng PIECE_VALUES trong module ai.eval
     import ai.eval as eval_mod
 
     original_values = eval_mod.PIECE_VALUES.copy()
@@ -106,7 +114,7 @@ def online_search_move(board, recorder=None):
         }
     )
 
-    # Run Hill Climbing on the updated evaluation function
+    # Chạy thuật toán tìm kiếm (theo mô hình Hill Climbing) với hàm đánh giá đã thay đổi trọng số
     best_move = None
     best_score = float("-inf")
     random.shuffle(legal_moves)
@@ -124,7 +132,7 @@ def online_search_move(board, recorder=None):
             best_score = score
             best_move = (from_pos, to_pos)
 
-    # Record final selection
+    # Ghi lại bước lựa chọn nước đi tốt nhất
     if recorder:
         sorted_candidates = sorted(candidates, key=lambda x: x["score"], reverse=True)[
             :10
@@ -142,24 +150,24 @@ def online_search_move(board, recorder=None):
             )
         )
 
-    # Restore original values
+    # Khôi phục lại giá trị gốc của bảng PIECE_VALUES
     eval_mod.PIECE_VALUES.update(original_values)
     return best_move
 
 
 def and_or_search_move(board, recorder=None):
     """
-    AND-OR search for deterministic, fully observable games (Xiangqi).
+    Thuật toán tìm kiếm AND-OR (AND-OR Tree Search).
+    Thích hợp cho các trò chơi có tính đối kháng và hoàn toàn quan sát được như Cờ tướng.
+    Quy tắc giải thích:
+    - Các nút OR (OR nodes): Lượt của AI (chọn ra nước đi mang lại kết quả tốt nhất trong các lựa chọn).
+    - Các nút AND (AND nodes): Lượt của đối thủ (AI phải đối phó với TẤT CẢ các nước đi phản đòn có thể có của đối thủ).
 
-    Standard interpretation:
-    - OR nodes: AI's turn (choose the best move that leads to a win).
-    - AND nodes: Opponent's turn (AI must handle all possible opponent moves).
-
-    This function uses a depth-limited AND-OR search to select a move.
+    Thuật toán tìm kiếm nước đi có khả năng đảm bảo kết quả tệ nhất (worst-case) là cao nhất.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -170,7 +178,7 @@ def and_or_search_move(board, recorder=None):
     best_move = legal_moves[0]
     best_guaranteed_score = float("-inf")
 
-    # We examine all legal moves for optimal worst-case guarantee
+    # Kiểm tra toàn bộ các nước đi hợp lệ để tìm nước đi có bảo đảm worst-case tốt nhất
     for i, (from_pos, to_pos) in enumerate(legal_moves):
         or_piece_name = _get_piece_name(board, from_pos)
         board.make_move(from_pos, to_pos, test_only=True)
@@ -179,7 +187,7 @@ def and_or_search_move(board, recorder=None):
         and_responses = []
 
         if not opp_moves:
-            # Checkmate for opponent - win for us!
+            # Đối thủ bị chiếu hết - phần thắng thuộc về AI!
             worst_case_score = float("inf")
             worst_case_move = None
             worst_case_piece = "—"
@@ -187,7 +195,7 @@ def and_or_search_move(board, recorder=None):
             worst_case_score = float("inf")
             worst_case_move = None
             worst_case_piece = "—"
-            # Opponent plays to minimize our score (AND nodes)
+            # Đối thủ đóng vai trò nút AND, luôn đi nước làm tối thiểu hóa điểm số của AI
             for ofrom, oto in opp_moves:
                 opp_piece = _get_piece_name(board, ofrom)
                 board.make_move(ofrom, oto, test_only=True)
@@ -203,7 +211,7 @@ def and_or_search_move(board, recorder=None):
 
         board.undo_move(test_only=True)
 
-        # Record step if recorder provided (limit to 10)
+        # Ghi lại bước tìm kiếm nếu có recorder (giới hạn hiển thị 10 bước)
         if recorder and i < 10:
             recorder.add_step(
                 AndOrStep(
@@ -218,7 +226,7 @@ def and_or_search_move(board, recorder=None):
                         "responses_count": len(and_responses),
                         "piece": or_piece_name,
                     },
-                    and_responses=and_responses[:5],  # Limit to 5 for display
+                    and_responses=and_responses[:5],  # Giới hạn 5 phản đòn để tránh rối mắt trên giao diện
                     worst_case={"move": worst_case_move, "score": worst_case_score, "piece": worst_case_piece}
                     if worst_case_move
                     else {},
@@ -226,6 +234,7 @@ def and_or_search_move(board, recorder=None):
                 )
             )
 
+        # Lựa chọn nước đi giúp AI có điểm bảo đảm (guaranteed score) cao nhất
         if worst_case_score > best_guaranteed_score:
             best_guaranteed_score = worst_case_score
             best_move = (from_pos, to_pos)
@@ -235,16 +244,16 @@ def and_or_search_move(board, recorder=None):
 
 def belief_state_search_move(board, recorder=None):
     """
-    Belief State Search:
-    We maintain a belief probability distribution of the opponent's strategy:
-    - 50% Aggressive (prioritizes captures)
-    - 30% Defensive (prioritizes protecting pieces)
-    - 20% Positional (prioritizes space control)
-    We select the move that yields the highest expected value over this belief state.
+    Thuật toán tìm kiếm Không gian niềm tin (Belief State Search).
+    Thuật toán duy trì một phân phối xác suất niềm tin về phong cách/chiến lược hiện tại của đối thủ:
+    - Phong cách Hổ báo / Tấn công (Aggressive): Ưu tiên ăn quân (50% hoặc 60% tùy lịch sử).
+    - Phong cách Phòng ngự (Defensive): Ưu tiên bảo vệ quân và cung Tướng (30% hoặc 60%).
+    - Phong cách Trận địa (Positional): Ưu tiên chiếm lĩnh không gian, khu vực trung tâm (20% hoặc 60%).
+    AI tính toán độ thỏa dụng kỳ vọng (Expected Utility) trên các phân phối này và chọn nước đi có kỳ vọng cao nhất.
 
     Args:
-        board: Current board state
-        recorder: Optional StepRecorder for visualization
+        board: Trạng thái bàn cờ hiện tại
+        recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
     legal_moves = board.get_all_legal_moves(board.turn)
     if not legal_moves:
@@ -253,18 +262,18 @@ def belief_state_search_move(board, recorder=None):
     color = board.turn
     random.shuffle(legal_moves)
 
-    # Detect opponent's last move type to update belief distribution dynamically
-    # For example, if opponent just captured a piece, they are likely aggressive.
-    # We check board history
+    # Phân tích lịch sử nước đi gần nhất của đối thủ để tự động cập nhật phân phối niềm tin
+    # Ví dụ: nếu đối thủ vừa ăn quân, khả năng cao họ đang theo phong cách Aggressive.
     opp_style = "aggressive"
     if board.history:
         _, to_pos, captured, _ = board.history[-1]
         if captured:
             opp_style = "aggressive"
         else:
+            # Nếu lùi hoặc đi quân trong cung tướng thì khả năng là Defensive, ngược lại là Positional
             opp_style = "defensive" if to_pos[0] in [0, 1, 2, 7, 8, 9] else "positional"
 
-    # Belief probabilities
+    # Gán trọng số xác suất dựa trên phong cách dự đoán được
     if opp_style == "aggressive":
         p_agg, p_def, p_pos = 0.6, 0.2, 0.2
     elif opp_style == "defensive":
@@ -272,7 +281,7 @@ def belief_state_search_move(board, recorder=None):
     else:
         p_agg, p_def, p_pos = 0.2, 0.2, 0.6
 
-    # Record detected style
+    # Ghi lại phong cách đối thủ phát hiện được
     if recorder:
         recorder.add_step(
             BeliefStep(
@@ -290,17 +299,17 @@ def belief_state_search_move(board, recorder=None):
             )
         )
 
-    # Helper to calculate positional value of a board from perspective of a strategy
+    # Hàm phụ trợ tính toán độ thỏa dụng (score) của bàn cờ tùy theo góc nhìn của từng phong cách
     def get_strategy_score(board, style):
         base = get_perspective_score(board, color)
         if style == "aggressive":
-            # Material value is dominant
+            # Giá trị vật chất đóng vai trò chủ đạo
             return base * 1.5
         elif style == "defensive":
-            # Guard safety is dominant
+            # Sự an toàn của Tướng đóng vai trò chủ đạo
             g_pos = board.get_general_pos(color)
             if g_pos:
-                # Add score for having many defenders close to general
+                # Cộng điểm nếu có nhiều quân đồng minh đứng xung quanh bảo vệ Tướng
                 defenders = 0
                 gr, gc = g_pos
                 for dr in [-1, 0, 1]:
@@ -310,8 +319,8 @@ def belief_state_search_move(board, recorder=None):
                             defenders += 1
                 return base + defenders * 50
             return base
-        else:  # positional (center control)
-            # Pawn and Knight position
+        else:  # Phong cách Trận địa (positional - kiểm soát trung tâm)
+            # Thưởng điểm cho Tốt và Mã chiếm lĩnh khu vực trung tâm bàn cờ
             center_score = 0
             for r in range(3, 7):
                 for c in range(2, 7):
@@ -323,14 +332,16 @@ def belief_state_search_move(board, recorder=None):
     best_move = legal_moves[0]
     best_expected_utility = float("-inf")
 
+    # Duyệt qua các nước đi để tính độ thỏa dụng kỳ vọng
     for from_pos, to_pos in legal_moves:
         board.make_move(from_pos, to_pos, test_only=True)
 
-        # Expected utility over the belief distribution
+        # Tính độ thỏa dụng cho từng tình huống phong cách
         u_agg = get_strategy_score(board, "aggressive")
         u_def = get_strategy_score(board, "defensive")
         u_pos = get_strategy_score(board, "positional")
 
+        # Độ thỏa dụng kỳ vọng E[U] = tổng (xác suất * độ thỏa dụng)
         expected_utility = p_agg * u_agg + p_def * u_def + p_pos * u_pos
         board.undo_move(test_only=True)
 
@@ -338,7 +349,7 @@ def belief_state_search_move(board, recorder=None):
             best_expected_utility = expected_utility
             best_move = (from_pos, to_pos)
 
-    # Record final selection
+    # Ghi lại bước lựa chọn nước đi cuối cùng
     if recorder:
         board.make_move(best_move[0], best_move[1], test_only=True)
         u_agg = get_strategy_score(board, "aggressive")
