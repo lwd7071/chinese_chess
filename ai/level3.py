@@ -68,37 +68,37 @@ def hill_climbing_move(board, recorder=None):
         board: Trạng thái bàn cờ hiện tại
         recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
-    legal_moves = board.get_all_legal_moves(board.turn)
+    legal_moves = board.get_all_legal_moves(board.turn) # lấy tất cả các nước có thể đi 
     if not legal_moves:
         return None
 
-    random.shuffle(legal_moves)
-    best_move = legal_moves[0]
-    best_score = float("-inf")
+    random.shuffle(legal_moves) # xáo trộn các nước đi 
+    best_move = legal_moves[0] # chọn nước đi đầu tiên 
+    best_score = float("-inf") # khởi tạo best_score bằng - vô cùng để tìm giá trị lớn nhất 
 
-    color = board.turn
+    color = board.turn # màu của AI hiện tại
 
     # Khởi tạo danh sách toàn bộ các trạng thái láng giềng (neighbor nodes)
-    all_neighbors = []
+    all_neighbors = [] 
     for m in legal_moves:
         piece_name = _get_piece_name(board, m[0])
         # Mô phỏng nước đi để tính điểm số láng giềng
-        board.make_move(m[0], m[1], test_only=True)
-        score = get_perspective_score(board, color)
-        board.undo_move(test_only=True)
+        board.make_move(m[0], m[1], test_only=True) # mô phỏng nước đi mà không thay đổi trạng thái bàn cờ 
+        score = get_perspective_score(board, color) # tính điểm số theo góc nhìn của AI 
+        board.undo_move(test_only=True) # hoàn tác nước đi 
 
         all_neighbors.append({
             "move": m,
             "score": score,
             "piece": piece_name,
-        })
+        }) # mỗi phần tử là 1 dict chứa thông tin về nước đi (tọa độ đi, tọa độ đến, điểm số, tên quân cờ)
 
-    evaluated_so_far = []
+    evaluated_so_far = [] # các nước đi đã được đánh giá để viết trong chế độ visualizer
 
     # Duyệt qua từng láng giềng để tìm trạng thái có điểm số cao nhất
     for i, neighbor_info in enumerate(all_neighbors):
-        score = neighbor_info["score"]
-        m = neighbor_info["move"]
+        score = neighbor_info["score"] # điểm số của nước đi hiện tại
+        m = neighbor_info["move"] # nước đi hiện tại
 
         evaluated_so_far.append(neighbor_info)
         remaining_neighbors = all_neighbors[i + 1:]
@@ -142,12 +142,12 @@ def simulated_annealing_move(board, T=100.0, alpha=0.9, recorder=None):
         alpha: Tốc độ hạ nhiệt (Cooling rate, 0 < alpha < 1)
         recorder: Đối tượng ghi lại các bước tìm kiếm phục vụ trực quan hóa (nếu có)
     """
-    legal_moves = board.get_all_legal_moves(board.turn)
-    if not legal_moves:
+    legal_moves = board.get_all_legal_moves(board.turn) # lấy tất cả các nước có thể đi 
+    if not legal_moves: # không có nước nào có thể đi 
         return None
 
-    color = board.turn
-    current_score = get_perspective_score(board, color)
+    color = board.turn # màu của AI hiện tại 
+    current_score = get_perspective_score(board, color) # tính điểm số của AI hiện tại
 
     # Khởi tạo nút xuất phát bằng cách chọn ngẫu nhiên một nước đi đầu tiên
     random.shuffle(legal_moves)

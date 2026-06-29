@@ -57,7 +57,8 @@ def greedy_move(board, recorder=None):
     max_val = -1
 
     # Tạo trước danh sách thông tin các nút ứng viên (candidates)
-    all_nodes = []
+    all_nodes = [] # 1 phần tử có dạng {"move": (from_pos, to_pos), "h": val, "piece": piece_name}
+    # tính điểm h(n) cho từng nước đi
     for m in legal_moves:
         target = board.get_piece(m[1])
         # h(n) trong Greedy ở đây chính là giá trị quân cờ ăn được tại vị trí đích
@@ -80,7 +81,7 @@ def greedy_move(board, recorder=None):
             "piece": piece_name,
         })
 
-    evaluated_so_far = []
+    evaluated_so_far = [] # đây là mảng để lưu các nước đi đã được đánh giá để vẽ ra giao diện trong chế độ visualizer
 
     # Duyệt qua các ứng viên để tìm nước đi có h(n) lớn nhất
     for i, candidate_info in enumerate(all_nodes):
@@ -88,7 +89,7 @@ def greedy_move(board, recorder=None):
         m = candidate_info["move"]
 
         evaluated_so_far.append(candidate_info)
-        remaining_candidates = all_nodes[i + 1:]
+        remaining_candidates = all_nodes[i + 1:]   # danh sách các nước đi còn lại chưa dc đánh giá
 
         if val > max_val:
             max_val = val
@@ -140,8 +141,10 @@ def a_star_move(board, recorder=None):
 
     random.shuffle(legal_moves)
     best_move = None
+    # đặt min_f bằng vô cùng để tìm giá trị nhỏ nhất 
     min_f = float("inf")
-    ai_color = board.turn
+
+    ai_color = board.turn 
 
     # Danh sách tập biên (frontier) và tập đã duyệt (explored) phục vụ trực quan hóa
     frontier_list = []
@@ -232,6 +235,7 @@ def ida_star_move(board, recorder=None):
     random.shuffle(legal_moves)
     step_counter = [0]  # Biến đếm số bước dùng cho việc ghi log
     ai_color = board.turn
+
 
     def search(from_pos, to_pos, g, depth, threshold):
         """
