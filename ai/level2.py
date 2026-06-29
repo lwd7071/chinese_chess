@@ -271,9 +271,10 @@ def ida_star_move(board, recorder=None):
             return f, (from_pos, to_pos)
 
         # Bước đệ quy: tính toán nước đi tiếp theo của đối thủ (next ply).
-        # Đối thủ muốn tối đa hóa lợi thế của họ, tức là làm giảm f(n) từ góc nhìn của ta.
+        # Đối thủ muốn tối đa hóa lợi thế của họ, tức là làm tăng f(n) từ góc nhìn của ta.
         opp_moves = board.get_all_legal_moves(board.turn)
-        min_t = float("inf")
+        max_t = -1
+        any_cutoff = False
 
         # Duyệt qua các nước đi của đối thủ
         for ofrom, oto in opp_moves:
@@ -284,18 +285,21 @@ def ida_star_move(board, recorder=None):
             next_g = g + ocap_val
 
             t, sol = search(ofrom, oto, next_g, depth - 1, threshold)
-            if sol is not None:
-                board.undo_move(test_only=True)
-                return t, (from_pos, to_pos)
-            if t < min_t:
-                min_t = t
+            if sol is None:
+                any_cutoff = True
+                if t > max_t:
+                    max_t = t
+            else:
+                if t > max_t:
+                    max_t = t
 
         board.undo_move(test_only=True)
-        return min_t, None
+        if any_cutoff:
+            return max_t, None
+        return max_t, (from_pos, to_pos)
 
     # Vòng lặp tăng dần ngưỡng tìm kiếm (Iterative deepening loop)
     threshold = get_opponent_material(board, board.turn)  # Ngưỡng ban đầu là tổng vật chất hiện tại của đối thủ
-    legal_moves[0]
 
     for iteration in range(3):  # Giới hạn tối đa 3 lần lặp để tránh thuật toán chạy quá chậm
         if recorder and step_counter[0] < MAX_VISUALIZATION_STEPS:
@@ -311,6 +315,9 @@ def ida_star_move(board, recorder=None):
             step_counter[0] += 1
 
         min_exceeded = float("inf")
+        best_f = float("inf")
+        best_move_this_iter = None
+
         for from_pos, to_pos in legal_moves:
             target = board.get_piece(to_pos)
             cap_val = PIECE_VALUES.get(target.name, 0) if target else 0
@@ -318,9 +325,16 @@ def ida_star_move(board, recorder=None):
 
             t, sol = search(from_pos, to_pos, g, 1, threshold)  # Duyệt độ sâu 1 ply
             if sol is not None:
-                return (from_pos, to_pos)
-            if t < min_exceeded:
-                min_exceeded = t
+                if t < best_f:
+                    best_f = t
+                    best_move_this_iter = (from_pos, to_pos)
+            else:
+                if t < min_exceeded:
+                    min_exceeded = t
+
+        if best_move_this_iter is not None:
+            return best_move_this_iter
+
         if min_exceeded == float("inf"):
             break
         threshold = min_exceeded
